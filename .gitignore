@@ -185,3 +185,8 @@ coverage.xml
 
 # Others
 *.DS_Store
+
+*.db
+*.sqlite3
+*.lock
+*.log
