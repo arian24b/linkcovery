@@ -1,5 +1,6 @@
-from rich import print
+# src/main.py
 
+from rich import print
 from database import LinkDatabase, User, Link
 
 # Main Script for Demonstration
@@ -11,6 +12,11 @@ if __name__ == "__main__":
     # Create a user
     user = User(name="Alice", email="alice@example.com")
     user_id = db.create_user(user)
+
+    if user_id is None:
+        print("[red]Failed to retrieve or create user. Exiting.[/red]")
+        db.close()
+        exit(1)
 
     # Create a link with an author
     new_link = Link(

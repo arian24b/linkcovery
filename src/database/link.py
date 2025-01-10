@@ -53,9 +53,24 @@ class LinkDatabase(Database):
             return user_id
         except IntegrityError as e:
             print(f"[red]Error: User with email {user.email} already exists. ({e})[/red]")
+            # Retrieve the existing user's ID
+            if existing_user := self.get_user_by_email(user.email):
+                return existing_user.id
             return None
         except Exception as e:
             print(f"[red]Unexpected error occurred while creating user: {e}[/red]")
+            return None
+
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        """Retrieve a user by email."""
+        try:
+            self.cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+            row = self.cursor.fetchone()
+            if row:
+                return User(**dict(row))
+            return None
+        except Exception as e:
+            print(f"[red]Unexpected error occurred while retrieving user: {e}[/red]")
             return None
 
     def create_link(self, link: Link) -> None:
