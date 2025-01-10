@@ -1,11 +1,14 @@
-# src/settings.py
-
-from pydantic import BaseSettings, Field
+from rich import pretty, traceback
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DATABASE_NAME: str = Field("app.db", env="DATABASE_NAME")
-    DEBUG: bool = Field(False, env="DEBUG")
+    traceback.install(show_locals=True)
+    pretty.install()
+
+    DATABASE_NAME: str = "app.db"
+    DEBUG: bool = False
+    ALLOW_EXTENTIONS: list = ["csv", "txt"]
 
     class Config:
         env_file = ".env"
