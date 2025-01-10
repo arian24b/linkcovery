@@ -21,7 +21,7 @@
 ### Prerequisites
 
 - Python **3.13** or higher.
-- `pip` (Python package manager).
+- `uv` (Python package manager).
 
 ### Clone the Repository
 
@@ -45,7 +45,7 @@ uv sync
 Run the `main.py` file to create the database schema and seed the database with sample data.
 
 ```bash
-python src/main.py
+uv run src/main.py
 ```
 
 ### Basic Operations
@@ -65,20 +65,6 @@ DATABASE_NAME = "app.db"
 ```
 
 - **Environment Variables**: Use `.env.example` as a template to create a `.env` file for environment-specific settings.
-
----
-
-## 🧪 Testing
-
-Testing functionality will be added in future updates. For now, ensure that the following are installed for testing:
-
-- `pytest`
-
-Run tests using:
-
-```bash
-pytest tests/
-```
 
 ---
 
@@ -105,6 +91,7 @@ Contributions are welcome! Feel free to submit issues or pull requests for impro
 ## 🛠️ Tech Stack
 
 - **Python 3.13**
+- **UV**
 - **SQLite**
 - **Rich** for terminal output
 - **Pydantic** for schema validation
