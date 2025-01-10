@@ -9,12 +9,23 @@ from database import LinkDatabase, User, Link
 
 app = Typer(help="Linkcovery CLI Application")
 
+# Create sub-applications for users and links
+user_app = Typer(help="User management commands.")
+link_app = Typer(help="Link management commands.")
+
+# Add sub-applications to the main app
+app.add_typer(user_app, name="user", help="Manage users.")
+app.add_typer(link_app, name="link", help="Manage links.")
+
 db = LinkDatabase()
 db.connect()
 
 
-@app.command()
-def add_user(name: str, email: str):
+@user_app.command("add")
+def add_user(
+    name: str = Option(..., prompt=True, help="Name of the user."),
+    email: str = Option(..., prompt=True, help="Email of the user."),
+):
     """
     Add a new user to the database.
     """
@@ -26,7 +37,7 @@ def add_user(name: str, email: str):
         print(f"[red]Failed to add user '{name}'.[/red]")
 
 
-@app.command()
+@user_app.command("list")
 def list_users():
     """
     List all users.
@@ -39,17 +50,25 @@ def list_users():
         print(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
 
 
-@app.command()
+@link_app.command("add")
 def add_link(
-    url: str,
-    domain: str,
-    author_email: str,
-    description: Optional[str] = "",
+    url: Optional[str] = Option(None, help="URL of the link."),
+    domain: Optional[str] = Option(None, help="Domain of the link."),
+    author_email: Optional[str] = Option(None, help="Email of the author."),
+    description: Optional[str] = Option("", help="Description of the link."),
     tags: List[str] = Option([], "--tag", "-t", help="Tags associated with the link."),
 ):
     """
     Add a new link to the database.
     """
+    # Interactive prompts if arguments are not provided
+    if not url:
+        url = prompt("URL of the link")
+    if not domain:
+        domain = prompt("Domain of the link")
+    if not author_email:
+        author_email = prompt("Author's email")
+
     user = db.get_user_by_email(author_email)
     if not user:
         print(f"[red]Author with email '{author_email}' does not exist.[/red]")
@@ -65,7 +84,7 @@ def add_link(
     db.create_link(link)
 
 
-@app.command()
+@link_app.command("list")
 def list_links():
     """
     List all links with their authors.
@@ -80,11 +99,11 @@ def list_links():
         print(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {author['name']} ({author['email']})")
 
 
-@app.command()
+@link_app.command("search")
 def search_links(
-    domain: Optional[str] = None,
+    domain: Optional[str] = Option(None, help="Filter by domain."),
     tags: List[str] = Option([], "--tag", "-t", help="Tags to filter by."),
-    description: Optional[str] = None,
+    description: Optional[str] = Option(None, help="Filter by description."),
     sort_by: str = Option("created_at", help="Field to sort by."),
     sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
     limit: int = Option(10, help="Number of results to return."),
@@ -111,22 +130,22 @@ def search_links(
         )
 
 
-@app.command()
-def delete_link(link_id: int):
+@link_app.command("delete")
+def delete_link(link_id: int = Option(..., help="ID of the link to delete.")):
     """
     Delete a link by its ID.
     """
     db.delete_link(link_id)
 
 
-@app.command()
+@link_app.command("update")
 def update_link(
-    link_id: int,
-    url: Optional[str] = None,
-    domain: Optional[str] = None,
-    description: Optional[str] = None,
-    tags: Optional[List[str]] = Option(None, "--tag", "-t", help="Tags to update."),
-    is_read: Optional[bool] = None,
+    link_id: int = Option(..., help="ID of the link to update."),
+    url: Optional[str] = Option(None, help="New URL of the link."),
+    domain: Optional[str] = Option(None, help="New domain of the link."),
+    description: Optional[str] = Option(None, help="New description of the link."),
+    tags: Optional[List[str]] = Option(None, "--tag", "-t", help="New tags for the link."),
+    is_read: Optional[bool] = Option(None, help="Mark as read or unread."),
 ):
     """
     Update a link's details by its ID.
@@ -135,6 +154,15 @@ def update_link(
     if not existing_link:
         print(f"[red]No link found with ID {link_id}.[/red]")
         raise Exit(code=1)
+
+    # Interactive prompts for missing optional arguments
+    if url is None and domain is None and description is None and tags is None and is_read is None:
+        print("[yellow]No updates provided. Use options to specify fields to update.[/yellow]")
+        raise Exit()
+
+    if url is None and domain is None and description is None and tags is None and is_read is None:
+        print("[yellow]No fields to update provided.[/yellow]")
+        raise Exit()
 
     # Update fields if new values are provided
     if url:
