@@ -8,6 +8,7 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pydantic[email]>=2.10.5",
     "rich>=13.9.4",
+    "typer>=0.15.1",
 ]
 
 [dependency-groups]
