@@ -1,6 +1,5 @@
-# src/main.py
-
 from rich import print
+
 from database import LinkDatabase, User, Link
 
 # Main Script for Demonstration
@@ -11,12 +10,6 @@ if __name__ == "__main__":
 
     # Create a user
     user = User(name="Alice", email="alice@example.com")
-    user_id = db.create_user(user)
-
-    if user_id is None:
-        print("[red]Failed to retrieve or create user. Exiting.[/red]")
-        db.close()
-        exit(1)
 
     # Create a link with an author
     new_link = Link(
@@ -24,9 +17,15 @@ if __name__ == "__main__":
         domain="example.com",
         description="An example website",
         tag=["example", "test"],
-        author_id=user_id,
+        author_id=0,  # Temporary, will be set atomically
     )
-    db.create_link(new_link)
+
+    success = db.create_user_and_link(user, new_link)
+
+    if not success:
+        print("[red]Failed to create user and link atomically. Exiting.[/red]")
+        db.close()
+        exit(1)
 
     # Retrieve all links with authors
     print("\nLinks with authors:")

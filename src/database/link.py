@@ -11,31 +11,32 @@ from .schema import User, Link
 class LinkDatabase(Database):
     def create_table(self) -> None:
         """Create users and links tables."""
-        # Create the users table
-        self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE
-            )
-        """)
+        with self.transaction():
+            # Create the users table
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT NOT NULL UNIQUE
+                )
+            """)
 
-        # Create the links table with a foreign key to users
-        self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS links (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT NOT NULL UNIQUE,
-                domain TEXT NOT NULL,
-                description TEXT,
-                tag TEXT,
-                author_id INTEGER NOT NULL,
-                is_read INTEGER DEFAULT 0, -- New column added
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                FOREIGN KEY (author_id) REFERENCES users (id)
-            )
-        """)
-        self.connection.commit()
+            # Create the links table with a foreign key to users
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS links (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    url TEXT NOT NULL UNIQUE,
+                    domain TEXT NOT NULL,
+                    description TEXT,
+                    tag TEXT,
+                    author_id INTEGER NOT NULL,
+                    is_read INTEGER DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY (author_id) REFERENCES users (id)
+                )
+            """)
+        print("[blue]Tables created successfully.[/blue]")
 
     def create_user(self, user: User) -> int | None:
         """Insert a new user."""
@@ -59,18 +60,6 @@ class LinkDatabase(Database):
             return None
         except Exception as e:
             print(f"[red]Unexpected error occurred while creating user: {e}[/red]")
-            return None
-
-    def get_user_by_email(self, email: str) -> Optional[User]:
-        """Retrieve a user by email."""
-        try:
-            self.cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-            row = self.cursor.fetchone()
-            if row:
-                return User(**dict(row))
-            return None
-        except Exception as e:
-            print(f"[red]Unexpected error occurred while retrieving user: {e}[/red]")
             return None
 
     def create_link(self, link: Link) -> None:
@@ -98,6 +87,36 @@ class LinkDatabase(Database):
             print(f"[red]Error: Link with URL {link.url} already exists or invalid author ID. ({e})[/red]")
         except Exception as e:
             print(f"[red]Unexpected error occurred while creating link: {e}[/red]")
+
+    def create_user_and_link(self, user: User, link: Link) -> bool:
+        """
+        Create a user and a link atomically.
+        If either operation fails, neither is committed.
+        """
+        try:
+            with self.transaction():
+                user_id = self.create_user(user)
+                if user_id is None:
+                    raise Exception("Failed to create or retrieve user.")
+
+                link.author_id = user_id
+                self.create_link(link)
+            return True
+        except Exception as e:
+            print(f"[red]Failed to create user and link atomically: {e}[/red]")
+            return False
+
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        """Retrieve a user by email."""
+        try:
+            self.cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+            row = self.cursor.fetchone()
+            if row:
+                return User(**dict(row))
+            return None
+        except Exception as e:
+            print(f"[red]Unexpected error occurred while retrieving user: {e}[/red]")
+            return None
 
     def read_users(self) -> list[User]:
         """Retrieve all users."""
