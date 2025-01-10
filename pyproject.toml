@@ -1,0 +1,15 @@
+[project]
+name = "linkconery"
+version = "0.1.0"
+description = "Link discovery tool for people whit love and python :)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.ruff]
+line-length = 120
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.0",
+]
