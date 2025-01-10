@@ -24,7 +24,7 @@ class LinkDatabase(Database):
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS links (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT NOT NULL,
+                url TEXT NOT NULL UNIQUE,
                 domain TEXT NOT NULL,
                 description TEXT,
                 tag TEXT,
@@ -54,24 +54,27 @@ class LinkDatabase(Database):
 
     def create_link(self, link: Link):
         """Insert a new link."""
-        self.cursor.execute(
-            """
-            INSERT INTO links (url, domain, description, tag, author_id, is_read, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                str(link.url),
-                link.domain,
-                link.description,
-                dumps(link.tag),
-                link.author_id,
-                int(link.is_read),
-                link.created_at,
-                link.updated_at,
-            ),
-        )
-        self.connection.commit()
-        print("Link created successfully.")
+        try:
+            self.cursor.execute(
+                """
+                INSERT INTO links (url, domain, description, tag, author_id, is_read, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    str(link.url),
+                    link.domain,
+                    link.description,
+                    dumps(link.tag),
+                    link.author_id,
+                    int(link.is_read),
+                    link.created_at,
+                    link.updated_at,
+                ),
+            )
+            self.connection.commit()
+            print("Link created successfully.")
+        except IntegrityError:
+            print(f"User with email {str(link.url)} already exists. Skipping insertion.")
 
     def read_users(self) -> List[User]:
         """Retrieve all users."""
