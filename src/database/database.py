@@ -1,7 +1,7 @@
 from sqlite3 import connect, Row
 from rich import print
 
-from src.settengs import DATABASE_NAME
+from settengs import DATABASE_NAME
 
 
 class Database:
