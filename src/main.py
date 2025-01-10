@@ -1,4 +1,6 @@
-from src.database import LinkDatabase, User, Link
+from rich import print
+
+from database import LinkDatabase, User, Link
 
 
 # Main Script for Demonstration

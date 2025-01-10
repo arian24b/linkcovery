@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from rich import print
 
-from database import Database
+from database.database import Database
 from schema import User, Link
 
 
