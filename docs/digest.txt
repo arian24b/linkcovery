@@ -1,26 +1,110 @@
 Directory structure:
 └── /./
-    ├── __init__.py
-    ├── src/
-    │   ├── __pycache__/
-    │   ├── database/
-    │   │   ├── database.py
-    │   │   ├── __init__.py
-    │   │   ├── schema.py
-    │   │   ├── __pycache__/
-    │   │   └── link.py
-    │   ├── settengs.py
-    │   ├── main.py
-    │   └── __init__.py
     ├── pyproject.toml
-    ├── docs/
-    │   └── digest.txt
-    ├── .env.example
-    ├── README.md
-    ├── app.db
+    ├── __init__.py
     ├── .python-version
-    ├── uv.lock
-    └── LICENSE
+    ├── docs/
+    ├── .env.example
+    └── src/
+        ├── main.py
+        ├── settengs.py
+        ├── database/
+        │   ├── database.py
+        │   ├── schema.py
+        │   ├── __init__.py
+        │   └── link.py
+        └── __init__.py
+
+================================================
+File: /pyproject.toml
+================================================
+[project]
+name = "linkcovery"
+version = "0.1.0"
+description = "Link discovery tool for people whit love and python :)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic[email]>=2.10.5",
+    "rich>=13.9.4",
+]
+
+[dependency-groups]
+dev = [
+    "gitingest>=0.1.2",
+    "ruff>=0.9.0",
+]
+
+[tool.ruff]
+line-length = 120
+
+
+================================================
+File: /.python-version
+================================================
+3.13
+
+
+================================================
+File: /src/main.py
+================================================
+from rich import print
+
+from database import LinkDatabase, User, Link
+
+
+# Main Script for Demonstration
+if __name__ == "__main__":
+    db = LinkDatabase()
+    db.connect()
+    db.create_table()
+
+    # Create a user
+    user = User(name="Alice", email="alice@example.com")
+    db.create_user(user)
+
+    # Retrieve the user ID (assuming it's the first user)
+    user_id = 1
+
+    # Create a link with an author
+    new_link = Link(
+        url="https://example.com",
+        domain="example.com",
+        description="An example website",
+        tag=["example", "test"],
+        author_id=user_id,
+    )
+    db.create_link(new_link)
+
+    # Retrieve all links with authors
+    print("\nLinks with authors:")
+    links_with_authors = db.read_links_with_authors()
+    for entry in links_with_authors:
+        print(f"Link: {entry['link']}, Author: {entry['author']}")
+
+    # Search links with filtering, sorting, and pagination
+    print("\nSearch results:")
+    search_results = db.search_links(
+        domain="example",
+        tags=["test"],
+        description="example",
+        sort_by="created_at",
+        sort_order="DESC",
+        limit=5,
+        offset=0,
+    )
+    for link in search_results:
+        print(link)
+
+    # Close the database connection
+    db.close()
+
+
+================================================
+File: /src/settengs.py
+================================================
+DATABASE_NAME = "app.db"
+
 
 ================================================
 File: /src/database/database.py
@@ -52,16 +136,6 @@ class Database:
             print("Database connection closed.")
         else:
             print("No database connection to close.")
-
-
-================================================
-File: /src/database/__init__.py
-================================================
-from .database import Database
-from .schema import User, Link
-from .link import LinkDatabase
-
-__all__ = ["Database", "User", "Link", "LinkDatabase"]
 
 
 ================================================
@@ -122,6 +196,16 @@ class Link(BaseModel):
     is_read: bool = Field(default=False, description="Whether the link has been read")
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat(), description="Creation timestamp")
     updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat(), description="Last update timestamp")
+
+
+================================================
+File: /src/database/__init__.py
+================================================
+from .database import Database
+from .schema import User, Link
+from .link import LinkDatabase
+
+__all__ = ["Database", "User", "Link", "LinkDatabase"]
 
 
 ================================================
@@ -333,119 +417,3 @@ class LinkDatabase(Database):
             links.append(Link(**row_dict))
 
         return links
-
-
-================================================
-File: /src/settengs.py
-================================================
-DATABASE_NAME = "app.db"
-
-
-================================================
-File: /src/main.py
-================================================
-from rich import print
-
-from database import LinkDatabase, User, Link
-
-
-# Main Script for Demonstration
-if __name__ == "__main__":
-    db = LinkDatabase()
-    db.connect()
-    db.create_table()
-
-    # Create a user
-    user = User(name="Alice", email="alice@example.com")
-    db.create_user(user)
-
-    # Retrieve the user ID (assuming it's the first user)
-    user_id = 1
-
-    # Create a link with an author
-    new_link = Link(
-        url="https://example.com",
-        domain="example.com",
-        description="An example website",
-        tag=["example", "test"],
-        author_id=user_id,
-    )
-    db.create_link(new_link)
-
-    # Retrieve all links with authors
-    print("\nLinks with authors:")
-    links_with_authors = db.read_links_with_authors()
-    for entry in links_with_authors:
-        print(f"Link: {entry['link']}, Author: {entry['author']}")
-
-    # Search links with filtering, sorting, and pagination
-    print("\nSearch results:")
-    search_results = db.search_links(
-        domain="example",
-        tags=["test"],
-        description="example",
-        sort_by="created_at",
-        sort_order="DESC",
-        limit=5,
-        offset=0,
-    )
-    for link in search_results:
-        print(link)
-
-    # Close the database connection
-    db.close()
-
-
-================================================
-File: /pyproject.toml
-================================================
-[project]
-name = "linkcovery"
-version = "0.1.0"
-description = "Link discovery tool for people whit love and python :)"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "pydantic[email]>=2.10.5",
-    "rich>=13.9.4",
-]
-
-[dependency-groups]
-dev = [
-    "gitingest>=0.1.2",
-    "ruff>=0.9.0",
-]
-
-[tool.ruff]
-line-length = 120
-
-
-================================================
-File: /.python-version
-================================================
-3.13
-
-================================================
-File: /LICENSE
-================================================
-MIT License
-
-Copyright (c) 2025 Arian Omrani
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
