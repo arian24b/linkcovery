@@ -29,6 +29,7 @@ class LinkDatabase(Database):
                 description TEXT,
                 tag TEXT,
                 author_id INTEGER NOT NULL,
+                is_read INTEGER DEFAULT 0, -- New column added
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (author_id) REFERENCES users (id)
@@ -55,8 +56,8 @@ class LinkDatabase(Database):
         """Insert a new link."""
         self.cursor.execute(
             """
-            INSERT INTO links (url, domain, description, tag, author_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO links (url, domain, description, tag, author_id, is_read, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 str(link.url),
@@ -64,6 +65,7 @@ class LinkDatabase(Database):
                 link.description,
                 dumps(link.tag),
                 link.author_id,
+                int(link.is_read),
                 link.created_at,
                 link.updated_at,
             ),
