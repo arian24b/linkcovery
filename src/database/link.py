@@ -44,13 +44,15 @@ class LinkDatabase(Database):
                 """
                 INSERT INTO users (name, email)
                 VALUES (?, ?)
-            """,
+                """,
                 (user.name, user.email),
             )
             self.connection.commit()
-            print("User created successfully.")
-        except IntegrityError:
-            print(f"User with email {user.email} already exists. Skipping insertion.")
+            print("[green]User created successfully.[/green]")
+        except IntegrityError as e:
+            print(f"[red]Error: User with email {user.email} already exists. ({e})[/red]")
+        except Exception as e:
+            print(f"[red]Unexpected error occurred while creating user: {e}[/red]")
 
     def create_link(self, link: Link):
         """Insert a new link."""
@@ -59,7 +61,7 @@ class LinkDatabase(Database):
                 """
                 INSERT INTO links (url, domain, description, tag, author_id, is_read, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
+                """,
                 (
                     str(link.url),
                     link.domain,
@@ -72,15 +74,21 @@ class LinkDatabase(Database):
                 ),
             )
             self.connection.commit()
-            print("Link created successfully.")
-        except IntegrityError:
-            print(f"User with email {str(link.url)} already exists. Skipping insertion.")
+            print("[green]Link created successfully.[/green]")
+        except IntegrityError as e:
+            print(f"[red]Error: Link with URL {link.url} already exists or invalid author ID. ({e})[/red]")
+        except Exception as e:
+            print(f"[red]Unexpected error occurred while creating link: {e}[/red]")
 
     def read_users(self) -> List[User]:
         """Retrieve all users."""
-        self.cursor.execute("SELECT * FROM users")
-        rows = self.cursor.fetchall()
-        return [User(**dict(row)) for row in rows]
+        try:
+            self.cursor.execute("SELECT * FROM users")
+            rows = self.cursor.fetchall()
+            return [User(**dict(row)) for row in rows]
+        except Exception as e:
+            print(f"[red]Unexpected error occurred while reading users: {e}[/red]")
+            return []
 
     def read_links_with_authors(self) -> List[dict]:
         """Retrieve all links with their authors."""
@@ -119,30 +127,44 @@ class LinkDatabase(Database):
 
     def update_link(self, link_id: int, updated_link: Link):
         """Update a link by ID."""
-        updated_link.updated_at = datetime.utcnow().isoformat()
-        self.cursor.execute(
-            """
-            UPDATE links
-            SET url = ?, domain = ?, description = ?, tag = ?, updated_at = ?
-            WHERE id = ?
-        """,
-            (
-                updated_link.url,
-                updated_link.domain,
-                updated_link.description,
-                dumps(updated_link.tag),
-                updated_link.updated_at,
-                link_id,
-            ),
-        )
-        self.connection.commit()
-        print("Link updated successfully.")
+        try:
+            updated_link.updated_at = datetime.utcnow().isoformat()
+            self.cursor.execute(
+                """
+                UPDATE links
+                SET url = ?, domain = ?, description = ?, tag = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    updated_link.url,
+                    updated_link.domain,
+                    updated_link.description,
+                    dumps(updated_link.tag),
+                    updated_link.updated_at,
+                    link_id,
+                ),
+            )
+            if self.cursor.rowcount == 0:
+                print(f"[yellow]No link found with ID {link_id}. Nothing was updated.[/yellow]")
+            else:
+                self.connection.commit()
+                print("[green]Link updated successfully.[/green]")
+        except IntegrityError as e:
+            print(f"[red]Error: Duplicate URL or invalid update data. ({e})[/red]")
+        except Exception as e:
+            print(f"[red]Unexpected error occurred while updating link: {e}[/red]")
 
     def delete_link(self, link_id: int):
         """Delete a link by ID."""
-        self.cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
-        self.connection.commit()
-        print("Link deleted successfully.")
+        try:
+            self.cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
+            if self.cursor.rowcount == 0:
+                print(f"[yellow]No link found with ID {link_id}. Nothing was deleted.[/yellow]")
+            else:
+                self.connection.commit()
+                print("[green]Link deleted successfully.[/green]")
+        except Exception as e:
+            print(f"[red]Unexpected error occurred while deleting link: {e}[/red]")
 
     def search_links(
         self,
@@ -155,32 +177,33 @@ class LinkDatabase(Database):
         offset: int = 0,
     ) -> List[Link]:
         """Search for links by domain, tags, or description with sorting and pagination."""
-        query = "SELECT * FROM links WHERE 1=1"
-        parameters = []
+        try:
+            query = "SELECT * FROM links WHERE 1=1"
+            parameters = []
 
-        # Filter by domain (case-insensitive)
-        if domain:
-            query += " AND LOWER(domain) LIKE ?"
-            parameters.append(f"%{domain.lower()}%")
+            # Filter by domain (case-insensitive)
+            if domain:
+                query += " AND LOWER(domain) LIKE ?"
+                parameters.append(f"%{domain.lower()}%")
 
-        # Filter by description (case-insensitive)
-        if description:
-            query += " AND LOWER(description) LIKE ?"
-            parameters.append(f"%{description.lower()}%")
+            # Filter by description (case-insensitive)
+            if description:
+                query += " AND LOWER(description) LIKE ?"
+                parameters.append(f"%{description.lower()}%")
 
-        # Filter by tags (exact match, tag list must contain all tags)
-        if tags:
-            self.cursor.execute("SELECT * FROM links")
-            rows = self.cursor.fetchall()
-            filtered_links = []
-            for row in rows:
-                row_dict = dict(row)
-                row_tags = loads(row_dict["tag"])  # Deserialize tags
-                if all(tag in row_tags for tag in tags):
-                    filtered_links.append(row_dict)
-            # Return results after tag filtering
-            rows = filtered_links
-        else:
+            # Filter by tags (exact match, tag list must contain all tags)
+            if tags:
+                self.cursor.execute("SELECT * FROM links")
+                rows = self.cursor.fetchall()
+                filtered_links = []
+                for row in rows:
+                    row_dict = dict(row)
+                    row_tags = loads(row_dict["tag"])  # Deserialize tags
+                    if all(tag in row_tags for tag in tags):
+                        filtered_links.append(row_dict)
+                # Return results after tag filtering
+                rows = filtered_links
+
             # Sort by field (case-insensitive for text fields)
             if sort_by not in {"created_at", "updated_at", "domain"}:
                 raise ValueError("Invalid sort_by field")
@@ -196,11 +219,17 @@ class LinkDatabase(Database):
             self.cursor.execute(query, parameters)
             rows = self.cursor.fetchall()
 
-        # Convert rows to Link objects
-        links = []
-        for row in rows:
-            row_dict = dict(row)
-            row_dict["tag"] = loads(row_dict["tag"])  # Convert JSON string to list
-            links.append(Link(**row_dict))
+            # Convert rows to Link objects
+            links = []
+            for row in rows:
+                row_dict = dict(row)
+                row_dict["tag"] = loads(row_dict["tag"])  # Convert JSON string to list
+                links.append(Link(**row_dict))
 
-        return links
+            return links
+        except ValueError as ve:
+            print(f"[red]Validation error: {ve}[/red]")
+            return []
+        except Exception as e:
+            print(f"[red]Unexpected error occurred during search: {e}[/red]")
+            return []
