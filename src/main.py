@@ -32,5 +32,19 @@ if __name__ == "__main__":
     for entry in links_with_authors:
         print(f"Link: {entry['link']}, Author: {entry['author']}")
 
+    # Search links with filtering, sorting, and pagination
+    print("\nSearch results:")
+    search_results = db.search_links(
+        domain="example",
+        tags=["test"],
+        description="example",
+        sort_by="created_at",
+        sort_order="DESC",
+        limit=5,
+        offset=0,
+    )
+    for link in search_results:
+        print(link)
+
     # Close the database connection
     db.close()

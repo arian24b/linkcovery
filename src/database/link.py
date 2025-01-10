@@ -143,3 +143,64 @@ class LinkDatabase(Database):
         self.cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
         self.connection.commit()
         print("Link deleted successfully.")
+
+    def search_links(
+        self,
+        domain: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        description: Optional[str] = None,
+        sort_by: str = "created_at",
+        sort_order: str = "ASC",
+        limit: int = 10,
+        offset: int = 0,
+    ) -> List[Link]:
+        """Search for links by domain, tags, or description with sorting and pagination."""
+        query = "SELECT * FROM links WHERE 1=1"
+        parameters = []
+
+        # Filter by domain (case-insensitive)
+        if domain:
+            query += " AND LOWER(domain) LIKE ?"
+            parameters.append(f"%{domain.lower()}%")
+
+        # Filter by description (case-insensitive)
+        if description:
+            query += " AND LOWER(description) LIKE ?"
+            parameters.append(f"%{description.lower()}%")
+
+        # Filter by tags (exact match, tag list must contain all tags)
+        if tags:
+            self.cursor.execute("SELECT * FROM links")
+            rows = self.cursor.fetchall()
+            filtered_links = []
+            for row in rows:
+                row_dict = dict(row)
+                row_tags = loads(row_dict["tag"])  # Deserialize tags
+                if all(tag in row_tags for tag in tags):
+                    filtered_links.append(row_dict)
+            # Return results after tag filtering
+            rows = filtered_links
+        else:
+            # Sort by field (case-insensitive for text fields)
+            if sort_by not in {"created_at", "updated_at", "domain"}:
+                raise ValueError("Invalid sort_by field")
+            query += f" ORDER BY {sort_by} {sort_order.upper()}"
+            if sort_order.upper() not in {"ASC", "DESC"}:
+                raise ValueError("Invalid sort_order; use 'ASC' or 'DESC'")
+
+            # Add pagination
+            query += " LIMIT ? OFFSET ?"
+            parameters.extend([limit, offset])
+
+            # Execute the query
+            self.cursor.execute(query, parameters)
+            rows = self.cursor.fetchall()
+
+        # Convert rows to Link objects
+        links = []
+        for row in rows:
+            row_dict = dict(row)
+            row_dict["tag"] = loads(row_dict["tag"])  # Convert JSON string to list
+            links.append(Link(**row_dict))
+
+        return links
