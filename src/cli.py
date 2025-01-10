@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-from typer import Typer, Option, Exit
+from typer import Typer, Option, Exit, prompt
 from typing import List, Optional
 from rich import print
 from datetime import datetime
 
 from database import LinkDatabase, User, Link
+from settings import settings  # noqa
 
 app = Typer(help="Linkcovery CLI Application")
 
@@ -17,6 +18,7 @@ link_app = Typer(help="Link management commands.")
 app.add_typer(user_app, name="user", help="Manage users.")
 app.add_typer(link_app, name="link", help="Manage links.")
 
+# Initialize database with settings
 db = LinkDatabase()
 db.connect()
 
@@ -158,10 +160,6 @@ def update_link(
     # Interactive prompts for missing optional arguments
     if url is None and domain is None and description is None and tags is None and is_read is None:
         print("[yellow]No updates provided. Use options to specify fields to update.[/yellow]")
-        raise Exit()
-
-    if url is None and domain is None and description is None and tags is None and is_read is None:
-        print("[yellow]No fields to update provided.[/yellow]")
         raise Exit()
 
     # Update fields if new values are provided

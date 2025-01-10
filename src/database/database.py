@@ -6,8 +6,8 @@ from settings import settings
 
 
 class Database:
-    def __init__(self, db_name: str = settings.DATABASE_NAME):
-        self.db_name = db_name
+    def __init__(self):
+        self.db_name = settings.DATABASE_NAME
         self.connection = None
         self.cursor = None
         print("[blue]Database initialized.[/blue]")
