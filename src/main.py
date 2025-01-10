@@ -2,7 +2,6 @@ from rich import print
 
 from database import LinkDatabase, User, Link
 
-
 # Main Script for Demonstration
 if __name__ == "__main__":
     db = LinkDatabase()
@@ -11,10 +10,7 @@ if __name__ == "__main__":
 
     # Create a user
     user = User(name="Alice", email="alice@example.com")
-    db.create_user(user)
-
-    # Retrieve the user ID (assuming it's the first user)
-    user_id = 1
+    user_id = db.create_user(user)
 
     # Create a link with an author
     new_link = Link(

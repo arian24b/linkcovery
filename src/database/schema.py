@@ -48,8 +48,12 @@ class Link(BaseModel):
     url: HttpUrl = Field(..., description="The URL of the link")
     domain: str = Field(..., description="Domain of the URL")
     description: Optional[str] = Field(None, description="Description of the link")
-    tag: list = Field(default_factory=list, description="Tags associated with the link")
+    tag: list[str] = Field(default_factory=list, description="Tags associated with the link")
     author_id: int = Field(..., description="Foreign key to the User model")
     is_read: bool = Field(default=False, description="Whether the link has been read")
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat(), description="Creation timestamp")
     updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat(), description="Last update timestamp")
+
+
+class Config:
+    allow_mutation = False

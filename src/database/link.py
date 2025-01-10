@@ -1,6 +1,6 @@
 from sqlite3 import IntegrityError
 from json import dumps, loads
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 from rich import print
 
@@ -9,7 +9,7 @@ from .schema import User, Link
 
 
 class LinkDatabase(Database):
-    def create_table(self):
+    def create_table(self) -> None:
         """Create users and links tables."""
         # Create the users table
         self.cursor.execute("""
@@ -37,7 +37,7 @@ class LinkDatabase(Database):
         """)
         self.connection.commit()
 
-    def create_user(self, user: User):
+    def create_user(self, user: User) -> int | None:
         """Insert a new user."""
         try:
             self.cursor.execute(
@@ -48,13 +48,17 @@ class LinkDatabase(Database):
                 (user.name, user.email),
             )
             self.connection.commit()
+            user_id = self.cursor.lastrowid
             print("[green]User created successfully.[/green]")
+            return user_id
         except IntegrityError as e:
             print(f"[red]Error: User with email {user.email} already exists. ({e})[/red]")
+            return None
         except Exception as e:
             print(f"[red]Unexpected error occurred while creating user: {e}[/red]")
+            return None
 
-    def create_link(self, link: Link):
+    def create_link(self, link: Link) -> None:
         """Insert a new link."""
         try:
             self.cursor.execute(
@@ -80,7 +84,7 @@ class LinkDatabase(Database):
         except Exception as e:
             print(f"[red]Unexpected error occurred while creating link: {e}[/red]")
 
-    def read_users(self) -> List[User]:
+    def read_users(self) -> list[User]:
         """Retrieve all users."""
         try:
             self.cursor.execute("SELECT * FROM users")
@@ -90,7 +94,7 @@ class LinkDatabase(Database):
             print(f"[red]Unexpected error occurred while reading users: {e}[/red]")
             return []
 
-    def read_links_with_authors(self) -> List[dict]:
+    def read_links_with_authors(self) -> list[dict]:
         """Retrieve all links with their authors."""
         self.cursor.execute("""
             SELECT links.*, users.name as author_name, users.email as author_email
@@ -125,7 +129,7 @@ class LinkDatabase(Database):
             return Link(**dict(row), tag=loads(row["tag"]))
         return None
 
-    def update_link(self, link_id: int, updated_link: Link):
+    def update_link(self, link_id: int, updated_link: Link) -> None:
         """Update a link by ID."""
         try:
             updated_link.updated_at = datetime.utcnow().isoformat()
@@ -154,7 +158,7 @@ class LinkDatabase(Database):
         except Exception as e:
             print(f"[red]Unexpected error occurred while updating link: {e}[/red]")
 
-    def delete_link(self, link_id: int):
+    def delete_link(self, link_id: int) -> None:
         """Delete a link by ID."""
         try:
             self.cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
@@ -169,13 +173,13 @@ class LinkDatabase(Database):
     def search_links(
         self,
         domain: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         description: Optional[str] = None,
         sort_by: str = "created_at",
         sort_order: str = "ASC",
         limit: int = 10,
         offset: int = 0,
-    ) -> List[Link]:
+    ) -> list[Link]:
         """Search for links by domain, tags, or description with sorting and pagination."""
         try:
             query = "SELECT * FROM links WHERE 1=1"

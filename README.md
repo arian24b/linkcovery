@@ -58,7 +58,7 @@ uv run src/main.py
 
 ## 🔧 Configuration
 
-- **Database Name**: Modify the database name in `src/settengs.py`.
+- **Database Name**: Modify the database name in `src/settings.py`.
 
 ```python
 DATABASE_NAME = "app.db"

@@ -1,10 +1,11 @@
 [project]
 name = "linkcovery"
 version = "0.1.0"
-description = "Link discovery tool for people whit love and python :)"
+description = "Link discovery tool for people with love and Python :)"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "pydantic-settings>=2.7.1",
     "pydantic[email]>=2.10.5",
     "rich>=13.9.4",
 ]
