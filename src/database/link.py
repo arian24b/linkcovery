@@ -36,22 +36,32 @@ class LinkDatabase(Database):
                     FOREIGN KEY (author_id) REFERENCES users (id)
                 )
             """)
-        print("[blue]Tables created successfully.[/blue]")
+
+            # Create an index on the domain column to speed up domain-based searches
+            self.cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_links_domain ON links (domain)
+            """)
+
+            # Create an index on the created_at column to speed up sorting
+            self.cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_links_created_at ON links (created_at)
+            """)
+        print("[blue]Tables and indexes created successfully.[/blue]")
 
     def create_user(self, user: User) -> int | None:
         """Insert a new user."""
         try:
-            self.cursor.execute(
-                """
-                INSERT INTO users (name, email)
-                VALUES (?, ?)
-                """,
-                (user.name, user.email),
-            )
-            self.connection.commit()
-            user_id = self.cursor.lastrowid
-            print("[green]User created successfully.[/green]")
-            return user_id
+            with self.transaction() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO users (name, email)
+                    VALUES (?, ?)
+                    """,
+                    (user.name, user.email),
+                )
+                user_id = cursor.lastrowid
+                print("[green]User created successfully.[/green]")
+                return user_id
         except IntegrityError as e:
             print(f"[red]Error: User with email {user.email} already exists. ({e})[/red]")
             # Retrieve the existing user's ID
@@ -62,31 +72,35 @@ class LinkDatabase(Database):
             print(f"[red]Unexpected error occurred while creating user: {e}[/red]")
             return None
 
-    def create_link(self, link: Link) -> None:
+    def create_link(self, link: Link) -> Optional[int]:
         """Insert a new link."""
         try:
-            self.cursor.execute(
-                """
-                INSERT INTO links (url, domain, description, tag, author_id, is_read, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    str(link.url),
-                    link.domain,
-                    link.description,
-                    dumps(link.tag),
-                    link.author_id,
-                    int(link.is_read),
-                    link.created_at,
-                    link.updated_at,
-                ),
-            )
-            self.connection.commit()
-            print("[green]Link created successfully.[/green]")
+            with self.transaction() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO links (url, domain, description, tag, author_id, is_read, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(link.url),
+                        link.domain,
+                        link.description,
+                        dumps(link.tag),
+                        link.author_id,
+                        int(link.is_read),
+                        link.created_at,
+                        link.updated_at,
+                    ),
+                )
+                link_id = cursor.lastrowid
+                print("[green]Link created successfully.[/green]")
+                return link_id
         except IntegrityError as e:
             print(f"[red]Error: Link with URL {link.url} already exists or invalid author ID. ({e})[/red]")
+            return None
         except Exception as e:
             print(f"[red]Unexpected error occurred while creating link: {e}[/red]")
+            return None
 
     def create_user_and_link(self, user: User, link: Link) -> bool:
         """
@@ -229,27 +243,29 @@ class LinkDatabase(Database):
                 query += " AND LOWER(description) LIKE ?"
                 parameters.append(f"%{description.lower()}%")
 
-            # Filter by tags (exact match, tag list must contain all tags)
+            # Filter by tags using JSON1 extension
             if tags:
-                self.cursor.execute("SELECT * FROM links")
-                rows = self.cursor.fetchall()
-                filtered_links = []
-                for row in rows:
-                    row_dict = dict(row)
-                    row_tags = loads(row_dict["tag"])  # Deserialize tags
-                    if all(tag in row_tags for tag in tags):
-                        filtered_links.append(row_dict)
-                # Return results after tag filtering
-                rows = filtered_links
+                # For each tag, ensure it exists in the JSON array
+                tag_conditions = " AND ".join(
+                    ["EXISTS (SELECT 1 FROM json_each(links.tag) WHERE json_each.value = ?)" for _ in tags]
+                )
+                query += f" {tag_conditions}"
+                parameters.extend(tags)
 
-            # Sort by field (case-insensitive for text fields)
-            if sort_by not in {"created_at", "updated_at", "domain"}:
-                raise ValueError("Invalid sort_by field")
-            query += f" ORDER BY {sort_by} {sort_order.upper()}"
-            if sort_order.upper() not in {"ASC", "DESC"}:
+            # Validate sort_by field
+            allowed_sort_fields = {"created_at", "updated_at", "domain"}
+            if sort_by not in allowed_sort_fields:
+                raise ValueError(f"Invalid sort_by field: {sort_by}. Allowed fields: {allowed_sort_fields}")
+
+            # Validate sort_order
+            sort_order = sort_order.upper()
+            if sort_order not in {"ASC", "DESC"}:
                 raise ValueError("Invalid sort_order; use 'ASC' or 'DESC'")
 
-            # Add pagination
+            # Append sorting
+            query += f" ORDER BY {sort_by} {sort_order}"
+
+            # Append pagination
             query += " LIMIT ? OFFSET ?"
             parameters.extend([limit, offset])
 
@@ -261,7 +277,7 @@ class LinkDatabase(Database):
             links = []
             for row in rows:
                 row_dict = dict(row)
-                row_dict["tag"] = loads(row_dict["tag"])  # Convert JSON string to list
+                row_dict["tag"] = loads(row_dict["tag"]) if row_dict["tag"] else []
                 links.append(Link(**row_dict))
 
             return links

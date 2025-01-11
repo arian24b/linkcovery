@@ -1,42 +1,46 @@
-from sqlite3 import connect, Row
+from sqlite3 import connect, Row, Connection
 from contextlib import contextmanager
 from rich import print
+from queue import Queue
+from threading import Lock
 
 from settings import settings
 
 
 class Database:
-    def __init__(self):
+    def __init__(self, pool_size: int = 5):
         self.db_name = settings.DATABASE_NAME
-        self.connection = None
-        self.cursor = None
-        print("[blue]Database initialized.[/blue]")
+        self.pool_size = pool_size
+        self.pool = Queue(maxsize=self.pool_size)
+        self.lock = Lock()
+        self._initialize_pool()
+        print(f"[blue]Database initialized with a connection pool of size {self.pool_size}.[/blue]")
 
-    def connect(self):
-        try:
-            self.connection = connect(self.db_name)
-            self.connection.row_factory = Row
-            self.cursor = self.connection.cursor()
-            print("[blue]Connected to the database.[/blue]")
-        except Exception as e:
-            print(f"[red]Failed to connect to the database: {e}[/red]")
-            raise
+    def _initialize_pool(self):
+        """Initialize the connection pool with a fixed number of connections."""
+        for _ in range(self.pool_size):
+            conn = connect(self.db_name, check_same_thread=False)
+            conn.row_factory = Row
+            self.pool.put(conn)
 
-    def close(self):
-        """Close the database connection."""
-        if self.connection:
-            self.connection.close()
-            print("[blue]Database connection closed.[/blue]")
-        else:
-            print("[yellow]No database connection to close.[/yellow]")
+    def close_all(self):
+        """Close all connections in the pool."""
+        while not self.pool.empty():
+            conn = self.pool.get()
+            conn.close()
+        print("[blue]All database connections have been closed.[/blue]")
 
     @contextmanager
-    def get_connection(self):
+    def get_connection(self) -> Connection:
+        """
+        Context manager to acquire a database connection from the pool.
+        Ensures the connection is returned to the pool after use.
+        """
+        conn = self.pool.get()
         try:
-            self.connect()
-            yield self.connection
+            yield conn
         finally:
-            self.close()
+            self.pool.put(conn)
 
     @contextmanager
     def transaction(self):
@@ -44,14 +48,18 @@ class Database:
         Context manager for handling transactions.
         Commits the transaction if block succeeds, otherwise rolls back.
         """
-        if not self.connection:
-            self.connect()
-        try:
-            self.connection.execute("BEGIN")
-            yield
-            self.connection.commit()
-            print("[green]Transaction committed.[/green]")
-        except Exception as e:
-            self.connection.rollback()
-            print(f"[red]Transaction rolled back due to error: {e}[/red]")
-            raise
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute("BEGIN")
+                yield cursor
+                conn.commit()
+                print("[green]Transaction committed.[/green]")
+            except Exception as e:
+                conn.rollback()
+                print(f"[red]Transaction rolled back due to error: {e}[/red]")
+                raise
+
+    def __del__(self):
+        """Ensure all connections are closed when the instance is destroyed."""
+        self.close_all()
