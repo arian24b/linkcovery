@@ -9,7 +9,7 @@ def check_file(file_path: str) -> bool:
     if not path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    if extension := file_path.split(".")[-1] not in settings.ALLOW_EXTENTIONS:
+    if (extension := file_path.split(".")[-1]) not in settings.ALLOW_EXTENTIONS:
         raise ValueError(f"Invalid file extension: {extension}, allowed extensions: {settings.ALLOW_EXTENTIONS}")
 
     return True
