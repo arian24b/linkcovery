@@ -10,20 +10,13 @@ from settings import settings  # noqa
 
 app = Typer(help="Linkcovery CLI Application")
 
-# Create sub-applications for users and links
-user_app = Typer(help="User management commands.")
-link_app = Typer(help="Link management commands.")
-
-# Add sub-applications to the main app
-app.add_typer(user_app, name="user", help="Manage users.")
-app.add_typer(link_app, name="link", help="Manage links.")
-
 # Initialize database with settings
 db = LinkDatabase()
 db.connect()
 
 
-@user_app.command("add")
+# User Commands
+@app.command("user-add", help="Add a new user to the database.")
 def add_user(
     name: str = Option(..., prompt=True, help="Name of the user."),
     email: str = Option(..., prompt=True, help="Email of the user."),
@@ -32,14 +25,14 @@ def add_user(
     Add a new user to the database.
     """
     user = User(name=name, email=email)
-    user_id = db.create_user(user)
-    if user_id:
+
+    if user_id := db.create_user(user):
         print(f"[green]User '{name}' added with ID: {user_id}[/green]")
     else:
         print(f"[red]Failed to add user '{name}'.[/red]")
 
 
-@user_app.command("list")
+@app.command("user-list", help="List all users.")
 def list_users():
     """
     List all users.
@@ -52,7 +45,8 @@ def list_users():
         print(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
 
 
-@link_app.command("add")
+# Link Commands
+@app.command("link-add", help="Add a new link to the database.")
 def add_link(
     url: Optional[str] = Option(None, help="URL of the link."),
     domain: Optional[str] = Option(None, help="Domain of the link."),
@@ -83,10 +77,14 @@ def add_link(
         tag=tags,
         author_id=user.id,
     )
-    db.create_link(link)
+
+    if link_id := db.create_link(link):
+        print(f"[green]Link added with ID: {link_id}[/green]")
+    else:
+        print("[red]Failed to add link.[/red]")
 
 
-@link_app.command("list")
+@app.command("link-list", help="List all links with their authors.")
 def list_links():
     """
     List all links with their authors.
@@ -101,7 +99,7 @@ def list_links():
         print(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {author['name']} ({author['email']})")
 
 
-@link_app.command("search")
+@app.command("link-search", help="Search for links based on domain, tags, or description.")
 def search_links(
     domain: Optional[str] = Option(None, help="Filter by domain."),
     tags: List[str] = Option([], "--tag", "-t", help="Tags to filter by."),
@@ -132,15 +130,18 @@ def search_links(
         )
 
 
-@link_app.command("delete")
+@app.command("link-delete", help="Delete a link by its ID.")
 def delete_link(link_id: int = Option(..., help="ID of the link to delete.")):
     """
     Delete a link by its ID.
     """
-    db.delete_link(link_id)
+    if db.delete_link(link_id):
+        print(f"[green]Link with ID {link_id} has been deleted.[/green]")
+    else:
+        print(f"[red]Failed to delete link with ID {link_id}.[/red]")
 
 
-@link_app.command("update")
+@app.command("link-update", help="Update a link's details by its ID.")
 def update_link(
     link_id: int = Option(..., help="ID of the link to update."),
     url: Optional[str] = Option(None, help="New URL of the link."),
@@ -176,7 +177,10 @@ def update_link(
 
     existing_link.updated_at = datetime.utcnow().isoformat()
 
-    db.update_link(link_id, existing_link)
+    if db.update_link(link_id, existing_link):
+        print(f"[green]Link with ID {link_id} has been updated.[/green]")
+    else:
+        print(f"[red]Failed to update link with ID {link_id}.[/red]")
 
 
 @app.callback()
