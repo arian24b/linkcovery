@@ -4,15 +4,16 @@ from typer import Typer, Option, Exit, prompt
 from typing import List, Optional
 from rich import print
 from datetime import datetime
+from os import path
 
 from database import LinkDatabase, User, Link
-from settings import settings  # noqa
+from importer import check_file, import_txt, import_csv
 
 app = Typer(help="Linkcovery CLI Application")
 
 # Initialize database with settings
 db = LinkDatabase()
-db.connect()
+db.get_connection()
 
 
 # User Commands
@@ -20,11 +21,15 @@ db.connect()
 def add_user(
     name: str = Option(..., prompt=True, help="Name of the user."),
     email: str = Option(..., prompt=True, help="Email of the user."),
-):
+) -> None:
     """
     Add a new user to the database.
     """
-    user = User(name=name, email=email)
+    user = User(
+        id=None,
+        name=name,
+        email=email,
+    )
 
     if user_id := db.create_user(user):
         print(f"[green]User '{name}' added with ID: {user_id}[/green]")
@@ -33,14 +38,13 @@ def add_user(
 
 
 @app.command("user-list", help="List all users.")
-def list_users():
+def list_users() -> None:
     """
     List all users.
     """
-    users = db.read_users()
-    if not users:
+    if not (users := db.read_users()):
         print("[yellow]No users found.[/yellow]")
-        return
+        return None
     for user in users:
         print(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
 
@@ -48,12 +52,12 @@ def list_users():
 # Link Commands
 @app.command("link-add", help="Add a new link to the database.")
 def add_link(
-    url: Optional[str] = Option(None, help="URL of the link."),
-    domain: Optional[str] = Option(None, help="Domain of the link."),
-    author_email: Optional[str] = Option(None, help="Email of the author."),
-    description: Optional[str] = Option("", help="Description of the link."),
-    tags: List[str] = Option([], "--tag", "-t", help="Tags associated with the link."),
-):
+    url: str | None = Option(None, help="URL of the link."),
+    domain: str | None = Option(None, help="Domain of the link."),
+    author_email: str | None = Option(None, help="Email of the author."),
+    description: str | None = Option("", help="Description of the link."),
+    tags: list[str] = Option([], "--tag", "-t", help="Tags associated with the link."),
+) -> None:
     """
     Add a new link to the database.
     """
@@ -71,6 +75,7 @@ def add_link(
         raise Exit(code=1)
 
     link = Link(
+        id=None,
         url=url,
         domain=domain,
         description=description,
@@ -85,14 +90,14 @@ def add_link(
 
 
 @app.command("link-list", help="List all links with their authors.")
-def list_links():
+def list_links() -> None:
     """
     List all links with their authors.
     """
     links_with_authors = db.read_links_with_authors()
     if not links_with_authors:
         print("[yellow]No links found.[/yellow]")
-        return
+        return None
     for entry in links_with_authors:
         link: Link = entry["link"]
         author = entry["author"]
@@ -101,14 +106,14 @@ def list_links():
 
 @app.command("link-search", help="Search for links based on domain, tags, or description.")
 def search_links(
-    domain: Optional[str] = Option(None, help="Filter by domain."),
-    tags: List[str] = Option([], "--tag", "-t", help="Tags to filter by."),
-    description: Optional[str] = Option(None, help="Filter by description."),
+    domain: str | None = Option(None, help="Filter by domain."),
+    tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
+    description: str | None = Option(None, help="Filter by description."),
     sort_by: str = Option("created_at", help="Field to sort by."),
     sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
     limit: int = Option(10, help="Number of results to return."),
     offset: int = Option(0, help="Number of results to skip."),
-):
+) -> None:
     """
     Search for links based on domain, tags, or description.
     """
@@ -123,7 +128,7 @@ def search_links(
     )
     if not results:
         print("[yellow]No matching links found.[/yellow]")
-        return
+        return None
     for link in results:
         print(
             f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Description: {link.description}, Tags: {', '.join(link.tag)}"
@@ -131,7 +136,7 @@ def search_links(
 
 
 @app.command("link-delete", help="Delete a link by its ID.")
-def delete_link(link_id: int = Option(..., help="ID of the link to delete.")):
+def delete_link(link_id: int = Option(..., help="ID of the link to delete.")) -> None:
     """
     Delete a link by its ID.
     """
@@ -149,7 +154,7 @@ def update_link(
     description: Optional[str] = Option(None, help="New description of the link."),
     tags: Optional[List[str]] = Option(None, "--tag", "-t", help="New tags for the link."),
     is_read: Optional[bool] = Option(None, help="Mark as read or unread."),
-):
+) -> None:
     """
     Update a link's details by its ID.
     """
@@ -183,12 +188,37 @@ def update_link(
         print(f"[red]Failed to update link with ID {link_id}.[/red]")
 
 
-@app.callback()
-def main():
+# Import Commands
+@app.command("import", help="Import links from a TXT or CSV file.")
+def import_links(
+    file_path: str = Option(..., help="Path to the .txt or .csv file to import."),
+    author_id: int = Option(..., help="ID of the author to associate with the imported links."),
+) -> None:
     """
-    Linkcovery CLI allows you to manage users and links.
+    Import links from a TXT or CSV file into the database.
     """
-    pass
+    try:
+        # Validate file
+        if check_file(file_path):
+            extension = path.splitext(file_path)[1].lower()
+            try:
+                if extension == ".txt":
+                    import_txt(file_path, author_id, db)
+                elif extension == ".csv":
+                    import_csv(file_path, author_id, db)
+                else:
+                    print(f"[red]Unsupported file extension: {extension}[/red]")
+            except Exception as e:
+                print(f"[red]Import failed: {e}[/red]")
+    except FileNotFoundError as fnf_error:
+        print(f"[red]{fnf_error}[/red]")
+        raise Exit(code=1)
+    except ValueError as val_error:
+        print(f"[red]{val_error}[/red]")
+        raise Exit(code=1)
+    except Exception as e:
+        print(f"[red]An unexpected error occurred: {e}[/red]")
+        raise Exit(code=1)
 
 
 if __name__ == "__main__":
