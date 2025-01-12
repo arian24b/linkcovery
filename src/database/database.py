@@ -60,6 +60,10 @@ class Database:
                 print(f"[red]Transaction rolled back due to error: {e}[/red]")
                 raise
 
-    def __del__(self):
-        """Ensure all connections are closed when the instance is destroyed."""
+    def __enter__(self):
+        """Enter the runtime context related to this object."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the runtime context and close all connections."""
         self.close_all()
