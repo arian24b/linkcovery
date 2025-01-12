@@ -1,8 +1,9 @@
 from os import path
 from rich import print
+from pydantic import HttpUrl
 
 from settings import settings
-from database import Link
+from database import LinkDatabase, Link
 
 
 def check_file(file_path: str) -> bool:
@@ -15,7 +16,18 @@ def check_file(file_path: str) -> bool:
     return True
 
 
-def import_txt(file_path: str) -> iter[str]:
+def import_txt(file_path: str, author_id: int):
     with open(file_path, "r", encoding="utf-8") as txtfile:
+        db = LinkDatabase()
         for line in txtfile:
-            yield line.rstrip()
+            link = line.rstrip()
+            _ = link.split("/")
+            link_obj = Link(
+                id=None,
+                url=HttpUrl(link),
+                domain=_[2],
+                description="_".join(_[3:]),
+                tag=_[2].split("."),
+                author_id=author_id,
+            )
+            db.create_link(link_obj)
