@@ -3,8 +3,7 @@ from rich import print
 from pydantic import HttpUrl, ValidationError
 from urllib.parse import urlparse
 from csv import DictReader
-from argparse import ArgumentParser
-from sys import exit
+from typing import Optional, List
 
 from settings import settings
 from database import LinkDatabase, Link
@@ -48,7 +47,7 @@ def extract_domain(url: str) -> str:
     return parsed_url.netloc
 
 
-def parse_tags(domain: str) -> list[str]:
+def parse_tags(domain: str) -> List[str]:
     """
     Generates tags based on the domain.
 
@@ -166,49 +165,3 @@ def import_csv(file_path: str, author_id: int, db: LinkDatabase):
         print("[green]All links from CSV file have been imported successfully.[/green]")
     except Exception as e:
         print(f"[red]Failed to import from CSV file: {e}[/red]")
-
-
-def main():
-    """
-    Entry point for the import script. Parses command-line arguments and triggers the appropriate import function.
-    """
-    parser = ArgumentParser(description="Import links from TXT or CSV files into the database.")
-    parser.add_argument(
-        "file_path",
-        type=str,
-        help="Path to the .txt or .csv file to import.",
-    )
-    parser.add_argument(
-        "author_id",
-        type=int,
-        help="ID of the author to associate with the imported links.",
-    )
-    args = parser.parse_args()
-
-    try:
-        if check_file(args.file_path):
-            extension = path.splitext(args.file_path)[1].lower()
-            db = LinkDatabase()
-            db.get_connection()
-            try:
-                if extension == ".txt":
-                    import_txt(args.file_path, args.author_id, db)
-                elif extension == ".csv":
-                    import_csv(args.file_path, args.author_id, db)
-                else:
-                    print(f"[red]Unsupported file extension: {extension}[/red]")
-            finally:
-                db.close_all()
-    except FileNotFoundError as fnf_error:
-        print(f"[red]{fnf_error}[/red]")
-        exit(1)
-    except ValueError as val_error:
-        print(f"[red]{val_error}[/red]")
-        exit(1)
-    except Exception as e:
-        print(f"[red]An unexpected error occurred: {e}[/red]")
-        exit(1)
-
-
-if __name__ == "__main__":
-    main()
