@@ -11,9 +11,9 @@ from .schema import User, Link
 class LinkDatabase(Database):
     def create_table(self) -> None:
         """Create users and links tables."""
-        with self.transaction():
+        with self.transaction() as cursor:
             # Create the users table
-            self.cursor.execute("""
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
@@ -22,7 +22,7 @@ class LinkDatabase(Database):
             """)
 
             # Create the links table with a foreign key to users
-            self.cursor.execute("""
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS links (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     url TEXT NOT NULL UNIQUE,
@@ -38,12 +38,12 @@ class LinkDatabase(Database):
             """)
 
             # Create an index on the domain column to speed up domain-based searches
-            self.cursor.execute("""
+            cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_links_domain ON links (domain)
             """)
 
             # Create an index on the created_at column to speed up sorting
-            self.cursor.execute("""
+            cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_links_created_at ON links (created_at)
             """)
         print("[blue]Tables and indexes created successfully.[/blue]")
@@ -108,13 +108,12 @@ class LinkDatabase(Database):
         If either operation fails, neither is committed.
         """
         try:
-            with self.transaction():
-                user_id = self.create_user(user)
-                if user_id is None:
-                    raise Exception("Failed to create or retrieve user.")
+            user_id = self.create_user(user)
+            if user_id is None:
+                raise Exception("Failed to create or retrieve user.")
 
-                link.author_id = user_id
-                self.create_link(link)
+            link.author_id = user_id
+            self.create_link(link)
             return True
         except Exception as e:
             print(f"[red]Failed to create user and link atomically: {e}[/red]")
@@ -123,11 +122,12 @@ class LinkDatabase(Database):
     def get_user_by_email(self, email: str) -> Optional[User]:
         """Retrieve a user by email."""
         try:
-            self.cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-            row = self.cursor.fetchone()
-            if row:
-                return User(**dict(row))
-            return None
+            with self.transaction() as cursor:
+                cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+                row = cursor.fetchone()
+                if row:
+                    return User(**dict(row))
+                return None
         except Exception as e:
             print(f"[red]Unexpected error occurred while retrieving user: {e}[/red]")
             return None
@@ -135,21 +135,23 @@ class LinkDatabase(Database):
     def read_users(self) -> list[User]:
         """Retrieve all users."""
         try:
-            self.cursor.execute("SELECT * FROM users")
-            rows = self.cursor.fetchall()
-            return [User(**dict(row)) for row in rows]
+            with self.transaction() as cursor:
+                cursor.execute("SELECT * FROM users")
+                rows = cursor.fetchall()
+                return [User(**dict(row)) for row in rows]
         except Exception as e:
             print(f"[red]Unexpected error occurred while reading users: {e}[/red]")
             return []
 
     def read_links_with_authors(self) -> list[dict]:
         """Retrieve all links with their authors."""
-        self.cursor.execute("""
-            SELECT links.*, users.name as author_name, users.email as author_email
-            FROM links
-            JOIN users ON links.author_id = users.id
-        """)
-        rows = self.cursor.fetchall()
+        with self.transaction() as cursor:
+            cursor.execute("""
+                SELECT links.*, users.name as author_name, users.email as author_email
+                FROM links
+                JOIN users ON links.author_id = users.id
+            """)
+            rows = cursor.fetchall()
 
         results = []
         for row in rows:
@@ -171,8 +173,9 @@ class LinkDatabase(Database):
 
     def read_link(self, link_id: int) -> Optional[Link]:
         """Retrieve a specific link by ID."""
-        self.cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
-        row = self.cursor.fetchone()
+        with self.transaction() as cursor:
+            cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
+            row = cursor.fetchone()
         if row:
             return Link(**dict(row), tag=loads(row["tag"]))
         return None
@@ -181,26 +184,27 @@ class LinkDatabase(Database):
         """Update a link by ID."""
         try:
             updated_link.updated_at = datetime.utcnow().isoformat()
-            self.cursor.execute(
-                """
-                UPDATE links
-                SET url = ?, domain = ?, description = ?, tag = ?, updated_at = ?
-                WHERE id = ?
-                """,
-                (
-                    updated_link.url,
-                    updated_link.domain,
-                    updated_link.description,
-                    dumps(updated_link.tag),
-                    updated_link.updated_at,
-                    link_id,
-                ),
-            )
-            if self.cursor.rowcount == 0:
-                print(f"[yellow]No link found with ID {link_id}. Nothing was updated.[/yellow]")
-            else:
-                self.connection.commit()
-                print("[green]Link updated successfully.[/green]")
+            with self.transaction() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE links
+                    SET url = ?, domain = ?, description = ?, tag = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        updated_link.url,
+                        updated_link.domain,
+                        updated_link.description,
+                        dumps(updated_link.tag),
+                        updated_link.updated_at,
+                        link_id,
+                    ),
+                )
+                if cursor.rowcount == 0:
+                    print(f"[yellow]No link found with ID {link_id}. Nothing was updated.[/yellow]")
+                else:
+                    cursor.connection.commit()
+                    print("[green]Link updated successfully.[/green]")
         except IntegrityError as e:
             print(f"[red]Error: Duplicate URL or invalid update data. ({e})[/red]")
         except Exception as e:
@@ -209,12 +213,13 @@ class LinkDatabase(Database):
     def delete_link(self, link_id: int) -> None:
         """Delete a link by ID."""
         try:
-            self.cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
-            if self.cursor.rowcount == 0:
-                print(f"[yellow]No link found with ID {link_id}. Nothing was deleted.[/yellow]")
-            else:
-                self.connection.commit()
-                print("[green]Link deleted successfully.[/green]")
+            with self.transaction() as cursor:
+                cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
+                if cursor.rowcount == 0:
+                    print(f"[yellow]No link found with ID {link_id}. Nothing was deleted.[/yellow]")
+                else:
+                    cursor.connection.commit()
+                    print("[green]Link deleted successfully.[/green]")
         except Exception as e:
             print(f"[red]Unexpected error occurred while deleting link: {e}[/red]")
 
@@ -270,8 +275,9 @@ class LinkDatabase(Database):
             parameters.extend([limit, offset])
 
             # Execute the query
-            self.cursor.execute(query, parameters)
-            rows = self.cursor.fetchall()
+            with self.transaction() as cursor:
+                cursor.execute(query, parameters)
+                rows = cursor.fetchall()
 
             # Convert rows to Link objects
             links = []
