@@ -5,10 +5,12 @@ from typing import List, Optional
 from rich import print
 from datetime import datetime
 from os import path
+from pathlib import Path
 
 from main import app
 from database import LinkDatabase, User, Link
 from importer import check_file, import_txt, import_csv
+from exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
 
 
 # Initialize database with settings
@@ -219,6 +221,82 @@ def import_links(
     except Exception as e:
         print(f"[red]An unexpected error occurred: {e}[/red]")
         raise Exit(code=1)
+
+
+@app.command("export-users", help="Export all users to a JSON or CSV file.")
+def export_users(
+    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
+    output: str = Option("users_export.json", "--output", "-o", help="Output file path", show_default=True),
+) -> None:
+    """
+    Export all users to the specified format (JSON or CSV).
+    """
+    format = format.lower()
+    if format == "json":
+        export_users_to_json(db, output)
+    elif format == "csv":
+        export_users_to_csv(db, output)
+    else:
+        print(f"[red]Unsupported export format: {format}. Choose 'json' or 'csv'.[/red]")
+
+
+@app.command("export-links", help="Export all links to a JSON or CSV file.")
+def export_links(
+    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
+    output: str = Option("links_export.json", "--output", "-o", help="Output file path", show_default=True),
+) -> None:
+    """
+    Export all links to the specified format (JSON or CSV).
+    """
+    format = format.lower()
+    if format == "json":
+        export_links_to_json(db, output)
+    elif format == "csv":
+        export_links_to_csv(db, output)
+    else:
+        print(f"[red]Unsupported export format: {format}. Choose 'json' or 'csv'.[/red]")
+
+
+@app.command("export-all", help="Export all users and links to JSON or CSV files.")
+def export_all_command(
+    format: str = Option(
+        "json", "--format", "-f", help="Export format for both users and links: json or csv", show_default=True
+    ),
+    output_dir: str | None = Option(None, "--output-dir", "-d", help="Directory to store exported files."),
+) -> None:
+    """
+    Export all users and links to the specified format (JSON or CSV) within a directory.
+    """
+    format = format.lower()
+    if format not in {"json", "csv"}:
+        print(f"[red]Unsupported export format: {format}. Choose 'json' or 'csv'.[/red]")
+        raise Exit(code=1)
+
+    # Set default output directory if not provided
+    if not output_dir:
+        output_dir = Path.cwd()
+    else:
+        output_dir = Path(output_dir)
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"[red]Failed to create directory '{output_dir}': {e}[/red]")
+            raise Exit(code=1)
+
+    # Define output file paths
+    users_output = output_dir / f"users_export.{format}"
+    links_output = output_dir / f"links_export.{format}"
+
+    # Confirm overwrite if files already exist
+    for output_path in [users_output, links_output]:
+        if output_path.exists():
+            overwrite = prompt(f"File '{output_path}' already exists. Overwrite? (y/n)", default="n")
+            if overwrite.lower() != "y":
+                print(f"[yellow]Skipped exporting to '{output_path}'.[/yellow]")
+                raise Exit()
+
+    # Perform export
+    export_all(db, format, str(output_dir))
 
 
 if __name__ == "__main__":
