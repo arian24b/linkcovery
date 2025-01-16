@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-from typer import Typer, Option, Exit, prompt
+from typer import Option, Exit, prompt
 from typing import List, Optional
 from rich import print
 from datetime import datetime
 from os import path
 
+from main import app
 from database import LinkDatabase, User, Link
 from importer import check_file, import_txt, import_csv
 
-app = Typer(help="Linkcovery CLI Application")
 
 # Initialize database with settings
 db = LinkDatabase()

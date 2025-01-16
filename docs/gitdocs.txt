@@ -2,9 +2,9 @@ Directory structure:
 └── /./
     ├── pyproject.toml
     ├── .python-version
+    ├── LICENSE
     ├── docs/
     ├── .env.example
-    ├── app.db
     └── src/
         ├── main.py
         ├── __pycache__/
@@ -32,6 +32,7 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pydantic[email]>=2.10.5",
     "rich>=13.9.4",
+    "sqlite-web>=0.6.4",
     "typer>=0.15.1",
 ]
 
@@ -58,6 +59,32 @@ File: /.python-version
 
 
 ================================================
+File: /LICENSE
+================================================
+MIT License
+
+Copyright (c) 2025 Arian Omrani
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+================================================
 File: /.env.example
 ================================================
 DATABASE_NAME=app.db
@@ -68,56 +95,77 @@ DEBUG=True
 File: /src/main.py
 ================================================
 from rich import print
-
 from database import LinkDatabase, User, Link
+from typer import Typer
 
-# Main Script for Demonstration
-if __name__ == "__main__":
+# Initialize Typer for potential future CLI enhancements
+app = Typer()
+
+
+def initialize_database():
+    """
+    Initializes the database by creating necessary tables and indexes.
+    """
     db = LinkDatabase()
-    db.connect()
+    db.get_connection()
     db.create_table()
+    print("[green]Database has been initialized successfully.[/green]")
+    db.close_all()
 
-    # Create a user
-    user = User(name="Alice", email="alice@example.com")
 
-    # Create a link with an author
-    new_link = Link(
-        url="https://example.com",
-        domain="example.com",
-        description="An example website",
-        tag=["example", "test"],
-        author_id=0,  # Temporary, will be set atomically
-    )
+# Main Script for Demonstration or Initialization
+if __name__ == "__main__":
+    import sys
 
-    success = db.create_user_and_link(user, new_link)
+    if len(sys.argv) > 1 and sys.argv[1] == "init":
+        initialize_database()
+    else:
+        db = LinkDatabase()
+        db.get_connection()
+        db.create_table()
 
-    if not success:
-        print("[red]Failed to create user and link atomically. Exiting.[/red]")
-        db.close()
-        exit(1)
+        # Create a user
+        user = User(name="Alice", email="alice@example.com")
 
-    # Retrieve all links with authors
-    print("\nLinks with authors:")
-    links_with_authors = db.read_links_with_authors()
-    for entry in links_with_authors:
-        print(f"Link: {entry['link']}, Author: {entry['author']}")
+        # Create a link with an author
+        new_link = Link(
+            id=user,
+            url="https://example.com",
+            domain="example.com",
+            description="An example website",
+            tag=["example", "test"],
+            author_id=0,  # Temporary, will be set atomically
+        )
 
-    # Search links with filtering, sorting, and pagination
-    print("\nSearch results:")
-    search_results = db.search_links(
-        domain="example",
-        tags=["test"],
-        description="example",
-        sort_by="created_at",
-        sort_order="DESC",
-        limit=5,
-        offset=0,
-    )
-    for link in search_results:
-        print(link)
+        success = db.create_user_and_link(user, new_link)
 
-    # Close the database connection
-    db.close()
+        if not success:
+            print("[red]Failed to create user and link atomically. Exiting.[/red]")
+            db.close_all()
+            exit(1)
+
+        # Retrieve all links with authors
+        print("\nLinks with authors:")
+        links_with_authors = db.read_links_with_authors()
+        for entry in links_with_authors:
+            print(f"Link: {entry['link']}, Author: {entry['author']}")
+
+        # Search links with filtering, sorting, and pagination
+        print("\nSearch results:")
+        search_results = db.search_links(
+            domain="example",
+            tags=["test"],
+            description="example",
+            sort_by="created_at",
+            sort_order="DESC",
+            limit=5,
+            offset=0,
+        )
+        for link in search_results:
+            print(link)
+
+        # Close the database connection
+        db.close_all()
 
 
 ================================================
@@ -537,9 +585,9 @@ from .schema import User, Link
 class LinkDatabase(Database):
     def create_table(self) -> None:
         """Create users and links tables."""
-        with self.transaction():
+        with self.transaction() as cursor:
             # Create the users table
-            self.cursor.execute("""
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
@@ -548,7 +596,7 @@ class LinkDatabase(Database):
             """)
 
             # Create the links table with a foreign key to users
-            self.cursor.execute("""
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS links (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     url TEXT NOT NULL UNIQUE,
@@ -564,12 +612,12 @@ class LinkDatabase(Database):
             """)
 
             # Create an index on the domain column to speed up domain-based searches
-            self.cursor.execute("""
+            cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_links_domain ON links (domain)
             """)
 
             # Create an index on the created_at column to speed up sorting
-            self.cursor.execute("""
+            cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_links_created_at ON links (created_at)
             """)
         print("[blue]Tables and indexes created successfully.[/blue]")
@@ -634,13 +682,12 @@ class LinkDatabase(Database):
         If either operation fails, neither is committed.
         """
         try:
-            with self.transaction():
-                user_id = self.create_user(user)
-                if user_id is None:
-                    raise Exception("Failed to create or retrieve user.")
+            user_id = self.create_user(user)
+            if user_id is None:
+                raise Exception("Failed to create or retrieve user.")
 
-                link.author_id = user_id
-                self.create_link(link)
+            link.author_id = user_id
+            self.create_link(link)
             return True
         except Exception as e:
             print(f"[red]Failed to create user and link atomically: {e}[/red]")
@@ -649,11 +696,12 @@ class LinkDatabase(Database):
     def get_user_by_email(self, email: str) -> Optional[User]:
         """Retrieve a user by email."""
         try:
-            self.cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-            row = self.cursor.fetchone()
-            if row:
-                return User(**dict(row))
-            return None
+            with self.transaction() as cursor:
+                cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+                row = cursor.fetchone()
+                if row:
+                    return User(**dict(row))
+                return None
         except Exception as e:
             print(f"[red]Unexpected error occurred while retrieving user: {e}[/red]")
             return None
@@ -661,21 +709,23 @@ class LinkDatabase(Database):
     def read_users(self) -> list[User]:
         """Retrieve all users."""
         try:
-            self.cursor.execute("SELECT * FROM users")
-            rows = self.cursor.fetchall()
-            return [User(**dict(row)) for row in rows]
+            with self.transaction() as cursor:
+                cursor.execute("SELECT * FROM users")
+                rows = cursor.fetchall()
+                return [User(**dict(row)) for row in rows]
         except Exception as e:
             print(f"[red]Unexpected error occurred while reading users: {e}[/red]")
             return []
 
     def read_links_with_authors(self) -> list[dict]:
         """Retrieve all links with their authors."""
-        self.cursor.execute("""
-            SELECT links.*, users.name as author_name, users.email as author_email
-            FROM links
-            JOIN users ON links.author_id = users.id
-        """)
-        rows = self.cursor.fetchall()
+        with self.transaction() as cursor:
+            cursor.execute("""
+                SELECT links.*, users.name as author_name, users.email as author_email
+                FROM links
+                JOIN users ON links.author_id = users.id
+            """)
+            rows = cursor.fetchall()
 
         results = []
         for row in rows:
@@ -697,8 +747,9 @@ class LinkDatabase(Database):
 
     def read_link(self, link_id: int) -> Optional[Link]:
         """Retrieve a specific link by ID."""
-        self.cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
-        row = self.cursor.fetchone()
+        with self.transaction() as cursor:
+            cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
+            row = cursor.fetchone()
         if row:
             return Link(**dict(row), tag=loads(row["tag"]))
         return None
@@ -707,26 +758,27 @@ class LinkDatabase(Database):
         """Update a link by ID."""
         try:
             updated_link.updated_at = datetime.utcnow().isoformat()
-            self.cursor.execute(
-                """
-                UPDATE links
-                SET url = ?, domain = ?, description = ?, tag = ?, updated_at = ?
-                WHERE id = ?
-                """,
-                (
-                    updated_link.url,
-                    updated_link.domain,
-                    updated_link.description,
-                    dumps(updated_link.tag),
-                    updated_link.updated_at,
-                    link_id,
-                ),
-            )
-            if self.cursor.rowcount == 0:
-                print(f"[yellow]No link found with ID {link_id}. Nothing was updated.[/yellow]")
-            else:
-                self.connection.commit()
-                print("[green]Link updated successfully.[/green]")
+            with self.transaction() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE links
+                    SET url = ?, domain = ?, description = ?, tag = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        updated_link.url,
+                        updated_link.domain,
+                        updated_link.description,
+                        dumps(updated_link.tag),
+                        updated_link.updated_at,
+                        link_id,
+                    ),
+                )
+                if cursor.rowcount == 0:
+                    print(f"[yellow]No link found with ID {link_id}. Nothing was updated.[/yellow]")
+                else:
+                    cursor.connection.commit()
+                    print("[green]Link updated successfully.[/green]")
         except IntegrityError as e:
             print(f"[red]Error: Duplicate URL or invalid update data. ({e})[/red]")
         except Exception as e:
@@ -735,12 +787,13 @@ class LinkDatabase(Database):
     def delete_link(self, link_id: int) -> None:
         """Delete a link by ID."""
         try:
-            self.cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
-            if self.cursor.rowcount == 0:
-                print(f"[yellow]No link found with ID {link_id}. Nothing was deleted.[/yellow]")
-            else:
-                self.connection.commit()
-                print("[green]Link deleted successfully.[/green]")
+            with self.transaction() as cursor:
+                cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
+                if cursor.rowcount == 0:
+                    print(f"[yellow]No link found with ID {link_id}. Nothing was deleted.[/yellow]")
+                else:
+                    cursor.connection.commit()
+                    print("[green]Link deleted successfully.[/green]")
         except Exception as e:
             print(f"[red]Unexpected error occurred while deleting link: {e}[/red]")
 
@@ -796,8 +849,9 @@ class LinkDatabase(Database):
             parameters.extend([limit, offset])
 
             # Execute the query
-            self.cursor.execute(query, parameters)
-            rows = self.cursor.fetchall()
+            with self.transaction() as cursor:
+                cursor.execute(query, parameters)
+                rows = cursor.fetchall()
 
             # Convert rows to Link objects
             links = []
