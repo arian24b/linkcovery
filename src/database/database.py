@@ -60,6 +60,28 @@ class Database:
                 print(f"[red]Transaction rolled back due to error: {e}[/red]")
                 raise
 
+    def is_initialized(self, required_tables: set) -> bool:
+        """
+        Checks if the essential tables ('users' and 'links') exist in the database.
+
+        Returns:
+            bool: True if both tables exist, False otherwise.
+        """
+        existing_tables = set()
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+            existing_tables = {table["name"] for table in tables}
+
+        if is_init := required_tables.issubset(existing_tables):
+            print("[blue]Database is already initialized.[/blue]")
+        else:
+            print("[yellow]Database is not initialized yet.[/yellow]")
+
+        return is_init
+
     def __enter__(self):
         """Enter the runtime context related to this object."""
         return self

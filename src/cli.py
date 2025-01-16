@@ -111,7 +111,7 @@ def search_links(
     description: str | None = Option(None, help="Filter by description."),
     sort_by: str = Option("created_at", help="Field to sort by."),
     sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
-    limit: int = Option(10, help="Number of results to return."),
+    limit: int = Option(3, help="Number of results to return."),
     offset: int = Option(0, help="Number of results to skip."),
 ) -> None:
     """

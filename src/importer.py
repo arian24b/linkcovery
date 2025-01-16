@@ -3,7 +3,7 @@ from rich import print
 from pydantic import HttpUrl, ValidationError
 from urllib.parse import urlparse
 from csv import DictReader
-from typing import Optional, List
+from typing import List
 
 from settings import settings
 from database import LinkDatabase, Link

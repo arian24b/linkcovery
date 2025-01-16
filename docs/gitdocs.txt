@@ -24,7 +24,7 @@ File: /pyproject.toml
 ================================================
 [project]
 name = "linkcovery"
-version = "0.1.0"
+version = "0.2.0"
 description = "Link discovery tool for people with love and Python :)"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -32,7 +32,6 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pydantic[email]>=2.10.5",
     "rich>=13.9.4",
-    "sqlite-web>=0.6.4",
     "typer>=0.15.1",
 ]
 
@@ -40,16 +39,11 @@ dependencies = [
 dev = [
     "gitingest>=0.1.2",
     "ruff>=0.9.0",
+    "sqlite-web>=0.6.4",
 ]
 
 [tool.ruff]
 line-length = 120
-
-[tool.uv]
-package = true
-
-[project.scripts]
-linkcovery = "src.cli:app"
 
 
 ================================================
@@ -95,11 +89,11 @@ DEBUG=True
 File: /src/main.py
 ================================================
 from rich import print
-from database import LinkDatabase, User, Link
+from database import LinkDatabase
 from typer import Typer
 
 # Initialize Typer for potential future CLI enhancements
-app = Typer()
+app = Typer(help="Linkcovery CLI Application")
 
 
 def initialize_database():
@@ -107,65 +101,19 @@ def initialize_database():
     Initializes the database by creating necessary tables and indexes.
     """
     db = LinkDatabase()
-    db.get_connection()
-    db.create_table()
-    print("[green]Database has been initialized successfully.[/green]")
+
+    if db.is_initialized({"users", "links"}):
+        print("[yellow]Database initialization skipped. The database is already set up.[/yellow]")
+    else:
+        db.create_table()
+        print("[green]Database has been initialized successfully.[/green]")
+
     db.close_all()
 
 
-# Main Script for Demonstration or Initialization
+# Main Script for Initialization
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) > 1 and sys.argv[1] == "init":
-        initialize_database()
-    else:
-        db = LinkDatabase()
-        db.get_connection()
-        db.create_table()
-
-        # Create a user
-        user = User(name="Alice", email="alice@example.com")
-
-        # Create a link with an author
-        new_link = Link(
-            id=user,
-            url="https://example.com",
-            domain="example.com",
-            description="An example website",
-            tag=["example", "test"],
-            author_id=0,  # Temporary, will be set atomically
-        )
-
-        success = db.create_user_and_link(user, new_link)
-
-        if not success:
-            print("[red]Failed to create user and link atomically. Exiting.[/red]")
-            db.close_all()
-            exit(1)
-
-        # Retrieve all links with authors
-        print("\nLinks with authors:")
-        links_with_authors = db.read_links_with_authors()
-        for entry in links_with_authors:
-            print(f"Link: {entry['link']}, Author: {entry['author']}")
-
-        # Search links with filtering, sorting, and pagination
-        print("\nSearch results:")
-        search_results = db.search_links(
-            domain="example",
-            tags=["test"],
-            description="example",
-            sort_by="created_at",
-            sort_order="DESC",
-            limit=5,
-            offset=0,
-        )
-        for link in search_results:
-            print(link)
-
-        # Close the database connection
-        db.close_all()
+    initialize_database()
 
 
 ================================================
@@ -181,7 +129,7 @@ class Settings(BaseSettings):
 
     DATABASE_NAME: str = "app.db"
     DEBUG: bool = False
-    ALLOW_EXTENTIONS: list = ["csv", "txt"]
+    ALLOW_EXTENSIONS: list = ["csv", "txt"]
 
     class Config:
         env_file = ".env"
@@ -196,16 +144,16 @@ File: /src/cli.py
 ================================================
 #!/usr/bin/env python3
 
-from typer import Typer, Option, Exit, prompt
+from typer import Option, Exit, prompt
 from typing import List, Optional
 from rich import print
 from datetime import datetime
 from os import path
 
+from main import app
 from database import LinkDatabase, User, Link
 from importer import check_file, import_txt, import_csv
 
-app = Typer(help="Linkcovery CLI Application")
 
 # Initialize database with settings
 db = LinkDatabase()
@@ -307,7 +255,7 @@ def search_links(
     description: str | None = Option(None, help="Filter by description."),
     sort_by: str = Option("created_at", help="Field to sort by."),
     sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
-    limit: int = Option(10, help="Number of results to return."),
+    limit: int = Option(3, help="Number of results to return."),
     offset: int = Option(0, help="Number of results to skip."),
 ) -> None:
     """
@@ -485,6 +433,28 @@ class Database:
                 conn.rollback()
                 print(f"[red]Transaction rolled back due to error: {e}[/red]")
                 raise
+
+    def is_initialized(self, required_tables: set) -> bool:
+        """
+        Checks if the essential tables ('users' and 'links') exist in the database.
+
+        Returns:
+            bool: True if both tables exist, False otherwise.
+        """
+        existing_tables = set()
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+            existing_tables = {table["name"] for table in tables}
+
+        if is_init := required_tables.issubset(existing_tables):
+            print("[blue]Database is already initialized.[/blue]")
+        else:
+            print("[yellow]Database is not initialized yet.[/yellow]")
+
+        return is_init
 
     def __enter__(self):
         """Enter the runtime context related to this object."""
@@ -886,7 +856,7 @@ from rich import print
 from pydantic import HttpUrl, ValidationError
 from urllib.parse import urlparse
 from csv import DictReader
-from typing import Optional, List
+from typing import List
 
 from settings import settings
 from database import LinkDatabase, Link

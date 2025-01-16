@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     DATABASE_NAME: str = "app.db"
     DEBUG: bool = False
-    ALLOW_EXTENTIONS: list = ["csv", "txt"]
+    ALLOW_EXTENSIONS: list = ["csv", "txt"]
 
     class Config:
         env_file = ".env"
