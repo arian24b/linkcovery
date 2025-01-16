@@ -6,10 +6,11 @@ from rich import print
 from datetime import datetime
 from os import path
 from pathlib import Path
+from json import load
 
 from main import app
 from database import LinkDatabase, User, Link
-from importer import check_file, import_txt, import_csv
+from importer import check_file, import_txt, import_csv, import_links_from_json
 from exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
 
 
@@ -208,6 +209,12 @@ def import_links(
                     import_txt(file_path, author_id, db)
                 elif extension == ".csv":
                     import_csv(file_path, author_id, db)
+                elif extension == ".json":
+                    # Determine if JSON is for users or links based on content
+                    with open(file_path, "r", encoding="utf-8") as json_file:
+                        data = load(json_file)
+                        if isinstance(data, list) and all("url" in item for item in data):
+                            import_links_from_json(file_path, db)
                 else:
                     print(f"[red]Unsupported file extension: {extension}[/red]")
             except Exception as e:

@@ -4,9 +4,10 @@ from pydantic import HttpUrl, ValidationError
 from urllib.parse import urlparse
 from csv import DictReader
 from typing import List
+from json import JSONDecodeError, load
 
 from settings import settings
-from database import LinkDatabase, Link
+from database import LinkDatabase, User, Link
 
 
 def check_file(file_path: str) -> bool:
@@ -165,3 +166,69 @@ def import_csv(file_path: str, author_id: int, db: LinkDatabase):
         print("[green]All links from CSV file have been imported successfully.[/green]")
     except Exception as e:
         print(f"[red]Failed to import from CSV file: {e}[/red]")
+
+
+def import_links_from_json(file_path: str, db: LinkDatabase):
+    """
+    Imports links from a JSON file.
+
+    Args:
+        file_path (str): Path to the JSON file.
+        db (LinkDatabase): Instance of the database connection.
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8") as json_file:
+            links_data = load(json_file)
+
+        if not links_data:
+            print("[yellow]No links found in the JSON file.[/yellow]")
+            return
+
+        new_links = []
+        for index, link_dict in enumerate(links_data, start=1):
+            try:
+                # Extract author_email to find or create the user
+                author_info = link_dict.pop("author", {})
+                author_email = author_info.get("email")
+                if not author_email:
+                    print(f"[red]Link {index}: Missing author email. Skipping.[/red]")
+                    continue
+
+                user = db.get_user_by_email(author_email)
+                if not user:
+                    # Optionally, create the user if they don't exist
+                    user = User(name=author_info.get("name", "Unknown"), email=author_email)
+                    user_id = db.create_user(user)
+                    if not user_id:
+                        print(f"[red]Link {index}: Failed to create user '{author_email}'. Skipping link.[/red]")
+                        continue
+                    user.id = user_id
+
+                # Prepare Link object
+                link_obj = Link(**link_dict)
+                link_obj.author_id = user.id
+
+                # Check if link already exists
+                existing_link = db.read_link_by_url(link_obj.url)
+                if existing_link:
+                    print(f"[yellow]Link with URL '{link_obj.url}' already exists. Skipping.[/yellow]")
+                    continue
+
+                new_links.append(link_obj)
+            except ValidationError as ve:
+                print(f"[red]Link {index}: Validation error: {ve}[/red]")
+                raise  # Trigger transaction rollback
+            except Exception as e:
+                print(f"[red]Link {index}: Failed to prepare link. Error: {e}[/red]")
+                raise  # Trigger transaction rollback
+
+        if new_links:
+            db.bulk_create_links(new_links)
+            print(f"[green]Successfully imported {len(new_links)} links from JSON file.[/green]")
+        else:
+            print("[yellow]No new links to import.[/yellow]")
+
+    except JSONDecodeError as jde:
+        print(f"[red]Invalid JSON format: {jde}[/red]")
+    except Exception as e:
+        print(f"[red]Failed to import links from JSON file: {e}[/red]")
