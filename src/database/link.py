@@ -299,3 +299,34 @@ class LinkDatabase(Database):
         except Exception as e:
             print(f"[red]Unexpected error occurred during search: {e}[/red]")
             return []
+
+    def read_links(self, limit: int = 3) -> list[Link]:
+        """Retrieve a specific number of links."""
+        with self.transaction() as cursor:
+            cursor.execute("SELECT * FROM links ORDER BY created_at LIMIT ?", (limit,))
+            rows = cursor.fetchall()
+
+        # Convert rows to Link objects
+        links = []
+        for row in rows:
+            row_dict = dict(row)
+            row_dict["tag"] = loads(row_dict["tag"]) if row_dict["tag"] else []
+            links.append(Link(**row_dict))
+
+        return links
+
+    def update_is_read_for_links(self, link_ids: list[int]) -> None:
+        """Update the 'is_read' field for a list of links."""
+        try:
+            with self.transaction() as cursor:
+                cursor.executemany(
+                    """
+                    UPDATE links
+                    SET is_read = 1
+                    WHERE id = ?
+                    """,
+                    [(link_id,) for link_id in link_ids],  # List of link IDs
+                )
+            print(f"[green]Successfully updated 'is_read' for {len(link_ids)} links.[/green]")
+        except Exception as e:
+            print(f"[red]Failed to update 'is_read' for links: {e}[/red]")

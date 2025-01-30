@@ -305,5 +305,22 @@ def export_all_command(
     export_all(db, format, str(output_dir))
 
 
+@app.command("link-mark-read", help="Mark 3 links as read.")
+def mark_links_as_read() -> None:
+    """
+    Retrieve 3 links from the database and mark them as read (is_read = 1).
+    """
+    links = db.read_links(limit=3)  # Get 3 links
+    if not links:
+        print("[yellow]No links found to update.[/yellow]")
+        return
+
+    link_ids = [link.id for link in links if link.id is not None]  # Get the IDs of the links
+    db.update_is_read_for_links(link_ids)  # Mark them as read
+
+    for link in links:
+        print(f"[green]Marked link {link.id} as read: {link.url}[/green]")
+
+
 if __name__ == "__main__":
     app()
