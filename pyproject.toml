@@ -1,8 +1,9 @@
 [project]
 name = "linkcovery"
-version = "0.2.0"
+version = "0.2.1"
 description = "Link discovery tool for people with love and Python :)"
 readme = "README.md"
+authors = [{name = "Arian Omrani"}]
 requires-python = ">=3.13"
 dependencies = [
     "pydantic-settings>=2.7.1",
@@ -20,3 +21,13 @@ dev = [
 
 [tool.ruff]
 line-length = 120
+
+[project.urls]
+Homepage = "https://github.com/arian24b/linkcovery"
+Issues = "https://github.com/arian24b/linkcovery/issues"
+
+[project.scripts]
+linkcovery = "cli:app"
+
+[tool.uv]
+package = true

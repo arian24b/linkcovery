@@ -2,8 +2,12 @@ from rich import print
 from database import LinkDatabase
 from typer import Typer
 
+# Initialize database with settings
+db = LinkDatabase()
+db.get_connection()
+
 # Initialize Typer for potential future CLI enhancements
-app = Typer(help="Linkcovery CLI Application")
+app = Typer(name="Linkcovery",no_args_is_help=True,help="Linkcovery CLI Application")
 
 
 def initialize_database():
@@ -21,6 +25,5 @@ def initialize_database():
     db.close_all()
 
 
-# Main Script for Initialization
 if __name__ == "__main__":
     initialize_database()
