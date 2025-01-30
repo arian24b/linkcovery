@@ -183,7 +183,7 @@ class LinkDatabase(Database):
             return Link(**row_dict, tag=loads(tag_json))
         return None
 
-    def update_link(self, link_id: int, updated_link: Link) -> None:
+    def update_link(self, link_id: int, updated_link: Link) -> bool:
         """Update a link by ID."""
         try:
             updated_link.updated_at = datetime.now(UTC).isoformat()
@@ -195,7 +195,7 @@ class LinkDatabase(Database):
                     WHERE id = ?
                     """,
                     (
-                        updated_link.url,
+                        str(updated_link.url),
                         updated_link.domain,
                         updated_link.description,
                         dumps(updated_link.tag),
@@ -205,13 +205,17 @@ class LinkDatabase(Database):
                 )
                 if cursor.rowcount == 0:
                     print(f"[yellow]No link found with ID {link_id}. Nothing was updated.[/yellow]")
+                    return False
                 else:
                     cursor.connection.commit()
                     print("[green]Link updated successfully.[/green]")
+                    return True
         except IntegrityError as e:
             print(f"[red]Error: Duplicate URL or invalid update data. ({e})[/red]")
+            return False
         except Exception as e:
             print(f"[red]Unexpected error occurred while updating link: {e}[/red]")
+            return False
 
     def delete_link(self, link_id: int) -> None:
         """Delete a link by ID."""
