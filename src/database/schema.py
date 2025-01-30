@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr, HttpUrl
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 class User(BaseModel):
@@ -51,8 +51,8 @@ class Link(BaseModel):
     tag: list[str] = Field(default_factory=list, description="Tags associated with the link")
     author_id: int = Field(..., description="Foreign key to the User model")
     is_read: bool = Field(default=False, description="Whether the link has been read")
-    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat(), description="Creation timestamp")
-    updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat(), description="Last update timestamp")
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(), description="Creation timestamp")
+    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(), description="Last update timestamp")
 
 
 class Config:

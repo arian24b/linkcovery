@@ -3,7 +3,7 @@
 from typer import Option, Exit, prompt
 from typing import List, Optional
 from rich import print
-from datetime import datetime
+from datetime import datetime, UTC
 from os import path
 from pathlib import Path
 from json import load
@@ -183,7 +183,7 @@ def update_link(
     if is_read is not None:
         existing_link.is_read = is_read
 
-    existing_link.updated_at = datetime.utcnow().isoformat()
+    existing_link.updated_at = datetime.now(UTC).isoformat()
 
     if db.update_link(link_id, existing_link):
         print(f"[green]Link with ID {link_id} has been updated.[/green]")

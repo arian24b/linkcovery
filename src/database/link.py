@@ -1,7 +1,7 @@
 from sqlite3 import IntegrityError
 from json import dumps, loads
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from rich import print
 
 from .database import Database
@@ -177,13 +177,16 @@ class LinkDatabase(Database):
             cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
             row = cursor.fetchone()
         if row:
-            return Link(**dict(row), tag=loads(row["tag"]))
+            row_dict = dict(row)
+            # Extract and parse the tag, then remove it from the row_dict
+            tag_json = row_dict.pop("tag")
+            return Link(**row_dict, tag=loads(tag_json))
         return None
 
     def update_link(self, link_id: int, updated_link: Link) -> None:
         """Update a link by ID."""
         try:
-            updated_link.updated_at = datetime.utcnow().isoformat()
+            updated_link.updated_at = datetime.now(UTC).isoformat()
             with self.transaction() as cursor:
                 cursor.execute(
                     """
