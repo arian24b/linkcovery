@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from typer import Option, Exit, prompt
-from typing import List, Optional
 from rich import print
 from datetime import datetime, UTC
 from os import path
@@ -152,11 +151,11 @@ def delete_link(link_id: int = Option(..., help="ID of the link to delete.")) ->
 @app.command("link-update", help="Update a link's details by its ID.")
 def update_link(
     link_id: int = Option(..., help="ID of the link to update."),
-    url: Optional[str] = Option(None, help="New URL of the link."),
-    domain: Optional[str] = Option(None, help="New domain of the link."),
-    description: Optional[str] = Option(None, help="New description of the link."),
-    tags: Optional[List[str]] = Option(None, "--tag", "-t", help="New tags for the link."),
-    is_read: Optional[bool] = Option(None, help="Mark as read or unread."),
+    url: str | None = Option(None, help="New URL of the link."),
+    domain: str | None = Option(None, help="New domain of the link."),
+    description: str | None = Option(None, help="New description of the link."),
+    tags: list[str] | None = Option(None, "--tag", "-t", help="New tags for the link."),
+    is_read: bool | None = Option(None, help="Mark as read or unread."),
 ) -> None:
     """
     Update a link's details by its ID.

@@ -1,4 +1,3 @@
-from typing import List
 from csv import DictWriter
 from json import dump
 from rich import print
@@ -16,7 +15,7 @@ def export_users_to_json(db: LinkDatabase, output_path: str) -> None:
         db (LinkDatabase): The database instance.
         output_path (str): Path to the output JSON file.
     """
-    users: List[User] = db.read_users()
+    users: list[User] = db.read_users()
     users_data = [user.dict() for user in users]
 
     try:
@@ -35,7 +34,7 @@ def export_users_to_csv(db: LinkDatabase, output_path: str) -> None:
         db (LinkDatabase): The database instance.
         output_path (str): Path to the output CSV file.
     """
-    users: List[User] = db.read_users()
+    users: list[User] = db.read_users()
     if not users:
         print("[yellow]No users available to export.[/yellow]")
         return

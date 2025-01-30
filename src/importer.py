@@ -3,7 +3,6 @@ from rich import print
 from pydantic import HttpUrl, ValidationError
 from urllib.parse import urlparse
 from csv import DictReader
-from typing import List
 from json import JSONDecodeError, load
 
 from settings import settings
@@ -48,7 +47,7 @@ def extract_domain(url: str) -> str:
     return parsed_url.netloc
 
 
-def parse_tags(domain: str) -> List[str]:
+def parse_tags(domain: str) -> list[str]:
     """
     Generates tags based on the domain.
 

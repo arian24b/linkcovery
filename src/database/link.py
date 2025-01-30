@@ -1,6 +1,5 @@
 from sqlite3 import IntegrityError
 from json import dumps, loads
-from typing import Optional
 from datetime import datetime, UTC
 from rich import print
 
@@ -72,7 +71,7 @@ class LinkDatabase(Database):
             print(f"[red]Unexpected error occurred while creating user: {e}[/red]")
             return None
 
-    def create_link(self, link: Link) -> Optional[int]:
+    def create_link(self, link: Link) -> int | None:
         """Insert a new link."""
         try:
             with self.transaction() as cursor:
@@ -119,7 +118,7 @@ class LinkDatabase(Database):
             print(f"[red]Failed to create user and link atomically: {e}[/red]")
             return False
 
-    def get_user_by_email(self, email: str) -> Optional[User]:
+    def get_user_by_email(self, email: str) -> User | None:
         """Retrieve a user by email."""
         try:
             with self.transaction() as cursor:
@@ -171,7 +170,7 @@ class LinkDatabase(Database):
 
         return results
 
-    def read_link(self, link_id: int) -> Optional[Link]:
+    def read_link(self, link_id: int) -> Link | None:
         """Retrieve a specific link by ID."""
         with self.transaction() as cursor:
             cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
@@ -232,9 +231,9 @@ class LinkDatabase(Database):
 
     def search_links(
         self,
-        domain: Optional[str] = None,
-        tags: Optional[list[str]] = None,
-        description: Optional[str] = None,
+        domain: str | None = None,
+        tags: list[str] | None = None,
+        description: str | None = None,
         sort_by: str = "created_at",
         sort_order: str = "ASC",
         limit: int = 10,
