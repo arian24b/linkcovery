@@ -1,7 +1,7 @@
 from typer import Typer
 
 from database import LinkDatabase
-from logging import Logger
+from logger import Logger
 
 logger = Logger(__name__)
 

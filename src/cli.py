@@ -10,7 +10,7 @@ from main import app, db
 from database import User, Link
 from importer import check_file, import_txt, import_csv, import_links_from_json
 from exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
-from logging import Logger
+from logger import Logger
 
 logger = Logger(__name__)
 
@@ -312,6 +312,18 @@ def export_all_command(
                 raise Exit()
 
     export_all(db, format, str(output_dir))
+
+
+@app.command("test-log")
+def test_log() -> None:
+    """
+    Test logging functionality.
+    """
+    logger.debug("This is a debug message.")
+    logger.info("This is an info message.")
+    logger.warning("This is a warning message.")
+    logger.error("This is an error message.")
+    logger.critical("This is a critical message.")
 
 
 if __name__ == "__main__":

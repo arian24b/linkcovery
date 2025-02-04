@@ -1,10 +1,6 @@
 from rich import pretty, traceback
 from pydantic_settings import BaseSettings
 
-from logging import Logger
-
-logger = Logger(__name__)
-
 
 class Settings(BaseSettings):
     traceback.install(show_locals=True)
@@ -24,5 +20,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-logger.info("Settings loaded successfully.")

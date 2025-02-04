@@ -4,7 +4,7 @@ from rich.progress import track
 from pathlib import Path
 
 from database import LinkDatabase, User, Link
-from logging import Logger
+from logger import Logger
 
 logger = Logger(__name__)
 
