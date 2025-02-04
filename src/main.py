@@ -1,13 +1,16 @@
-from rich import print
-from database import LinkDatabase
 from typer import Typer
+
+from database import LinkDatabase
+from logging import Logger
+
+logger = Logger(__name__)
 
 # Initialize database with settings
 db = LinkDatabase()
 db.get_connection()
 
 # Initialize Typer for potential future CLI enhancements
-app = Typer(name="Linkcovery",no_args_is_help=True,help="Linkcovery CLI Application")
+app = Typer(name="Linkcovery", no_args_is_help=True, help="Linkcovery CLI Application")
 
 
 def initialize_database():
@@ -17,10 +20,10 @@ def initialize_database():
     db = LinkDatabase()
 
     if db.is_initialized({"users", "links"}):
-        print("[yellow]Database initialization skipped. The database is already set up.[/yellow]")
+        logger.warning("Database initialization skipped. The database is already set up.")
     else:
         db.create_table()
-        print("[green]Database has been initialized successfully.[/green]")
+        logger.info("Database has been initialized successfully.")
 
     db.close_all()
 

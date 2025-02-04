@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from typer import Option, Exit, prompt
-from rich import print
 from datetime import datetime, UTC
 from os import path
 from pathlib import Path
@@ -11,6 +10,9 @@ from main import app, db
 from database import User, Link
 from importer import check_file, import_txt, import_csv, import_links_from_json
 from exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
+from logging import Logger
+
+logger = Logger(__name__)
 
 
 # User Commands
@@ -29,9 +31,9 @@ def add_user(
     )
 
     if user_id := db.create_user(user):
-        print(f"[green]User '{name}' added with ID: {user_id}[/green]")
+        logger.info(f"User '{name}' added with ID: {user_id}")
     else:
-        print(f"[red]Failed to add user '{name}'.[/red]")
+        logger.error(f"Failed to add user '{name}'.")
 
 
 @app.command("user-list", help="List all users.")
@@ -40,10 +42,10 @@ def list_users() -> None:
     List all users.
     """
     if not (users := db.read_users()):
-        print("[yellow]No users found.[/yellow]")
+        logger.warning("No users found.")
         return None
     for user in users:
-        print(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
+        logger.info(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
 
 
 # Link Commands
@@ -58,7 +60,6 @@ def add_link(
     """
     Add a new link to the database.
     """
-    # Interactive prompts if arguments are not provided
     if not url:
         url = prompt("URL of the link")
     if not domain:
@@ -68,7 +69,7 @@ def add_link(
 
     user = db.get_user_by_email(author_email)
     if not user:
-        print(f"[red]Author with email '{author_email}' does not exist.[/red]")
+        logger.error(f"Author with email '{author_email}' does not exist.")
         raise Exit(code=1)
 
     link = Link(
@@ -81,9 +82,9 @@ def add_link(
     )
 
     if link_id := db.create_link(link):
-        print(f"[green]Link added with ID: {link_id}[/green]")
+        logger.info(f"Link added with ID: {link_id}")
     else:
-        print("[red]Failed to add link.[/red]")
+        logger.error("Failed to add link.")
 
 
 @app.command("link-list", help="List all links with their authors.")
@@ -93,12 +94,14 @@ def list_links() -> None:
     """
     links_with_authors = db.read_links_with_authors()
     if not links_with_authors:
-        print("[yellow]No links found.[/yellow]")
+        logger.warning("No links found.")
         return None
     for entry in links_with_authors:
         link: Link = entry["link"]
         author = entry["author"]
-        print(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {author['name']} ({author['email']})")
+        logger.info(
+            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {author['name']} ({author['email']})"
+        )
 
 
 @app.command("link-search", help="Search for links based on domain, tags, or description.")
@@ -126,10 +129,10 @@ def search_links(
         is_read=is_read,
     )
     if not results:
-        print("[yellow]No matching links found.[/yellow]")
+        logger.warning("No matching links found.")
         return None
     for link in results:
-        print(
+        logger.info(
             f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Description: {link.description}, Tags: {', '.join(link.tag)}"
         )
 
@@ -140,9 +143,9 @@ def delete_link(link_id: int = Option(..., help="ID of the link to delete.")) ->
     Delete a link by its ID.
     """
     if db.delete_link(link_id):
-        print(f"[green]Link with ID {link_id} has been deleted.[/green]")
+        logger.info(f"Link with ID {link_id} has been deleted.")
     else:
-        print(f"[red]Failed to delete link with ID {link_id}.[/red]")
+        logger.error(f"Failed to delete link with ID {link_id}.")
 
 
 @app.command("link-update", help="Update a link's details by its ID.")
@@ -159,15 +162,13 @@ def update_link(
     """
     existing_link = db.read_link(link_id)
     if not existing_link:
-        print(f"[red]No link found with ID {link_id}.[/red]")
+        logger.error(f"No link found with ID {link_id}.")
         raise Exit(code=1)
 
-    # Interactive prompts for missing optional arguments
     if url is None and domain is None and description is None and tags is None and is_read is None:
-        print("[yellow]No updates provided. Use options to specify fields to update.[/yellow]")
+        logger.warning("No updates provided. Use options to specify fields to update.")
         raise Exit()
 
-    # Update fields if new values are provided
     if url:
         existing_link.url = url
     if domain:
@@ -182,9 +183,9 @@ def update_link(
     existing_link.updated_at = datetime.now(UTC).isoformat()
 
     if db.update_link(link_id, existing_link):
-        print(f"[green]Link with ID {link_id} has been updated.[/green]")
+        logger.info(f"Link with ID {link_id} has been updated.")
     else:
-        print(f"[red]Failed to update link with ID {link_id}.[/red]")
+        logger.error(f"Failed to update link with ID {link_id}.")
 
 
 @app.command("link-mark-read", help="Mark 3 links as read.")
@@ -192,16 +193,16 @@ def mark_links_as_read() -> None:
     """
     Retrieve 3 links from the database and mark them as read (is_read = 1).
     """
-    links = db.read_links(limit=3)  # Get 3 links
+    links = db.read_links(limit=3)
     if not links:
-        print("[yellow]No links found to update.[/yellow]")
+        logger.warning("No links found to update.")
         return
 
-    link_ids = [link.id for link in links if link.id is not None]  # Get the IDs of the links
-    db.update_is_read_for_links(link_ids)  # Mark them as read
+    link_ids = [link.id for link in links if link.id is not None]
+    db.update_is_read_for_links(link_ids)
 
     for link in links:
-        print(f"[green]Marked link {link.id} as read: {link.url}[/green]")
+        logger.info(f"Marked link {link.id} as read: {link.url}")
 
 
 # Import/Export Commands
@@ -214,7 +215,6 @@ def import_links(
     Import links from a TXT or CSV file into the database.
     """
     try:
-        # Validate file
         if check_file(file_path):
             extension = path.splitext(file_path)[1].lower()
             try:
@@ -223,23 +223,22 @@ def import_links(
                 elif extension == ".csv":
                     import_csv(file_path, author_id, db)
                 elif extension == ".json":
-                    # Determine if JSON is for users or links based on content
                     with open(file_path, "r", encoding="utf-8") as json_file:
                         data = load(json_file)
                         if isinstance(data, list) and all("url" in item for item in data):
                             import_links_from_json(file_path, db)
                 else:
-                    print(f"[red]Unsupported file extension: {extension}[/red]")
+                    logger.error(f"Unsupported file extension: {extension}")
             except Exception as e:
-                print(f"[red]Import failed: {e}[/red]")
+                logger.error(f"Import failed: {e}")
     except FileNotFoundError as fnf_error:
-        print(f"[red]{fnf_error}[/red]")
+        logger.error(f"{fnf_error}")
         raise Exit(code=1)
     except ValueError as val_error:
-        print(f"[red]{val_error}[/red]")
+        logger.error(f"{val_error}")
         raise Exit(code=1)
     except Exception as e:
-        print(f"[red]An unexpected error occurred: {e}[/red]")
+        logger.error(f"An unexpected error occurred: {e}")
         raise Exit(code=1)
 
 
@@ -257,7 +256,7 @@ def export_users(
     elif format == "csv":
         export_users_to_csv(db, output)
     else:
-        print(f"[red]Unsupported export format: {format}. Choose 'json' or 'csv'.[/red]")
+        logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
 
 
 @app.command("export-links", help="Export all links to a JSON or CSV file.")
@@ -274,7 +273,7 @@ def export_links(
     elif format == "csv":
         export_links_to_csv(db, output)
     else:
-        print(f"[red]Unsupported export format: {format}. Choose 'json' or 'csv'.[/red]")
+        logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
 
 
 @app.command("export-all", help="Export all users and links to JSON or CSV files.")
@@ -289,10 +288,9 @@ def export_all_command(
     """
     format = format.lower()
     if format not in {"json", "csv"}:
-        print(f"[red]Unsupported export format: {format}. Choose 'json' or 'csv'.[/red]")
+        logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
         raise Exit(code=1)
 
-    # Set default output directory if not provided
     if not output_dir:
         output_dir = Path.cwd()
     else:
@@ -300,22 +298,19 @@ def export_all_command(
         try:
             output_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            print(f"[red]Failed to create directory '{output_dir}': {e}[/red]")
+            logger.error(f"Failed to create directory '{output_dir}': {e}")
             raise Exit(code=1)
 
-    # Define output file paths
     users_output = output_dir / f"users_export.{format}"
     links_output = output_dir / f"links_export.{format}"
 
-    # Confirm overwrite if files already exist
     for output_path in [users_output, links_output]:
         if output_path.exists():
             overwrite = prompt(f"File '{output_path}' already exists. Overwrite? (y/n)", default="n")
             if overwrite.lower() != "y":
-                print(f"[yellow]Skipped exporting to '{output_path}'.[/yellow]")
+                logger.warning(f"Skipped exporting to '{output_path}'.")
                 raise Exit()
 
-    # Perform export
     export_all(db, format, str(output_dir))
 
 

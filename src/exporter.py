@@ -1,10 +1,12 @@
 from csv import DictWriter
 from json import dump
-from rich import print
 from rich.progress import track
 from pathlib import Path
 
 from database import LinkDatabase, User, Link
+from logging import Logger
+
+logger = Logger(__name__)
 
 
 def export_users_to_json(db: LinkDatabase, output_path: str) -> None:
@@ -16,14 +18,14 @@ def export_users_to_json(db: LinkDatabase, output_path: str) -> None:
         output_path (str): Path to the output JSON file.
     """
     users: list[User] = db.read_users()
-    users_data = [user.dict() for user in users]
+    users_data = [user.model_dump() for user in users]
 
     try:
         with open(output_path, "w", encoding="utf-8") as json_file:
             dump(users_data, json_file, indent=4)
-        print(f"[green]Successfully exported {len(users)} users to {output_path}.[/green]")
+        logger.info(f"Successfully exported {len(users)} users to {output_path}.")
     except Exception as e:
-        print(f"[red]Failed to export users to JSON: {e}[/red]")
+        logger.error(f"Failed to export users to JSON: {e}")
 
 
 def export_users_to_csv(db: LinkDatabase, output_path: str) -> None:
@@ -36,18 +38,18 @@ def export_users_to_csv(db: LinkDatabase, output_path: str) -> None:
     """
     users: list[User] = db.read_users()
     if not users:
-        print("[yellow]No users available to export.[/yellow]")
+        logger.warning("No users available to export.")
         return
 
     try:
         with open(output_path, "w", newline="", encoding="utf-8") as csv_file:
-            writer = DictWriter(csv_file, fieldnames=users[0].dict().keys())
+            writer = DictWriter(csv_file, fieldnames=users[0].model_dump().keys())
             writer.writeheader()
             for user in track(users, description="Exporting users..."):
                 writer.writerow(user.dict())
-        print(f"[green]Successfully exported {len(users)} users to {output_path}.[/green]")
+        logger.info(f"Successfully exported {len(users)} users to {output_path}.")
     except Exception as e:
-        print(f"[red]Failed to export users to CSV: {e}[/red]")
+        logger.error(f"Failed to export users to CSV: {e}")
 
 
 def export_links_to_json(db: LinkDatabase, output_path: str) -> None:
@@ -68,9 +70,9 @@ def export_links_to_json(db: LinkDatabase, output_path: str) -> None:
     try:
         with open(output_path, "w", encoding="utf-8") as json_file:
             dump(links_data, json_file, indent=4)
-        print(f"[green]Successfully exported {len(links_data)} links to {output_path}.[/green]")
+        logger.info(f"Successfully exported {len(links_data)} links to {output_path}.")
     except Exception as e:
-        print(f"[red]Failed to export links to JSON: {e}[/red]")
+        logger.error(f"Failed to export links to JSON: {e}")
 
 
 def export_links_to_csv(db: LinkDatabase, output_path: str) -> None:
@@ -83,10 +85,9 @@ def export_links_to_csv(db: LinkDatabase, output_path: str) -> None:
     """
     links_with_authors = db.read_links_with_authors()
     if not links_with_authors:
-        print("[yellow]No links available to export.[/yellow]")
+        logger.warning("No links available to export.")
         return
 
-    # Define CSV headers
     headers = [
         "id",
         "url",
@@ -108,21 +109,17 @@ def export_links_to_csv(db: LinkDatabase, output_path: str) -> None:
             for entry in track(links_with_authors, description="Exporting links..."):
                 link: Link = entry["link"]
                 author = entry["author"]
-                row = link.dict()
+                row = link.model_dump()
                 row["tag"] = ", ".join(link.tag)
                 row["author_name"] = author["name"]
                 row["author_email"] = author["email"]
                 writer.writerow(row)
-        print(f"[green]Successfully exported {len(links_with_authors)} links to {output_path}.[/green]")
+        logger.info(f"Successfully exported {len(links_with_authors)} links to {output_path}.")
     except Exception as e:
-        print(f"[red]Failed to export links to CSV: {e}[/red]")
+        logger.error(f"Failed to export links to CSV: {e}")
 
 
-def export_all(
-    db: LinkDatabase,
-    format: str = "json",
-    output_dir: str | None = None,
-) -> None:
+def export_all(db: LinkDatabase, format: str = "json", output_dir: str | None = None) -> None:
     """
     Exports both users and links to the specified format.
 
@@ -133,21 +130,18 @@ def export_all(
     """
     format = format.lower()
     if format not in {"json", "csv"}:
-        print(f"[red]Unsupported export format: {format}. Choose 'json' or 'csv'.[/red]")
+        logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
         return
 
-    # Set default output paths if not provided
     if not output_dir:
         output_dir = Path.cwd()
     else:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define output file paths
     users_output = output_dir / f"users_export.{format}"
     links_output = output_dir / f"links_export.{format}"
 
-    # Perform export
     if format == "json":
         export_users_to_json(db, str(users_output))
         export_links_to_json(db, str(links_output))
@@ -155,4 +149,4 @@ def export_all(
         export_users_to_csv(db, str(users_output))
         export_links_to_csv(db, str(links_output))
 
-    print(f"[blue]Exported all data successfully to '{users_output}' and '{links_output}'.[/blue]")
+    logger.info(f"Exported all data successfully to '{users_output}' and '{links_output}'.")
