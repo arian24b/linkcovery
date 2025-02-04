@@ -7,13 +7,10 @@ from os import path
 from pathlib import Path
 from json import load
 
-from main import app,db
+from main import app, db
 from database import User, Link
 from importer import check_file, import_txt, import_csv, import_links_from_json
 from exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
-
-
-
 
 
 # User Commands
@@ -113,6 +110,7 @@ def search_links(
     sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
     limit: int = Option(3, help="Number of results to return."),
     offset: int = Option(0, help="Number of results to skip."),
+    is_read: bool | None = Option(None, help="Filter by read status."),
 ) -> None:
     """
     Search for links based on domain, tags, or description.
@@ -125,6 +123,7 @@ def search_links(
         sort_order=sort_order,
         limit=limit,
         offset=offset,
+        is_read=is_read,
     )
     if not results:
         print("[yellow]No matching links found.[/yellow]")
@@ -186,6 +185,7 @@ def update_link(
         print(f"[green]Link with ID {link_id} has been updated.[/green]")
     else:
         print(f"[red]Failed to update link with ID {link_id}.[/red]")
+
 
 @app.command("link-mark-read", help="Mark 3 links as read.")
 def mark_links_as_read() -> None:
@@ -317,7 +317,6 @@ def export_all_command(
 
     # Perform export
     export_all(db, format, str(output_dir))
-
 
 
 if __name__ == "__main__":

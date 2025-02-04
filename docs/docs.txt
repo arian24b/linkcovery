@@ -4,7 +4,6 @@ Directory structure:
     ├── .python-version
     ├── docs/
     ├── .env.example
-    ├── app.db
     └── src/
         ├── exporter.py
         ├── main.py
@@ -25,9 +24,10 @@ File: /pyproject.toml
 ================================================
 [project]
 name = "linkcovery"
-version = "0.2.0"
+version = "0.2.1"
 description = "Link discovery tool for people with love and Python :)"
 readme = "README.md"
+authors = [{name = "Arian Omrani"}]
 requires-python = ">=3.13"
 dependencies = [
     "pydantic-settings>=2.7.1",
@@ -46,6 +46,16 @@ dev = [
 [tool.ruff]
 line-length = 120
 
+[project.urls]
+Homepage = "https://github.com/arian24b/linkcovery"
+Issues = "https://github.com/arian24b/linkcovery/issues"
+
+[project.scripts]
+linkcovery = "cli:app"
+
+[tool.uv]
+package = true
+
 
 ================================================
 File: /.python-version
@@ -63,7 +73,6 @@ DEBUG=False
 ================================================
 File: /src/exporter.py
 ================================================
-from typing import List
 from csv import DictWriter
 from json import dump
 from rich import print
@@ -81,7 +90,7 @@ def export_users_to_json(db: LinkDatabase, output_path: str) -> None:
         db (LinkDatabase): The database instance.
         output_path (str): Path to the output JSON file.
     """
-    users: List[User] = db.read_users()
+    users: list[User] = db.read_users()
     users_data = [user.dict() for user in users]
 
     try:
@@ -100,7 +109,7 @@ def export_users_to_csv(db: LinkDatabase, output_path: str) -> None:
         db (LinkDatabase): The database instance.
         output_path (str): Path to the output CSV file.
     """
-    users: List[User] = db.read_users()
+    users: list[User] = db.read_users()
     if not users:
         print("[yellow]No users available to export.[/yellow]")
         return
@@ -231,8 +240,12 @@ from rich import print
 from database import LinkDatabase
 from typer import Typer
 
+# Initialize database with settings
+db = LinkDatabase()
+db.get_connection()
+
 # Initialize Typer for potential future CLI enhancements
-app = Typer(help="Linkcovery CLI Application")
+app = Typer(name="Linkcovery",no_args_is_help=True,help="Linkcovery CLI Application")
 
 
 def initialize_database():
@@ -250,7 +263,6 @@ def initialize_database():
     db.close_all()
 
 
-# Main Script for Initialization
 if __name__ == "__main__":
     initialize_database()
 
@@ -284,22 +296,16 @@ File: /src/cli.py
 #!/usr/bin/env python3
 
 from typer import Option, Exit, prompt
-from typing import List, Optional
 from rich import print
 from datetime import datetime, UTC
 from os import path
 from pathlib import Path
 from json import load
 
-from main import app
-from database import LinkDatabase, User, Link
+from main import app, db
+from database import User, Link
 from importer import check_file, import_txt, import_csv, import_links_from_json
 from exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
-
-
-# Initialize database with settings
-db = LinkDatabase()
-db.get_connection()
 
 
 # User Commands
@@ -399,6 +405,7 @@ def search_links(
     sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
     limit: int = Option(3, help="Number of results to return."),
     offset: int = Option(0, help="Number of results to skip."),
+    is_read: bool | None = Option(None, help="Filter by read status."),
 ) -> None:
     """
     Search for links based on domain, tags, or description.
@@ -411,6 +418,7 @@ def search_links(
         sort_order=sort_order,
         limit=limit,
         offset=offset,
+        is_read=is_read,
     )
     if not results:
         print("[yellow]No matching links found.[/yellow]")
@@ -435,11 +443,11 @@ def delete_link(link_id: int = Option(..., help="ID of the link to delete.")) ->
 @app.command("link-update", help="Update a link's details by its ID.")
 def update_link(
     link_id: int = Option(..., help="ID of the link to update."),
-    url: Optional[str] = Option(None, help="New URL of the link."),
-    domain: Optional[str] = Option(None, help="New domain of the link."),
-    description: Optional[str] = Option(None, help="New description of the link."),
-    tags: Optional[List[str]] = Option(None, "--tag", "-t", help="New tags for the link."),
-    is_read: Optional[bool] = Option(None, help="Mark as read or unread."),
+    url: str | None = Option(None, help="New URL of the link."),
+    domain: str | None = Option(None, help="New domain of the link."),
+    description: str | None = Option(None, help="New description of the link."),
+    tags: list[str] | None = Option(None, "--tag", "-t", help="New tags for the link."),
+    is_read: bool | None = Option(None, help="Mark as read or unread."),
 ) -> None:
     """
     Update a link's details by its ID.
@@ -474,7 +482,24 @@ def update_link(
         print(f"[red]Failed to update link with ID {link_id}.[/red]")
 
 
-# Import Commands
+@app.command("link-mark-read", help="Mark 3 links as read.")
+def mark_links_as_read() -> None:
+    """
+    Retrieve 3 links from the database and mark them as read (is_read = 1).
+    """
+    links = db.read_links(limit=3)  # Get 3 links
+    if not links:
+        print("[yellow]No links found to update.[/yellow]")
+        return
+
+    link_ids = [link.id for link in links if link.id is not None]  # Get the IDs of the links
+    db.update_is_read_for_links(link_ids)  # Mark them as read
+
+    for link in links:
+        print(f"[green]Marked link {link.id} as read: {link.url}[/green]")
+
+
+# Import/Export Commands
 @app.command("import", help="Import links from a TXT or CSV file.")
 def import_links(
     file_path: str = Option(..., help="Path to the .txt or .csv file to import."),
@@ -693,7 +718,6 @@ class Database:
 File: /src/database/schema.py
 ================================================
 from pydantic import BaseModel, Field, EmailStr, HttpUrl
-from typing import Optional
 from datetime import datetime, UTC
 
 
@@ -704,7 +728,7 @@ class User(BaseModel):
     including an optional ID, required name, and email address.
 
     Attributes:
-        id (Optional[int]): The unique identifier for the user. Auto-generated when None.
+        id (int|None): The unique identifier for the user. Auto-generated when None.
         name (str): The user's name. Must be at least 4 characters long.
         email (EmailStr): The user's email address in valid email format.
 
@@ -715,7 +739,7 @@ class User(BaseModel):
         )
     """
 
-    id: Optional[int] = Field(None, description="User ID (autogenerated)")
+    id: int | None = Field(None, description="User ID (autogenerated)")
     name: str = Field(..., min_length=4, description="Name of the user")
     email: EmailStr = Field(..., description="Email of the user")
 
@@ -727,10 +751,10 @@ class Link(BaseModel):
     their URL, associated metadata, and relationships.
 
     Attributes:
-        id (Optional[int]): Unique identifier for the link.
+        id (int|None): Unique identifier for the link.
         url (HttpUrl): The complete URL of the link.
         domain (str): The domain name extracted from the URL.
-        description (Optional[str]): Optional text description of the link's content.
+        description (str|None): Optional text description of the link's content.
         tag (list): List of tags associated with the link for categorization.
         author_id (int): ID reference to the user who created the link.
         is_read (bool): Flag indicating whether the link has been read, defaults to False.
@@ -738,10 +762,10 @@ class Link(BaseModel):
         updated_at (str): ISO format timestamp of the link's last modification.
     """
 
-    id: Optional[int] = Field(None, description="Unique identifier for the link")
+    id: int | None = Field(None, description="Unique identifier for the link")
     url: HttpUrl = Field(..., description="The URL of the link")
     domain: str = Field(..., description="Domain of the URL")
-    description: Optional[str] = Field(None, description="Description of the link")
+    description: str | None = Field(None, description="Description of the link")
     tag: list[str] = Field(default_factory=list, description="Tags associated with the link")
     author_id: int = Field(..., description="Foreign key to the User model")
     is_read: bool = Field(default=False, description="Whether the link has been read")
@@ -768,7 +792,6 @@ File: /src/database/link.py
 ================================================
 from sqlite3 import IntegrityError
 from json import dumps, loads
-from typing import Optional
 from datetime import datetime, UTC
 from rich import print
 
@@ -840,7 +863,7 @@ class LinkDatabase(Database):
             print(f"[red]Unexpected error occurred while creating user: {e}[/red]")
             return None
 
-    def create_link(self, link: Link) -> Optional[int]:
+    def create_link(self, link: Link) -> int | None:
         """Insert a new link."""
         try:
             with self.transaction() as cursor:
@@ -887,7 +910,7 @@ class LinkDatabase(Database):
             print(f"[red]Failed to create user and link atomically: {e}[/red]")
             return False
 
-    def get_user_by_email(self, email: str) -> Optional[User]:
+    def get_user_by_email(self, email: str) -> User | None:
         """Retrieve a user by email."""
         try:
             with self.transaction() as cursor:
@@ -939,7 +962,7 @@ class LinkDatabase(Database):
 
         return results
 
-    def read_link(self, link_id: int) -> Optional[Link]:
+    def read_link(self, link_id: int) -> Link | None:
         """Retrieve a specific link by ID."""
         with self.transaction() as cursor:
             cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
@@ -951,7 +974,7 @@ class LinkDatabase(Database):
             return Link(**row_dict, tag=loads(tag_json))
         return None
 
-    def update_link(self, link_id: int, updated_link: Link) -> None:
+    def update_link(self, link_id: int, updated_link: Link) -> bool:
         """Update a link by ID."""
         try:
             updated_link.updated_at = datetime.now(UTC).isoformat()
@@ -959,27 +982,32 @@ class LinkDatabase(Database):
                 cursor.execute(
                     """
                     UPDATE links
-                    SET url = ?, domain = ?, description = ?, tag = ?, updated_at = ?
+                    SET url = ?, domain = ?, description = ?, tag = ?, is_read = ?, updated_at = ?
                     WHERE id = ?
                     """,
                     (
-                        updated_link.url,
+                        str(updated_link.url),
                         updated_link.domain,
                         updated_link.description,
                         dumps(updated_link.tag),
+                        int(updated_link.is_read),
                         updated_link.updated_at,
                         link_id,
                     ),
                 )
                 if cursor.rowcount == 0:
                     print(f"[yellow]No link found with ID {link_id}. Nothing was updated.[/yellow]")
+                    return False
                 else:
                     cursor.connection.commit()
                     print("[green]Link updated successfully.[/green]")
+                    return True
         except IntegrityError as e:
             print(f"[red]Error: Duplicate URL or invalid update data. ({e})[/red]")
+            return False
         except Exception as e:
             print(f"[red]Unexpected error occurred while updating link: {e}[/red]")
+            return False
 
     def delete_link(self, link_id: int) -> None:
         """Delete a link by ID."""
@@ -996,18 +1024,23 @@ class LinkDatabase(Database):
 
     def search_links(
         self,
-        domain: Optional[str] = None,
-        tags: Optional[list[str]] = None,
-        description: Optional[str] = None,
+        domain: str | None = None,
+        tags: list[str] | None = None,
+        description: str | None = None,
         sort_by: str = "created_at",
         sort_order: str = "ASC",
         limit: int = 10,
         offset: int = 0,
+        is_read: bool | None = False,
     ) -> list[Link]:
         """Search for links by domain, tags, or description with sorting and pagination."""
         try:
             query = "SELECT * FROM links WHERE 1=1"
             parameters = []
+
+            # Filter by is not read
+            if is_read:
+                query += " AND is_read = 0"
 
             # Filter by domain (case-insensitive)
             if domain:
@@ -1065,6 +1098,37 @@ class LinkDatabase(Database):
             print(f"[red]Unexpected error occurred during search: {e}[/red]")
             return []
 
+    def read_links(self, limit: int = 3) -> list[Link]:
+        """Retrieve a specific number of links."""
+        with self.transaction() as cursor:
+            cursor.execute("SELECT * FROM links ORDER BY created_at LIMIT ?", (limit,))
+            rows = cursor.fetchall()
+
+        # Convert rows to Link objects
+        links = []
+        for row in rows:
+            row_dict = dict(row)
+            row_dict["tag"] = loads(row_dict["tag"]) if row_dict["tag"] else []
+            links.append(Link(**row_dict))
+
+        return links
+
+    def update_is_read_for_links(self, link_ids: list[int]) -> None:
+        """Update the 'is_read' field for a list of links."""
+        try:
+            with self.transaction() as cursor:
+                cursor.executemany(
+                    """
+                    UPDATE links
+                    SET is_read = 1
+                    WHERE id = ?
+                    """,
+                    [(link_id,) for link_id in link_ids],  # List of link IDs
+                )
+            print(f"[green]Successfully updated 'is_read' for {len(link_ids)} links.[/green]")
+        except Exception as e:
+            print(f"[red]Failed to update 'is_read' for links: {e}[/red]")
+
 
 ================================================
 File: /src/__init__.py
@@ -1097,7 +1161,6 @@ from rich import print
 from pydantic import HttpUrl, ValidationError
 from urllib.parse import urlparse
 from csv import DictReader
-from typing import List
 from json import JSONDecodeError, load
 
 from settings import settings
@@ -1142,7 +1205,7 @@ def extract_domain(url: str) -> str:
     return parsed_url.netloc
 
 
-def parse_tags(domain: str) -> List[str]:
+def parse_tags(domain: str) -> list[str]:
     """
     Generates tags based on the domain.
 

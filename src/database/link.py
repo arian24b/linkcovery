@@ -190,7 +190,7 @@ class LinkDatabase(Database):
                 cursor.execute(
                     """
                     UPDATE links
-                    SET url = ?, domain = ?, description = ?, tag = ?, updated_at = ?
+                    SET url = ?, domain = ?, description = ?, tag = ?, is_read = ?, updated_at = ?
                     WHERE id = ?
                     """,
                     (
@@ -198,6 +198,7 @@ class LinkDatabase(Database):
                         updated_link.domain,
                         updated_link.description,
                         dumps(updated_link.tag),
+                        int(updated_link.is_read),
                         updated_link.updated_at,
                         link_id,
                     ),
@@ -238,11 +239,16 @@ class LinkDatabase(Database):
         sort_order: str = "ASC",
         limit: int = 10,
         offset: int = 0,
+        is_read: bool | None = False,
     ) -> list[Link]:
         """Search for links by domain, tags, or description with sorting and pagination."""
         try:
             query = "SELECT * FROM links WHERE 1=1"
             parameters = []
+
+            # Filter by is not read
+            if is_read:
+                query += " AND is_read = 0"
 
             # Filter by domain (case-insensitive)
             if domain:
