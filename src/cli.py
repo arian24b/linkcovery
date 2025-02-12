@@ -16,36 +16,47 @@ logger = Logger(__name__)
 
 
 # User Commands
-@app.command("user-add", help="Add a new user to the database.")
-def add_user(
-    name: str = Option(..., prompt=True, help="Name of the user."),
-    email: str = Option(..., prompt=True, help="Email of the user."),
+@app.command(
+    name="user",
+    help="Manage users: list all users with --list or create a new user with --create.",
+)
+def manage_user(
+    list_users: bool = Option(False, "--list", help="List all users."),
+    create: bool = Option(False, "--create", help="Create a new user."),
+    name: str | None = Option(None, "--name", help="Name of the new user."),
+    email: str | None = Option(None, "--email", help="Email of the new user."),
 ) -> None:
     """
-    Add a new user to the database.
+    Manage users: list them or create a new one depending on the flags provided.
     """
-    user = User(
-        id=None,
-        name=name,
-        email=email,
-    )
-
-    if user_id := db.create_user(user):
-        logger.info(f"User '{name}' added with ID: {user_id}")
+    if list_users and create:
+        logger.error("Cannot use --list and --create at the same time.")
+        raise Exit(code=1)
+    elif list_users:
+        users = db.read_users()
+        if not users:
+            logger.warning("No users found.")
+        else:
+            for user in users:
+                logger.info(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
+    elif create:
+        if not name or not email:
+            logger.error("Both --name and --email must be provided when using --create.")
+            raise Exit(code=1)
+        user = User(
+            id=None,
+            name=name,
+            email=email,
+        )
+        if user_id := db.create_user(user):
+            logger.info(f"User '{name}' added with ID: {user_id}")
+        else:
+            logger.error(f"Failed to add user '{name}'.")
     else:
-        logger.error(f"Failed to add user '{name}'.")
-
-
-@app.command("user-list", help="List all users.")
-def list_users() -> None:
-    """
-    List all users.
-    """
-    if not (users := db.read_users()):
-        logger.warning("No users found.")
-        return None
-    for user in users:
-        logger.info(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
+        logger.error(
+            "Please specify either --list to list users or --create along with --name and --email to create a new user."
+        )
+        raise Exit(code=1)
 
 
 # Link Commands
