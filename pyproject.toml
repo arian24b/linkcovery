@@ -1,21 +1,22 @@
 [project]
 name = "linkcovery"
-version = "0.2.1"
-description = "Link discovery tool for people with love and Python :)"
+version = "0.3.0"
+description = "Bookmark and Link discovery tool for people with love and Python :)"
 readme = "README.md"
 authors = [{name = "Arian Omrani"}]
 requires-python = ">=3.13"
 dependencies = [
+    "pydantic[email]>=2.10.6",
     "pydantic-settings>=2.7.1",
-    "pydantic[email]>=2.10.5",
     "rich>=13.9.4",
+    "sqlalchemy>=2.0.38",
     "typer>=0.15.1",
 ]
 
 [dependency-groups]
 dev = [
-    "gitingest>=0.1.2",
-    "ruff>=0.9.0",
+    "alembic>=1.14.1",
+    "pytest>=8.3.4",
     "sqlite-web>=0.6.4",
 ]
 
