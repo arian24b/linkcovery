@@ -1,10 +1,10 @@
 from typer import Typer
 
-from database import LinkDatabase
-from logger import Logger
-from settings import settings
+from app.core.models import LinkDatabase
+from app.core.logger import AppLogger
+from app.core.settings import settings
 
-logger = Logger(__name__)
+logger = AppLogger(__name__)
 
 # Initialize database with settings
 db = LinkDatabase()

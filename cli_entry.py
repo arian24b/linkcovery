@@ -7,12 +7,12 @@ from pathlib import Path
 from json import load
 
 from main import app, db
-from database import User, Link
-from importer import check_file, import_txt, import_csv, import_links_from_json
-from exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
-from logger import Logger
+from app.core.models import User, Link
+from app.core.services.import_export.importer import check_file, import_txt, import_csv, import_links_from_json
+from app.core.services.import_export.exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
+from app.core.logger import AppLogger
 
-logger = Logger(__name__)
+logger = AppLogger(__name__)
 
 
 # User Commands

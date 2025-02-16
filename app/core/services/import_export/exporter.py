@@ -3,10 +3,10 @@ from json import dump
 from rich.progress import track
 from pathlib import Path
 
-from models import LinkDatabase, User, Link
-from logger import Logger
+from app.core.models import LinkDatabase, User, Link
+from app.core.logger import AppLogger
 
-logger = Logger(__name__)
+logger = AppLogger(__name__)
 
 
 def export_users_to_json(db: LinkDatabase, output_path: str) -> None:

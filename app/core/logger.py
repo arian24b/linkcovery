@@ -2,10 +2,10 @@ from logging import getLogger, Formatter, DEBUG, INFO
 from rich.console import Console
 from rich.logging import RichHandler
 
-from settings import settings
+from .settings import settings
 
 
-class Logger:
+class AppLogger:
     def __init__(self, name: str):
         self.console = Console()
         self.logger = getLogger(name)

@@ -4,7 +4,7 @@ from rich import print
 from queue import Queue
 from threading import Lock
 
-from settings import settings
+from app.core.settings import settings
 
 
 class Database:

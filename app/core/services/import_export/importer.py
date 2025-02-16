@@ -5,8 +5,8 @@ from urllib.parse import urlparse
 from csv import DictReader
 from json import JSONDecodeError, load
 
-from settings import settings
-from models import LinkDatabase, User, Link
+from app.core.models import LinkDatabase, User, Link
+from app.core.settings import settings
 
 
 def check_file(file_path: str) -> bool:
