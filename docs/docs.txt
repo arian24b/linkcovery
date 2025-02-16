@@ -1,7 +1,6 @@
 Directory structure:
 └── /./
     ├── .python-version
-    ├── cli_entry.py
     ├── main.py
     ├── __init__.py
     ├── .env.example
@@ -9,10 +8,13 @@ Directory structure:
     ├── app/
     │   ├── cli/
     │   │   ├── __init__.py
-    │   │   └── commands/
-    │   │       ├── link.py
-    │   │       ├── __init__.py
-    │   │       └── user.py
+    │   │   ├── commands/
+    │   │   │   ├── link.py
+    │   │   │   ├── __init__.py
+    │   │   │   ├── import_export.py
+    │   │   │   ├── __pycache__/
+    │   │   │   └── user.py
+    │   │   └── __pycache__/
     │   ├── __pycache__/
     │   ├── core/
     │   │   ├── settings.py
@@ -53,72 +55,54 @@ File: /.python-version
 
 
 ================================================
-File: /cli_entry.py
+File: /main.py
 ================================================
-#!/usr/bin/env python3
+from typer import Typer
 
-from typer import Option, Exit, prompt
+from app.cli.commands import user, link, import_export
+from app.core.settings import settings
+
+
+# Initialize Typer for potential future CLI enhancements
+cli_app = Typer(
+    name=settings.APP_NAME,
+    no_args_is_help=True,
+    help=f"{settings.APP_NAME}, Bookmark management CLI Application",
+)
+
+cli_app.add_typer(user.app, name="user")
+cli_app.add_typer(link.app, name="link")
+cli_app.add_typer(import_export.app, name="import-export")
+
+
+if __name__ == "__main__":
+    cli_app()
+
+
+================================================
+File: /.env.example
+================================================
+DATABASE_NAME=app.db
+DEBUG=False
+
+
+================================================
+File: /app/cli/commands/link.py
+================================================
+from typer import Typer, Option, Exit, prompt
 from datetime import datetime, UTC
-from os import path
-from pathlib import Path
-from json import load
 
-from main import app, db
-from app.core.models import User, Link
-from app.core.services.import_export.importer import check_file, import_txt, import_csv, import_links_from_json
-from app.core.services.import_export.exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
 from app.core.logger import AppLogger
+from app.core.models import Link, db
+
 
 logger = AppLogger(__name__)
 
-
-# User Commands
-@app.command(
-    name="user",
-    help="Manage users: list all users with --list or create a new user with --create.",
-)
-def manage_user(
-    list_users: bool = Option(False, "--list", help="List all users."),
-    create: bool = Option(False, "--create", help="Create a new user."),
-    name: str | None = Option(None, "--name", help="Name of the new user."),
-    email: str | None = Option(None, "--email", help="Email of the new user."),
-) -> None:
-    """
-    Manage users: list them or create a new one depending on the flags provided.
-    """
-    if list_users and create:
-        logger.error("Cannot use --list and --create at the same time.")
-        raise Exit(code=1)
-    elif list_users:
-        users = db.read_users()
-        if not users:
-            logger.warning("No users found.")
-        else:
-            for user in users:
-                logger.info(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
-    elif create:
-        if not name or not email:
-            logger.error("Both --name and --email must be provided when using --create.")
-            raise Exit(code=1)
-        user = User(
-            id=None,
-            name=name,
-            email=email,
-        )
-        if user_id := db.create_user(user):
-            logger.info(f"User '{name}' added with ID: {user_id}")
-        else:
-            logger.error(f"Failed to add user '{name}'.")
-    else:
-        logger.error(
-            "Please specify either --list to list users or --create along with --name and --email to create a new user."
-        )
-        raise Exit(code=1)
+app = Typer()
 
 
-# Link Commands
-@app.command("link-add", help="Add a new link to the database.")
-def add_link(
+@app.command(help="Add a new link to the database.")
+def create(
     url: str | None = Option(None, help="URL of the link."),
     domain: str | None = Option(None, help="Domain of the link."),
     author_email: str | None = Option(None, help="Email of the author."),
@@ -155,8 +139,8 @@ def add_link(
         logger.error("Failed to add link.")
 
 
-@app.command("link-list", help="List all links with their authors.")
-def list_links() -> None:
+@app.command(help="List all links with their authors.")
+def list_link() -> None:
     """
     List all links with their authors.
     """
@@ -172,8 +156,8 @@ def list_links() -> None:
         )
 
 
-@app.command("link-search", help="Search for links based on domain, tags, or description.")
-def search_links(
+@app.command(help="Search for links based on domain, tags, or description.")
+def search(
     domain: str | None = Option(None, help="Filter by domain."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
     description: str | None = Option(None, help="Filter by description."),
@@ -205,8 +189,8 @@ def search_links(
         )
 
 
-@app.command("link-delete", help="Delete a link by its ID.")
-def delete_link(link_id: int = Option(..., help="ID of the link to delete.")) -> None:
+@app.command(help="Delete a link by its ID.")
+def delete(link_id: int = Option(..., help="ID of the link to delete.")) -> None:
     """
     Delete a link by its ID.
     """
@@ -216,8 +200,8 @@ def delete_link(link_id: int = Option(..., help="ID of the link to delete.")) ->
         logger.error(f"Failed to delete link with ID {link_id}.")
 
 
-@app.command("link-update", help="Update a link's details by its ID.")
-def update_link(
+@app.command(help="Update a link's details by its ID.")
+def update(
     link_id: int = Option(..., help="ID of the link to update."),
     url: str | None = Option(None, help="New URL of the link."),
     domain: str | None = Option(None, help="New domain of the link."),
@@ -273,7 +257,36 @@ def mark_links_as_read() -> None:
         logger.info(f"Marked link {link.id} as read: {link.url}")
 
 
-# Import/Export Commands
+================================================
+File: /app/cli/commands/import_export.py
+================================================
+from typer import Typer, Option, Exit, prompt
+from os import path
+from pathlib import Path
+from json import load
+
+from app.core.logger import AppLogger
+from app.core.models import db
+from app.core.services.import_export.importer import (
+    check_file,
+    import_txt,
+    import_csv,
+    import_links_from_json,
+)
+from app.core.services.import_export.exporter import (
+    export_users_to_json,
+    export_users_to_csv,
+    export_links_to_json,
+    export_links_to_csv,
+    export_all,
+)
+
+
+logger = AppLogger(__name__)
+
+app = Typer()
+
+
 @app.command("import", help="Import links from a TXT or CSV file.")
 def import_links(
     file_path: str = Option(..., help="Path to the .txt or .csv file to import."),
@@ -382,70 +395,45 @@ def export_all_command(
     export_all(db, format, str(output_dir))
 
 
-@app.command("test-log")
-def test_log() -> None:
-    """
-    Test logging functionality.
-    """
-    logger.debug("This is a debug message.")
-    logger.info("This is an info message.")
-    logger.warning("This is a warning message.")
-    logger.error("This is an error message.")
-    logger.critical("This is a critical message.")
-
-
-if __name__ == "__main__":
-    app()
-
-
 ================================================
-File: /main.py
+File: /app/cli/commands/user.py
 ================================================
-from typer import Typer
+from typer import Typer, Option, Exit
+from rich.table import Table
 
-from app.core.models import LinkDatabase
 from app.core.logger import AppLogger
-from app.core.settings import settings
+from app.core.models import User
+from app.core.models import db
+
 
 logger = AppLogger(__name__)
 
-# Initialize database with settings
-db = LinkDatabase()
-db.get_connection()
-
-# Initialize Typer for potential future CLI enhancements
-app = Typer(
-    name=settings.APP_NAME,
-    no_args_is_help=True,
-    help=f"{settings.APP_NAME} CLI Application",
-    rich_markup_mode=True,
-)
+app = Typer()
 
 
-def initialize_database():
-    """
-    Initializes the database by creating necessary tables and indexes.
-    """
-    db = LinkDatabase()
+@app.command()
+def list():
+    """List all users"""
+    table = Table(title="Users")
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="magenta")
+    table.add_column("Email", style="green")
 
-    if db.is_initialized({"users", "links"}):
-        logger.warning("Database initialization skipped. The database is already set up.")
-    else:
-        db.create_table()
-        logger.warning("Database has been initialized successfully.")
+    for user in db.read_users():
+        table.add_row(str(user.id), user.name, user.email)
 
-    db.close_all()
-
-
-if __name__ == "__main__":
-    initialize_database()
+    logger.print(table)
 
 
-================================================
-File: /.env.example
-================================================
-DATABASE_NAME=app.db
-DEBUG=False
+@app.command()
+def create(name: str = Option(..., prompt=True), email: str = Option(..., prompt=True)):
+    """Create new user"""
+    try:
+        user = db.create_user(User(name=name, email=email))
+        logger.success(f"User created with ID: {user.id}")
+    except Exception as e:
+        logger.error(f"Error creating user: {str(e)}")
+        raise Exit(code=1)
 
 
 ================================================
@@ -940,6 +928,31 @@ File: /app/core/models/__init__.py
 from .database import Database
 from .schema import User, Link
 from .link import LinkDatabase
+from app.core.logger import AppLogger
+
+
+logger = AppLogger(__name__)
+
+# Initialize database with settings
+db = LinkDatabase()
+
+
+def initialize_database(db):
+    """
+    Initializes the database by creating necessary tables and indexes.
+    """
+    db.get_connection()
+
+    if db.is_initialized({"users", "links"}):
+        logger.warning("Database initialization skipped. The database is already set up.")
+    else:
+        db.create_table()
+        logger.warning("Database has been initialized successfully.")
+
+    db.close_all()
+
+
+initialize_database(db)
 
 __all__ = ["Database", "User", "Link", "LinkDatabase"]
 
