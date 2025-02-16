@@ -6,7 +6,7 @@ from csv import DictReader
 from json import JSONDecodeError, load
 
 from settings import settings
-from database import LinkDatabase, User, Link
+from models import LinkDatabase, User, Link
 
 
 def check_file(file_path: str) -> bool:

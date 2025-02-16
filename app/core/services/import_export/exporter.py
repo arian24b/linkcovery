@@ -3,7 +3,7 @@ from json import dump
 from rich.progress import track
 from pathlib import Path
 
-from database import LinkDatabase, User, Link
+from models import LinkDatabase, User, Link
 from logger import Logger
 
 logger = Logger(__name__)
