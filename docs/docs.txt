@@ -15,7 +15,6 @@ Directory structure:
     │   │   │   ├── __pycache__/
     │   │   │   └── user.py
     │   │   └── __pycache__/
-    │   ├── __pycache__/
     │   ├── core/
     │   │   ├── settings.py
     │   │   ├── __init__.py
@@ -35,16 +34,6 @@ Directory structure:
     │   │   │   └── link.py
     │   │   ├── logger.py
     │   │   └── __pycache__/
-    │   ├── tests/
-    │   │   ├── cli/
-    │   │   │   └── __init__.py
-    │   │   ├── core/
-    │   │   │   └── __init__.py
-    │   │   ├── api/
-    │   │   │   └── __init__.py
-    │   │   └── __init__.py
-    │   ├── api/
-    │   │   └── __init__.py
     │   └── __init__.py
     └── pyproject.toml
 
@@ -1510,5 +1499,3 @@ linkcovery = "cli:app"
 
 [tool.uv]
 package = true
-
-
