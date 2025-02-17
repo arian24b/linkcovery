@@ -2,38 +2,28 @@ Directory structure:
 └── /./
     ├── .python-version
     ├── main.py
-    ├── __init__.py
     ├── .env.example
     ├── docs/
     ├── app/
     │   ├── cli/
     │   │   ├── __init__.py
-    │   │   ├── commands/
-    │   │   │   ├── link.py
-    │   │   │   ├── __init__.py
-    │   │   │   ├── import_export.py
-    │   │   │   ├── __pycache__/
-    │   │   │   └── user.py
-    │   │   └── __pycache__/
-    │   ├── __pycache__/
+    │   │   └── commands/
+    │   │       ├── link.py
+    │   │       ├── import_export.py
+    │   │       └── user.py
     │   ├── core/
     │   │   ├── settings.py
-    │   │   ├── __init__.py
     │   │   ├── database/
     │   │   │   ├── __init__.py
     │   │   │   ├── models.py
     │   │   │   ├── crud.py
     │   │   │   ├── schemas.py
-    │   │   │   ├── __pycache__/
     │   │   │   └── repositories.py
     │   │   ├── services/
-    │   │   │   ├── __init__.py
     │   │   │   └── import_export/
     │   │   │       ├── exporter.py
-    │   │   │       ├── importer.py
-    │   │   │       └── __init__.py
-    │   │   ├── logger.py
-    │   │   └── __pycache__/
+    │   │   │       └── importer.py
+    │   │   └── logger.py
     │   └── __init__.py
     └── pyproject.toml
 
@@ -45,6 +35,22 @@ File: /.python-version
 
 ================================================
 File: /main.py
+================================================
+from app.cli import cli_app
+
+if __name__ == "__main__":
+    cli_app()
+
+
+================================================
+File: /.env.example
+================================================
+DATABASE_NAME=app.db
+DEBUG=False
+
+
+================================================
+File: /app/cli/__init__.py
 ================================================
 from typer import Typer
 
@@ -62,17 +68,6 @@ cli_app = Typer(
 cli_app.add_typer(user.app, name="user")
 cli_app.add_typer(link.app, name="link")
 # cli_app.add_typer(import_export.app, name="import-export")
-
-
-if __name__ == "__main__":
-    cli_app()
-
-
-================================================
-File: /.env.example
-================================================
-DATABASE_NAME=app.db
-DEBUG=False
 
 
 ================================================
