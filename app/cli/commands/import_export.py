@@ -4,7 +4,7 @@ from pathlib import Path
 from json import load
 
 from app.core.logger import AppLogger
-from app.core.models import db
+from app.core.models_old import db
 from app.core.services.import_export.importer import (
     check_file,
     import_txt,

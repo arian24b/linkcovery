@@ -28,7 +28,7 @@ Homepage = "https://github.com/arian24b/linkcovery"
 Issues = "https://github.com/arian24b/linkcovery/issues"
 
 [project.scripts]
-linkcovery = "cli:app"
+linkcovery = "main:cli_app"
 
 [tool.uv]
 package = true

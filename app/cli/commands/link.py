@@ -2,7 +2,7 @@ from typer import Typer, Option, Exit, prompt
 from datetime import datetime, UTC
 
 from app.core.logger import AppLogger
-from app.core.models import Link, db
+from app.core.database import user_service, link_service, Link
 
 
 logger = AppLogger(__name__)
@@ -28,21 +28,19 @@ def create(
     if not author_email:
         author_email = prompt("Author's email")
 
-    user = db.get_user_by_email(author_email)
-    if not user:
+    if not (user := user_service.get_user(user_email=author_email)):
         logger.error(f"Author with email '{author_email}' does not exist.")
         raise Exit(code=1)
 
     link = Link(
-        id=None,
         url=url,
-        domain=domain,
         description=description,
+        domain=domain,
         tag=tags,
         author_id=user.id,
     )
 
-    if link_id := db.create_link(link):
+    if link_id := link_service.create_link(link):
         logger.info(f"Link added with ID: {link_id}")
     else:
         logger.error("Failed to add link.")
@@ -53,16 +51,13 @@ def list_link() -> None:
     """
     List all links with their authors.
     """
-    links_with_authors = db.read_links_with_authors()
-    if not links_with_authors:
+    if not (links := link_service.get_links()):
         logger.warning("No links found.")
         return None
-    for entry in links_with_authors:
+
+    for entry in links:
         link: Link = entry["link"]
-        author = entry["author"]
-        logger.info(
-            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {author['name']} ({author['email']})"
-        )
+        logger.info(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {link.author}")
 
 
 @app.command(help="Search for links based on domain, tags, or description.")
@@ -79,7 +74,7 @@ def search(
     """
     Search for links based on domain, tags, or description.
     """
-    results = db.search_links(
+    results = link_service.search_links(
         domain=domain,
         tags=tags,
         description=description,
@@ -103,7 +98,7 @@ def delete(link_id: int = Option(..., help="ID of the link to delete.")) -> None
     """
     Delete a link by its ID.
     """
-    if db.delete_link(link_id):
+    if link_service.delete_link(link_id):
         logger.info(f"Link with ID {link_id} has been deleted.")
     else:
         logger.error(f"Failed to delete link with ID {link_id}.")
@@ -121,8 +116,8 @@ def update(
     """
     Update a link's details by its ID.
     """
-    existing_link = db.read_link(link_id)
-    if not existing_link:
+
+    if not (existing_link := link_service.get_link(link_id)):
         logger.error(f"No link found with ID {link_id}.")
         raise Exit(code=1)
 
@@ -143,24 +138,23 @@ def update(
 
     existing_link.updated_at = datetime.now(UTC).isoformat()
 
-    if db.update_link(link_id, existing_link):
+    if link_service.update_link(link_id, existing_link):
         logger.info(f"Link with ID {link_id} has been updated.")
     else:
         logger.error(f"Failed to update link with ID {link_id}.")
 
 
-@app.command("link-mark-read", help="Mark 3 links as read.")
-def mark_links_as_read() -> None:
+@app.command("read-link", help="Mark 3 links as read.")
+def mark_links_as_read(auther_id: str | None = Option(None)) -> None:
     """
     Retrieve 3 links from the database and mark them as read (is_read = 1).
     """
-    links = db.read_links(limit=3)
-    if not links:
+    if not (links := link_service.get_links_by_author(author_id=auther_id, number=3)):
         logger.warning("No links found to update.")
         return
 
     link_ids = [link.id for link in links if link.id is not None]
-    db.update_is_read_for_links(link_ids)
+    link_service.update_is_read_for_links(link_ids)
 
     for link in links:
         logger.info(f"Marked link {link.id} as read: {link.url}")

@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from csv import DictReader
 from json import JSONDecodeError, load
 
-from app.core.models import LinkDatabase, User, Link
+from app.core.models_old import LinkDatabase, User, Link
 from app.core.settings import settings
 
 

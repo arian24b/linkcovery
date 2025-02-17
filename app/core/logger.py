@@ -44,3 +44,6 @@ class AppLogger:
 
     def exception(self, msg: str) -> None:
         self.logger.exception(msg)
+
+    def print(self, msg: str) -> None:
+        self.console.print(msg)

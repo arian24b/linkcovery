@@ -2,9 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.settings import settings
-from models import Base, User, Link
-from crud import UserService, LinkService
-
+from app.core.database.models import Base, User, Link
+from app.core.database.crud import UserService, LinkService
 
 engine = create_engine(f"sqlite:///{settings.DATABASE_NAME}")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -1,6 +1,6 @@
 from typer import Typer
 
-from app.cli.commands import user, link, import_export
+from app.cli.commands import user, link  # , import_export
 from app.core.settings import settings
 
 
@@ -13,7 +13,7 @@ cli_app = Typer(
 
 cli_app.add_typer(user.app, name="user")
 cli_app.add_typer(link.app, name="link")
-cli_app.add_typer(import_export.app, name="import-export")
+# cli_app.add_typer(import_export.app, name="import-export")
 
 
 if __name__ == "__main__":

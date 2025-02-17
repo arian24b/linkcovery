@@ -21,7 +21,6 @@ class User(Base):
 
     @validates("email")
     def validate_email(self, key, value):
-        # Email validation could be done using a regex or library like pydantic in the service layer.
         return value
 
 
@@ -32,7 +31,7 @@ class Link(Base):
     url = Column(String, nullable=False)
     domain = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    tag = Column(String, nullable=False)  # We'll store tags as a comma-separated string for simplicity
+    tag = Column(String, nullable=False)
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_read = Column(Boolean, default=False)
     created_at = Column(String, nullable=False)

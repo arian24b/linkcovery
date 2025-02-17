@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from models import User, Link
+from app.core.database.models import User, Link
 
 
 class UserRepository:
@@ -20,18 +20,19 @@ class UserRepository:
         return self.session.query(User).filter(User.email == email).first()
 
     def update(self, user_id: int, user_data):
-        user = self.get_by_id(user_id)
-        if user:
+        if user := self.get_by_id(user_id):
             for key, value in user_data.items():
                 setattr(user, key, value)
             self.session.commit()
         return user
 
     def delete(self, user_id: int):
-        user = self.get_by_id(user_id)
-        if user:
+        if user := self.get_by_id(user_id):
             self.session.delete(user)
             self.session.commit()
+
+    def get_all(self):
+        return self.session.query(User).all()
 
 
 class LinkRepository:
@@ -59,15 +60,21 @@ class LinkRepository:
         return query.all()
 
     def update(self, link_id: int, link_data):
-        link = self.get_by_id(link_id)
-        if link:
+        if link := self.get_by_id(link_id):
             for key, value in link_data.items():
                 setattr(link, key, value)
             self.session.commit()
         return link
 
     def delete(self, link_id: int):
-        link = self.get_by_id(link_id)
-        if link:
+        if link := self.get_by_id(link_id):
             self.session.delete(link)
             self.session.commit()
+
+    def get_all(self):
+        return self.session.query(Link).all()
+
+    def get_links_by_author(self, author_id: int, number: int | None = None):
+        if number:
+            return self.session.query(Link).filter(Link.author_id == author_id).limit(number).all()
+        return self.session.query(Link).filter(Link.author_id == author_id).all()
