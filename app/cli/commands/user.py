@@ -2,7 +2,7 @@ from typer import Typer, Option
 from rich.table import Table
 
 from app.core.logger import AppLogger
-from app.core.database import user_service, User
+from app.core.database import user_service
 
 
 logger = AppLogger(__name__)
@@ -36,3 +36,16 @@ def delete(user_id: int):
     """Delete user"""
     user_service.delete_user(user_id)
     logger.print(f"User with ID: {user_id} deleted")
+
+
+@app.command()
+def update(user_id: int, name: str = Option(None, prompt=True), email: str = Option(None, prompt=True)):
+    """Update user information"""
+    update_data = {}
+    if name:
+        update_data["name"] = name
+    if email:
+        update_data["email"] = email
+
+    _ = user_service.update_user(user_id, update_data)
+    logger.print(f"User with ID: {user_id} updated successfully")
