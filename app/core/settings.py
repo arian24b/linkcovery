@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     DATABASE_NAME: str = "app.db"
     DEBUG: bool = False
     ALLOW_EXTENSIONS: list = [
-        "csv",
-        "txt",
-        "json",
+        ".txt",
+        ".csv",
+        ".json",
     ]
 
     class Config:

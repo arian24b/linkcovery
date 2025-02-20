@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from app.core.database.repositories import UserRepository, LinkRepository
 
@@ -32,7 +33,9 @@ class LinkService:
     def __init__(self, session: Session):
         self.link_repository = LinkRepository(session)
 
-    def create_link(self, link_data):
+    def create_link(self, **link_data):
+        link_data["created_at"] = datetime.utcnow()
+        link_data["updated_at"] = link_data["created_at"]
         return self.link_repository.create(link_data)
 
     def get_link(self, link_id: int | None = None, link_url: str | None = None):
@@ -46,7 +49,8 @@ class LinkService:
     def search_links(self, search_criteria):
         return self.link_repository.search(search_criteria)
 
-    def update_link(self, link_id: int, link_data):
+    def update_link(self, link_id: int, **link_data):
+        link_data["updated_at"] = datetime.utcnow()
         return self.link_repository.update(link_id, link_data)
 
     def delete_link(self, link_id: int):
