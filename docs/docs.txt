@@ -68,6 +68,14 @@ File: README.md
 - **Python 3.13+**: Ensure Python 3.13 or higher is installed on your system.
 - **UV**: Used for dependency management and packaging.
 
+### Using Pypi
+
+```bash
+uv tool install linkcovery
+
+uvx --python 3.13 linkcovery
+```
+
 ### Steps
 
 1. **Clone the Repository**
@@ -230,6 +238,8 @@ name = "linkcovery"
 version = "0.3.0"
 description = "Bookmark and Link discovery tool for people with love and Python :)"
 readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["bookmark", "link", "discovery", "tool", "python"]
 authors = [{name = "Arian Omrani"}]
 requires-python = ">=3.13"
 dependencies = [
@@ -259,6 +269,9 @@ linkcovery = "app.cli:cli_app"
 
 [tool.uv]
 package = true
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 
 ================================================
