@@ -1,7 +1,7 @@
 from typer import Typer, Option, Exit, prompt
 
 from app.core.logger import AppLogger
-from app.core.database import user_service, link_service, Link
+from app.core.database import user_service, link_service
 
 logger = AppLogger(__name__)
 app = Typer()
@@ -14,6 +14,7 @@ def create(
     author_email: str | None = Option(None, help="Email of the author."),
     description: str | None = Option("", help="Description of the link."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags associated with the link."),
+    is_read: bool = Option(False, "--is-read", "-r", help="Mark the link as read or unread."),
 ) -> None:
     if not url:
         url = prompt("URL of the link")
@@ -21,7 +22,6 @@ def create(
         domain = prompt("Domain of the link")
     if not author_email:
         author_email = prompt("Author's email")
-
     if not (user := user_service.get_user(user_email=author_email)):
         logger.error(f"Author with email '{author_email}' does not exist.")
         raise Exit(code=1)
@@ -32,6 +32,7 @@ def create(
         domain=domain,
         tag=", ".join(tags) if isinstance(tags, list) else tags,
         author_id=user.id,
+        is_read=is_read,
     )
     if link_id:
         logger.info(f"Link added with ID: {link_id}")
@@ -78,7 +79,7 @@ def search(
     for link in results:
         logger.info(
             f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, "
-            f"Description: {link.description}, Tags: {link.tag}"
+            f"Description: {link.description}, Tags: {link.tag}, Read: {link.is_read}"
         )
 
 
@@ -97,16 +98,14 @@ def update(
     domain: str | None = Option(None, help="New domain of the link."),
     description: str | None = Option(None, help="New description of the link."),
     tags: list[str] | None = Option(None, "--tag", "-t", help="New tags for the link."),
-    is_read: bool | None = Option(None, help="Mark as read or unread."),
+    is_read: bool | None = Option(None, "--is-read", "-r", help="Mark as read or unread."),
 ) -> None:
+    # Check if link exists
     if not link_service.get_link(link_id):
         logger.error(f"No link found with ID {link_id}.")
         raise Exit(code=1)
 
-    if url is None and domain is None and description is None and tags is None and is_read is None:
-        logger.warning("No updates provided. Use options to specify fields to update.")
-        raise Exit()
-
+    # Collect data to update
     update_data = {}
     if url:
         update_data["url"] = url
@@ -119,6 +118,7 @@ def update(
     if is_read is not None:
         update_data["is_read"] = is_read
 
+    # Perform the update
     if link_service.update_link(link_id, **update_data):
         logger.info(f"Link with ID {link_id} has been updated.")
     else:

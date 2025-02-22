@@ -3,9 +3,6 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    traceback.install(show_locals=True)
-    pretty.install()
-
     APP_NAME: str = "LinkCovery"
     DATABASE_NAME: str = "app.db"
     DEBUG: bool = False
@@ -21,3 +18,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+if settings.DEBUG:
+    traceback.install(show_locals=True)
+    pretty.install()

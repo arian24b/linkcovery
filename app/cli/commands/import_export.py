@@ -26,7 +26,11 @@ def import_links(
         logger.error(f"Author with ID '{author_id}' does not exist.")
         raise Exit(code=1)
 
-    check_file(file_path)
+    try:
+        check_file(file_path)
+    except Exception as e:
+        logger.error(f"Error checking file: {e}")
+        return
     extension = path.splitext(file_path)[1].lower()
 
     if extension == ".txt":
