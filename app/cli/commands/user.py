@@ -4,28 +4,29 @@ from rich.table import Table
 from app.core.logger import AppLogger
 from app.core.database import user_service
 
-
 logger = AppLogger(__name__)
 app = Typer()
 
 
-@app.command(name="create", help="This command creates a new user with the specified name and email.")
+@app.command(name="create", help="Create a new user with the specified name and email.")
 def create(name: str = Option(..., prompt=True), email: str = Option(..., prompt=True)):
-    user = user_service.create_user({"name": name, "email": email})
+    try:
+        user = user_service.create_user({"name": name, "email": email})
+        logger.print(f"{name}, your account has been created with ID: {user.id} and Email: {email}")
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
 
-    logger.print(f"{name} your account has been created with ID: {user.id} and Email: {email}")
 
-
-@app.command(name="read", help="This command fetches a user by ID.")
+@app.command(name="read", help="Fetch a user by ID.")
 def read_user(user_id: int):
-    table = Table(title="Users")
+    if not (user := user_service.get_user(user_id)):
+        logger.error(f"No user found with ID {user_id}")
+        return
+    table = Table(title="User")
     table.add_column("ID", style="cyan")
     table.add_column("Name", style="magenta")
     table.add_column("Email", style="green")
-
-    user = user_service.get_user(user_id)
     table.add_row(str(user.id), user.name, user.email)
-
     logger.print(table)
 
 
@@ -37,15 +38,19 @@ def update(user_id: int, name: str = Option(None, prompt=True), email: str = Opt
     if email:
         update_data["email"] = email
 
-    user_service.update_user(user_id, update_data)
+    if not update_data:
+        logger.warning("No updates provided.")
+        return
 
-    logger.print(f"User with ID: {user_id} updated successfully")
+    if user_service.update_user(user_id, update_data):
+        logger.print(f"User with ID: {user_id} updated successfully")
+    else:
+        logger.error(f"User with ID: {user_id} not found.")
 
 
 @app.command()
 def delete(user_id: int):
     user_service.delete_user(user_id)
-
     logger.print(f"User with ID: {user_id} deleted")
 
 
@@ -56,7 +61,9 @@ def list():
     table.add_column("Name", style="magenta")
     table.add_column("Email", style="green")
 
-    for user in user_service.get_users():
+    if not (users := user_service.get_users()):
+        logger.print("No users found.")
+        return
+    for user in users:
         table.add_row(str(user.id), user.name, user.email)
-
     logger.print(table)

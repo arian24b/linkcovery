@@ -1,4 +1,4 @@
-from pydantic import HttpUrl
+from pydantic import HttpUrl, ValidationError, parse_obj_as
 from urllib.parse import urlparse
 from csv import DictReader
 from json import JSONDecodeError, load
@@ -7,24 +7,22 @@ from app.core.logger import AppLogger
 from app.core.utils import get_description
 from app.core.database import link_service
 
-
 logger = AppLogger(__name__)
 
 
 def txt_import(file_path: str, author_id: int):
     with open(file_path, "r", encoding="utf-8") as content:
-        if not (links := [line.strip() for line in content if line.strip()]):
+        links = [line.strip() for line in content if line.strip()]
+        if not links:
             logger.info("No links found in the TXT file.")
             return
 
     added_link = 0
-
     for line_number, link in enumerate(links, start=1):
-        url = str(HttpUrl(link))
-        domain = urlparse(url).netloc
-        tags = ",".join(domain.split("."))
-
         try:
+            url = str(parse_obj_as(HttpUrl, link))
+            domain = urlparse(url).netloc
+            tags = ", ".join(domain.split("."))
             link_service.create_link(
                 url=url,
                 description=get_description(None),
@@ -33,8 +31,8 @@ def txt_import(file_path: str, author_id: int):
                 author_id=author_id,
             )
             added_link += 1
-        except Exception as e:
-            logger.error(f"Failed to add link {line_number}.\nError: {e}")
+        except (ValidationError, Exception) as e:
+            logger.error(f"Failed to add link at line {line_number}. Error: {e}")
 
     logger.info(f"Successfully imported {added_link} links from TXT file for user {author_id}.")
 
@@ -42,7 +40,6 @@ def txt_import(file_path: str, author_id: int):
 def csv_import(file_path: str, author_id: int):
     with open(file_path, "r", encoding="utf-8") as content:
         reader = DictReader(content)
-
         if not reader.fieldnames:
             logger.info("CSV file is empty or invalid.")
             return
@@ -52,25 +49,18 @@ def csv_import(file_path: str, author_id: int):
             logger.info(f"CSV file is missing required fields. Required fields: {required_fields}")
             return
 
-        if not (links := list(reader)):
+        links = list(reader)
+        if not links:
             logger.info("No links found in the CSV file.")
             return
 
     added_link = 0
-
     for line_number, row in enumerate(links, start=2):
         try:
-            url = str(HttpUrl(row["url"]))
-            domain = row.get("domain", urlparse(url).netloc)
-            # Handle tags: split by comma and join them with commas (or adjust as needed)
-            tags = (
-                ",".join(tag.strip() for tag in row["tag"].split(","))
-                if row.get("tag")
-                else ",".join(domain.split("."))
-            )
-            is_read = row.get("is_read", "False").strip().lower() in {"1", "true", "yes"}
-
-            # Pass keyword arguments instead of a Link instance:
+            url = str(parse_obj_as(HttpUrl, row["url"]))
+            domain = row.get("domain") or urlparse(url).netloc
+            tags = row.get("tag") or ", ".join(domain.split("."))
+            is_read = str(row.get("is_read", "False")).strip().lower() in {"1", "true", "yes"}
             link_service.create_link(
                 url=url,
                 description=get_description(row.get("description")),
@@ -80,19 +70,13 @@ def csv_import(file_path: str, author_id: int):
                 is_read=is_read,
             )
             added_link += 1
-        except Exception as e:
-            logger.error(f"Failed to add link at line {line_number}.\nError: {e}")
+        except (ValidationError, Exception) as e:
+            logger.error(f"Failed to add link at line {line_number}. Error: {e}")
 
     logger.info(f"Successfully imported {added_link} links from CSV file for user {author_id}.")
 
 
 def json_import(file_path: str, author_id: int):
-    """
-    Import links from a JSON file.
-
-    The JSON file is expected to contain a list of dictionaries,
-    each with at least a "url" key and optionally "domain", "description", "tag", and "is_read".
-    """
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             links_data = load(f)
@@ -108,18 +92,13 @@ def json_import(file_path: str, author_id: int):
         return
 
     added_link = 0
-
     for index, link_dict in enumerate(links_data, start=1):
         try:
-            url = str(HttpUrl(link_dict["url"]))
-            domain = link_dict.get("domain", urlparse(url).netloc)
-            # If no tag is provided, generate one from the domain
-            tags = link_dict.get("tag")
-            if not tags:
-                tags = ",".join(domain.split("."))
+            url = str(parse_obj_as(HttpUrl, link_dict["url"]))
+            domain = link_dict.get("domain") or urlparse(url).netloc
+            tags = link_dict.get("tag") or ", ".join(domain.split("."))
             description = get_description(link_dict.get("description"))
             is_read = link_dict.get("is_read", False)
-
             link_service.create_link(
                 url=url,
                 description=description,
@@ -129,7 +108,7 @@ def json_import(file_path: str, author_id: int):
                 is_read=is_read,
             )
             added_link += 1
-        except Exception as e:
+        except (ValidationError, Exception) as e:
             logger.error(f"Failed to add link at index {index} from JSON. Error: {e}")
 
     logger.info(f"Successfully imported {added_link} links from JSON file for user {author_id}.")

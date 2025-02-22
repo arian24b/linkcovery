@@ -1,12 +1,9 @@
 from typer import Typer, Option, Exit, prompt
-from datetime import datetime, UTC
 
 from app.core.logger import AppLogger
 from app.core.database import user_service, link_service, Link
 
-
 logger = AppLogger(__name__)
-
 app = Typer()
 
 
@@ -18,9 +15,6 @@ def create(
     description: str | None = Option("", help="Description of the link."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags associated with the link."),
 ) -> None:
-    """
-    Add a new link to the database.
-    """
     if not url:
         url = prompt("URL of the link")
     if not domain:
@@ -32,13 +26,14 @@ def create(
         logger.error(f"Author with email '{author_email}' does not exist.")
         raise Exit(code=1)
 
-    if link_id := link_service.create_link(
+    link_id = link_service.create_link(
         url=url,
         description=description,
         domain=domain,
-        tag=tags,
+        tag=", ".join(tags) if isinstance(tags, list) else tags,
         author_id=user.id,
-    ):
+    )
+    if link_id:
         logger.info(f"Link added with ID: {link_id}")
     else:
         logger.error("Failed to add link.")
@@ -46,19 +41,15 @@ def create(
 
 @app.command(help="List all links with their authors.")
 def list_link() -> None:
-    """
-    List all links with their authors.
-    """
     if not (links := link_service.get_links()):
         logger.warning("No links found.")
-        return None
+        return
 
-    for entry in links:
-        link: Link = entry["link"]
+    for link in links:
         logger.info(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {link.author}")
 
 
-@app.command(help="Search for links based on domain, tags, description, and sort options.")
+@app.command(help="Search for links based on various filters.")
 def search(
     domain: str | None = Option(None, help="Filter by domain."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
@@ -69,10 +60,6 @@ def search(
     offset: int = Option(0, help="Number of results to skip."),
     is_read: bool | None = Option(None, help="Filter by read status."),
 ) -> None:
-    """
-    Search for links with advanced filtering, sorting, and pagination.
-    """
-    # Build the search criteria dictionary
     criteria = {
         "domain": domain,
         "tag": tags,
@@ -83,7 +70,6 @@ def search(
         "offset": offset,
         "is_read": is_read,
     }
-    # Remove keys with empty or None values
     criteria = {k: v for k, v in criteria.items() if v not in [None, [], ""]}
     results = link_service.search_links(criteria)
     if not results:
@@ -98,9 +84,6 @@ def search(
 
 @app.command(help="Delete a link by its ID.")
 def delete(link_id: int = Option(..., help="ID of the link to delete.")) -> None:
-    """
-    Delete a link by its ID.
-    """
     if link_service.delete_link(link_id):
         logger.info(f"Link with ID {link_id} has been deleted.")
     else:
@@ -116,10 +99,6 @@ def update(
     tags: list[str] | None = Option(None, "--tag", "-t", help="New tags for the link."),
     is_read: bool | None = Option(None, help="Mark as read or unread."),
 ) -> None:
-    """
-    Update a link's details by its ID.
-    """
-
     if not link_service.get_link(link_id):
         logger.error(f"No link found with ID {link_id}.")
         raise Exit(code=1)
@@ -128,7 +107,7 @@ def update(
         logger.warning("No updates provided. Use options to specify fields to update.")
         raise Exit()
 
-    update_data = {"updated_at": datetime.now(UTC).isoformat()}
+    update_data = {}
     if url:
         update_data["url"] = url
     if domain:
@@ -136,7 +115,7 @@ def update(
     if description is not None:
         update_data["description"] = description
     if tags is not None:
-        update_data["tag"] = tags
+        update_data["tag"] = ", ".join(tags) if isinstance(tags, list) else tags
     if is_read is not None:
         update_data["is_read"] = is_read
 
@@ -146,7 +125,7 @@ def update(
         logger.error(f"Failed to update link with ID {link_id}.")
 
 
-@app.command("read-link", help="Mark 3 links as read.")
+@app.command("read-link", help="Mark 3 links as read for a given author.")
 def mark_links_as_read(author_id: int = Option(..., help="ID of the author")) -> None:
     if not (links := link_service.get_links_by_author(author_id=author_id, number=3)):
         logger.warning("No links found to update.")
