@@ -36,4 +36,4 @@ linkcovery = "app.cli:cli_app"
 package = true
 
 [tool.setuptools]
-license-files = []
+license-files = ["LICENSE"]
