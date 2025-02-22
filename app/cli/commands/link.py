@@ -58,30 +58,41 @@ def list_link() -> None:
         logger.info(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {link.author}")
 
 
-@app.command(help="Search for links based on domain, tags, or description.")
+@app.command(help="Search for links based on domain, tags, description, and sort options.")
 def search(
     domain: str | None = Option(None, help="Filter by domain."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
+    description: str | None = Option(None, help="Filter by description."),
+    sort_by: str | None = Option(None, help="Field to sort by (e.g. created_at, updated_at, domain)."),
+    sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
     limit: int = Option(3, help="Number of results to return."),
+    offset: int = Option(0, help="Number of results to skip."),
     is_read: bool | None = Option(None, help="Filter by read status."),
 ) -> None:
     """
-    Search for links based on domain, tags, or description.
+    Search for links with advanced filtering, sorting, and pagination.
     """
-    results = link_service.search_links(
-        {
-            "domain": domain,
-            "tag": tags,  # Note: you may need to adjust if multiple tags should be handled differently
-            "limit": limit,
-            "is_read": is_read,
-        }
-    )
+    # Build the search criteria dictionary
+    criteria = {
+        "domain": domain,
+        "tag": tags,
+        "description": description,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
+        "limit": limit,
+        "offset": offset,
+        "is_read": is_read,
+    }
+    # Remove keys with empty or None values
+    criteria = {k: v for k, v in criteria.items() if v not in [None, [], ""]}
+    results = link_service.search_links(criteria)
     if not results:
         logger.warning("No matching links found.")
-        return None
+        return
     for link in results:
         logger.info(
-            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Description: {link.description}, Tags: {', '.join(link.tag)}"
+            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, "
+            f"Description: {link.description}, Tags: {link.tag}"
         )
 
 

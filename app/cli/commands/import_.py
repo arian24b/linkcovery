@@ -4,7 +4,7 @@ from os import path
 from app.core.logger import AppLogger
 from app.core.utils import check_file
 from app.core.database import user_service
-from app.core.services.import_export.importer import txt, csv
+from app.core.services.import_export.importer import txt, csv, json
 
 
 logger = AppLogger(__name__)
@@ -28,7 +28,7 @@ def import_links(
         txt(file_path, author.id)
     elif extension == ".csv":
         csv(file_path, author.id)
-    # elif extension == ".json":
-    #     json(file_path, author.id)
+    elif extension == ".json":
+        json(file_path, author.id)
     else:
         logger.error(f"Unsupported file extension: {extension}")

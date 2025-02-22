@@ -57,10 +57,33 @@ class LinkRepository:
 
     def search(self, search_criteria):
         query = self.session.query(Link)
-        if "url" in search_criteria:
-            query = query.filter(Link.url.contains(search_criteria["url"]))
-        if "tag" in search_criteria:
-            query = query.filter(Link.tag.contains(search_criteria["tag"]))
+        # Filter by domain if provided
+        if search_criteria.get("domain"):
+            query = query.filter(Link.domain.contains(search_criteria["domain"]))
+        # Filter by each tag provided
+        if search_criteria.get("tag"):
+            for tag in search_criteria["tag"]:
+                query = query.filter(Link.tag.contains(tag))
+        # Filter by description if provided
+        if search_criteria.get("description"):
+            query = query.filter(Link.description.contains(search_criteria["description"]))
+        # Filter by read status if provided
+        if search_criteria.get("is_read") is not None:
+            query = query.filter(Link.is_read == search_criteria["is_read"])
+        # Sorting: if a sort field is provided and exists on the Link model
+        sort_by = search_criteria.get("sort_by")
+        sort_order = search_criteria.get("sort_order", "ASC")
+        if sort_by and hasattr(Link, sort_by):
+            column = getattr(Link, sort_by)
+            if sort_order.upper() == "DESC":
+                query = query.order_by(column.desc())
+            else:
+                query = query.order_by(column.asc())
+        # Pagination: apply offset and limit if provided
+        if search_criteria.get("offset") is not None:
+            query = query.offset(search_criteria["offset"])
+        if search_criteria.get("limit") is not None:
+            query = query.limit(search_criteria["limit"])
         return query.all()
 
     def update(self, link_id: int, link_data):

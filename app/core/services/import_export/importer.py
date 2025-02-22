@@ -1,11 +1,11 @@
 from pydantic import HttpUrl
 from urllib.parse import urlparse
 from csv import DictReader
-# from json import JSONDecodeError, load
+from json import JSONDecodeError, load
 
 from app.core.logger import AppLogger
 from app.core.utils import get_description
-from app.core.database import link_service, Link
+from app.core.database import link_service
 
 
 logger = AppLogger(__name__)
@@ -86,59 +86,50 @@ def csv(file_path: str, author_id: int):
     logger.info(f"Successfully imported {added_link} links from CSV file for user {author_id}.")
 
 
-# TODO:add import json
-# def json(file_path: str, author_id: int):
-#     with open(file_path, "r", encoding="utf-8") as json_file:
-#         if not (links_data := load(json_file)):
-#             logger.info("No links found in the JSON file.")
-#             return
+def json_import(file_path: str, author_id: int):
+    """
+    Import links from a JSON file.
 
+    The JSON file is expected to contain a list of dictionaries,
+    each with at least a "url" key and optionally "domain", "description", "tag", and "is_read".
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            links_data = load(f)
+    except JSONDecodeError as e:
+        logger.error(f"Invalid JSON format: {e}")
+        return
+    except Exception as e:
+        logger.error(f"Failed to open JSON file: {e}")
+        return
 
-#         new_links = []
-#         for index, link_dict in enumerate(links_data, start=1):
-#             try:
-#                 # Extract author_email to find or create the user
-#                 author_info = link_dict.pop("author", {})
-#                 author_email = author_info.get("email")
-#                 if not author_email:
-#                     print(f"[red]Link {index}: Missing author email. Skipping.[/red]")
-#                     continue
+    if not links_data:
+        logger.info("No links found in the JSON file.")
+        return
 
-#                 user = db.get_user_by_email(author_email)
-#                 if not user:
-#                     # Optionally, create the user if they don't exist
-#                     user = User(name=author_info.get("name", "Unknown"), email=author_email)
-#                     user_id = db.create_user(user)
-#                     if not user_id:
-#                         print(f"[red]Link {index}: Failed to create user '{author_email}'. Skipping link.[/red]")
-#                         continue
-#                     user.id = user_id
+    added_link = 0
 
-#                 # Prepare Link object
-#                 link_obj = Link(**link_dict)
-#                 link_obj.author_id = user.id
+    for index, link_dict in enumerate(links_data, start=1):
+        try:
+            url = str(HttpUrl(link_dict["url"]))
+            domain = link_dict.get("domain", urlparse(url).netloc)
+            # If no tag is provided, generate one from the domain
+            tags = link_dict.get("tag")
+            if not tags:
+                tags = ",".join(domain.split("."))
+            description = get_description(link_dict.get("description"))
+            is_read = link_dict.get("is_read", False)
 
-#                 # Check if link already exists
-#                 existing_link = db.read_link_by_url(link_obj.url)
-#                 if existing_link:
-#                     print(f"[yellow]Link with URL '{link_obj.url}' already exists. Skipping.[/yellow]")
-#                     continue
+            link_service.create_link(
+                url=url,
+                description=description,
+                domain=domain,
+                tag=tags,
+                author_id=author_id,
+                is_read=is_read,
+            )
+            added_link += 1
+        except Exception as e:
+            logger.error(f"Failed to add link at index {index} from JSON. Error: {e}")
 
-#                 new_links.append(link_obj)
-#             except ValidationError as ve:
-#                 print(f"[red]Link {index}: Validation error: {ve}[/red]")
-#                 raise  # Trigger transaction rollback
-#             except Exception as e:
-#                 print(f"[red]Link {index}: Failed to prepare link. Error: {e}[/red]")
-#                 raise  # Trigger transaction rollback
-
-#         if new_links:
-#             db.bulk_create_links(new_links)
-#             print(f"[green]Successfully imported {len(new_links)} links from JSON file.[/green]")
-#         else:
-#             print("[yellow]No new links to import.[/yellow]")
-
-#     except JSONDecodeError as jde:
-#         print(f"[red]Invalid JSON format: {jde}[/red]")
-#     except Exception as e:
-#         print(f"[red]Failed to import links from JSON file: {e}[/red]")
+    logger.info(f"Successfully imported {added_link} links from JSON file for user {author_id}.")
