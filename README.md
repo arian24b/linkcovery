@@ -1,8 +1,8 @@
 # Linkcovery
 
-![Linkcovery Logo](https://via.placeholder.com/150) <!-- Replace with actual logo if available -->
+![Linkcovery Logo](https://via.placeholder.com/150)
 
-**Linkcovery** is a robust link discovery tool built with Python, designed to help you efficiently manage and explore your collection of links. Whether you're a developer, researcher, or avid internet surfer, Linkcovery provides an intuitive CLI to add, search, and organize your links seamlessly.
+**Linkcovery** is a powerful bookmark and link discovery tool built with Python, designed to help users efficiently manage and explore their collection of links. It provides an intuitive command-line interface (CLI) that enables developers, researchers, and avid internet users to seamlessly add, search, and organize links.
 
 ## Table of Contents
 
@@ -20,19 +20,19 @@
 
 ## Features
 
-- **Add and Manage Users**: Easily add new users and list existing ones.
-- **Link Management**: Add, list, search, update, and delete links with comprehensive metadata.
-- **Import Functionality**: Import links from TXT and CSV files efficiently.
-- **Search Capabilities**: Advanced search with filtering by domain, tags, and description, along with sorting and pagination.
-- **Atomic Operations**: Ensures data integrity with atomic transactions when creating users and links.
-- **Rich CLI Interface**: User-friendly command-line interface with prompts and colored outputs for better usability.
-- **SQLite Database with Connection Pooling**: Efficient database management using SQLite with a connection pool for optimized performance.
+- **User Management**: Easily create, update, delete, and list users.
+- **Link Management**: Add, list, search, update, and delete links with full metadata (URL, description, domain, tags).
+- **Search Capabilities**: Advanced search functionality to filter links by domain, tags, description, read status, and more.
+- **Link Import**: Import links from `.txt`, `.csv`, and `.json` files, associating them with a specific user.
+- **Atomic Operations**: Ensures data integrity during user and link creation with atomic transactions.
+- **Rich CLI Interface**: A user-friendly, interactive CLI with prompts and colored output for enhanced usability.
+- **SQLite Database**: Stores data efficiently in an SQLite database, supporting connection pooling for optimized performance.
 
 ## Installation
 
 ### Prerequisites
 
-- **Python 3.13+**: Ensure you have Python version 3.13 or higher installed.
+- **Python 3.13+**: Ensure Python 3.13 or higher is installed on your system.
 - **UV**: Used for dependency management and packaging.
 
 ### Steps
@@ -54,17 +54,17 @@
 
 3. **Set Up Environment Variables**
 
-   Copy the example environment file and configure as needed.
+   Copy the example environment file and configure it:
 
    ```bash
    cp .env.example .env
    ```
 
-   Edit the `.env` file to set your desired configurations.
+   Edit the `.env` file to set your preferred configurations.
 
-4. **Run cli**
+4. **Run the Application**
 
-   Before running the application, initialize the SQLite database.
+   Before running the app, initialize the SQLite database:
 
    ```bash
    uv run linkcovery --help
@@ -72,7 +72,7 @@
 
 ## Configuration
 
-Linkcovery uses environment variables for configuration. Here's how to set them up:
+Linkcovery uses environment variables for configuration. The `.env` file can be configured with the following settings:
 
 1. **Environment Variables**
 
@@ -84,19 +84,21 @@ Linkcovery uses environment variables for configuration. Here's how to set them 
 
 2. **Configure `.env`**
 
+   Example configuration:
+
    ```env
    DATABASE_NAME=app.db
    DEBUG=True
-   ALLOW_EXTENTIONS=csv,txt
+   ALLOW_EXTENTIONS=csv,txt,json
    ```
 
    - `DATABASE_NAME`: Name of the SQLite database file.
    - `DEBUG`: Enable or disable debug mode.
-   - `ALLOW_EXTENTIONS`: Allowed file extensions for import functionality.
+   - `ALLOW_EXTENSIONS`: Allowed file extensions for importing links.
 
 ## Usage
 
-Linkcovery provides a comprehensive CLI built with [Typer](https://typer.tiangolo.com/) for managing users and links. Below are the available commands and their descriptions.
+Linkcovery provides a CLI built using [Typer](https://typer.tiangolo.com/) to manage users and links.
 
 ### Running the CLI
 
@@ -106,7 +108,7 @@ Activate the virtual environment and run the CLI:
 uv run
 ```
 
-Alternatively, use Poetry to run commands without activating the shell:
+Alternatively, you can use Poetry to run commands without activating the shell:
 
 ```bash
 uv run linkcovery [COMMAND]
@@ -116,172 +118,51 @@ uv run linkcovery [COMMAND]
 
 #### Add a New User
 
-Add a new user to the database.
-
 ```bash
-linkcovery user-add
-```
-
-You will be prompted to enter the user's name and email.
-
-**Options:**
-
-- `--name, -n`: Name of the user.
-- `--email, -e`: Email of the user.
-
-**Example:**
-
-```bash
-linkcovery user-add --name "Alice" --email "alice@example.com"
+linkcovery user create --name "Alice" --email "alice@example.com"
 ```
 
 #### List All Users
 
-Display a list of all users in the database.
-
 ```bash
-linkcovery user-list
-```
-
-**Example:**
-
-```bash
-linkcovery user-list
+linkcovery user list
 ```
 
 ### Link Commands
 
 #### Add a New Link
 
-Add a new link to the database.
-
 ```bash
-linkcovery link-add
-```
-
-You can provide options or use interactive prompts.
-
-**Options:**
-
-- `--url, -u`: URL of the link.
-- `--domain, -d`: Domain of the link.
-- `--author-email, -a`: Email of the author.
-- `--description, -desc`: Description of the link.
-- `--tag, -t`: Tags associated with the link.
-
-**Example:**
-
-```bash
-linkcovery link-add --url "https://example.com" --domain "example.com" --author-email "alice@example.com" --description "An example website" --tag "example" "test"
-```
-
-#### List All Links
-
-Display all links along with their authors.
-
-```bash
-linkcovery link-list
-```
-
-**Example:**
-
-```bash
-linkcovery link-list
+linkcovery link create --url "https://example.com" --domain "example.com" --author-email "alice@example.com" --description "An example website" --tag "example" "test"
 ```
 
 #### Search for Links
 
-Search for links based on various criteria.
-
 ```bash
-linkcovery link-search [OPTIONS]
-```
-
-**Options:**
-
-- `--domain, -d`: Filter by domain.
-- `--tag, -t`: Tags to filter by.
-- `--description, -desc`: Filter by description.
-- `--sort-by, -s`: Field to sort by (`created_at`, `updated_at`, `domain`).
-- `--sort-order, -o`: Sort order (`ASC`, `DESC`).
-- `--limit, -l`: Number of results to return.
-- `--offset, -of`: Number of results to skip.
-
-**Example:**
-
-```bash
-linkcovery link-search --domain "example" --tag "test" --description "example" --sort-by "created_at" --sort-order "DESC" --limit 5 --offset 0
+linkcovery link search --domain "example" --tag "test" --description "example" --sort-by "created_at" --sort-order "DESC" --limit 5 --offset 0
 ```
 
 #### Delete a Link
 
-Delete a link by its ID.
-
 ```bash
-linkcovery link-delete --link-id [ID]
-```
-
-**Options:**
-
-- `--link-id, -id`: ID of the link to delete.
-
-**Example:**
-
-```bash
-linkcovery link-delete --link-id 1
+linkcovery link delete --link-id 1
 ```
 
 #### Update a Link
 
-Update details of a link by its ID.
-
 ```bash
-linkcovery link-update [OPTIONS]
-```
-
-**Options:**
-
-- `--link-id, -id`: ID of the link to update.
-- `--url, -u`: New URL.
-- `--domain, -d`: New domain.
-- `--description, -desc`: New description.
-- `--tag, -t`: New tags.
-- `--is-read, -r`: Mark as read (`True` or `False`).
-
-**Example:**
-
-```bash
-linkcovery link-update --link-id 1 --description "Updated description" --is-read True
+linkcovery link update --link-id 1 --description "Updated description" --is-read True
 ```
 
 ### Import Commands
 
 #### Import Links from a File
 
-Import links from a TXT or CSV file.
+Import links from `.txt`, `.csv`, or `.json` files.
 
 ```bash
-linkcovery import --file-path [PATH] --author-id [ID]
+linkcovery db import --file-path links.txt --author-id 1
 ```
-
-**Options:**
-
-- `--file-path, -f`: Path to the `.txt` or `.csv` file.
-- `--author-id, -a`: ID of the author to associate with the imported links.
-
-**Examples:**
-
-- Import from TXT:
-
-  ```bash
-  linkcovery import --file-path links.txt --author-id 1
-  ```
-
-- Import from CSV:
-
-  ```bash
-  linkcovery import --file-path links.csv --author-id 1
-  ```
 
 ## License
 
@@ -289,7 +170,7 @@ linkcovery import --file-path [PATH] --author-id [ID]
 
 ## Contact
 
-For any inquiries or support, please contact:
+For inquiries or support, please contact:
 
 - **Email**: [arian24b@gmail.com](mailto:arian24b@gmail.com)
 - **GitHub**: [@arian24b](https://github.com/arian24b)

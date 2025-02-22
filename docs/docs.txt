@@ -1,745 +1,654 @@
 Directory structure:
-└── /./
-    ├── .python-version
-    ├── __init__.py
+└── linkcovery/
+    ├── README.md
+    ├── main.py
+    ├── pyproject.toml
     ├── .env.example
-    ├── src/
-    │   ├── exporter.py
-    │   ├── database/
-    │   │   ├── schema.py
-    │   │   ├── __init__.py
-    │   │   ├── database.py
-    │   │   └── link.py
-    │   ├── settings.py
-    │   ├── logger.py
-    │   ├── cli.py
-    │   ├── importer.py
+    ├── .python-version
+    ├── app/
     │   ├── __init__.py
-    │   └── main.py
-    ├── docs/
-    └── pyproject.toml
+    │   ├── cli/
+    │   │   ├── __init__.py
+    │   │   └── commands/
+    │   │       ├── import_export.py
+    │   │       ├── link.py
+    │   │       └── user.py
+    │   └── core/
+    │       ├── logger.py
+    │       ├── settings.py
+    │       ├── utils.py
+    │       ├── database/
+    │       │   ├── __init__.py
+    │       │   ├── crud.py
+    │       │   ├── models.py
+    │       │   └── repositories.py
+    │       └── services/
+    │           └── import_export/
+    │               ├── exporter.py
+    │               └── importer.py
+    └── docs/
 
 ================================================
-File: /.python-version
+File: README.md
 ================================================
-3.13
+# Linkcovery
+
+![Linkcovery Logo](https://via.placeholder.com/150)
+
+**Linkcovery** is a powerful bookmark and link discovery tool built with Python, designed to help users efficiently manage and explore their collection of links. It provides an intuitive command-line interface (CLI) that enables developers, researchers, and avid internet users to seamlessly add, search, and organize links.
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+  - [User Commands](#user-commands)
+  - [Link Commands](#link-commands)
+  - [Import Commands](#import-commands)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+
+## Features
+
+- **User Management**: Easily create, update, delete, and list users.
+- **Link Management**: Add, list, search, update, and delete links with full metadata (URL, description, domain, tags).
+- **Search Capabilities**: Advanced search functionality to filter links by domain, tags, description, read status, and more.
+- **Link Import**: Import links from `.txt`, `.csv`, and `.json` files, associating them with a specific user.
+- **Atomic Operations**: Ensures data integrity during user and link creation with atomic transactions.
+- **Rich CLI Interface**: A user-friendly, interactive CLI with prompts and colored output for enhanced usability.
+- **SQLite Database**: Stores data efficiently in an SQLite database, supporting connection pooling for optimized performance.
+
+## Installation
+
+### Prerequisites
+
+- **Python 3.13+**: Ensure Python 3.13 or higher is installed on your system.
+- **UV**: Used for dependency management and packaging.
+
+### Steps
+
+1. **Clone the Repository**
+
+   ```bash
+   git clone https://github.com/yourusername/linkcovery.git
+   cd linkcovery
+   ```
+
+2. **Install Dependencies**
+
+   Using UV:
+
+   ```bash
+   uv sync
+   ```
+
+3. **Set Up Environment Variables**
+
+   Copy the example environment file and configure it:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit the `.env` file to set your preferred configurations.
+
+4. **Run the Application**
+
+   Before running the app, initialize the SQLite database:
+
+   ```bash
+   uv run linkcovery --help
+   ```
+
+## Configuration
+
+Linkcovery uses environment variables for configuration. The `.env` file can be configured with the following settings:
+
+1. **Environment Variables**
+
+   Create a `.env` file in the root directory based on `.env.example`:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Configure `.env`**
+
+   Example configuration:
+
+   ```env
+   DATABASE_NAME=app.db
+   DEBUG=True
+   ALLOW_EXTENTIONS=csv,txt,json
+   ```
+
+   - `DATABASE_NAME`: Name of the SQLite database file.
+   - `DEBUG`: Enable or disable debug mode.
+   - `ALLOW_EXTENSIONS`: Allowed file extensions for importing links.
+
+## Usage
+
+Linkcovery provides a CLI built using [Typer](https://typer.tiangolo.com/) to manage users and links.
+
+### Running the CLI
+
+Activate the virtual environment and run the CLI:
+
+```bash
+uv run
+```
+
+Alternatively, you can use Poetry to run commands without activating the shell:
+
+```bash
+uv run linkcovery [COMMAND]
+```
+
+### User Commands
+
+#### Add a New User
+
+```bash
+linkcovery user create --name "Alice" --email "alice@example.com"
+```
+
+#### List All Users
+
+```bash
+linkcovery user list
+```
+
+### Link Commands
+
+#### Add a New Link
+
+```bash
+linkcovery link create --url "https://example.com" --domain "example.com" --author-email "alice@example.com" --description "An example website" --tag "example" "test"
+```
+
+#### Search for Links
+
+```bash
+linkcovery link search --domain "example" --tag "test" --description "example" --sort-by "created_at" --sort-order "DESC" --limit 5 --offset 0
+```
+
+#### Delete a Link
+
+```bash
+linkcovery link delete --link-id 1
+```
+
+#### Update a Link
+
+```bash
+linkcovery link update --link-id 1 --description "Updated description" --is-read True
+```
+
+### Import Commands
+
+#### Import Links from a File
+
+Import links from `.txt`, `.csv`, or `.json` files.
+
+```bash
+linkcovery db import --file-path links.txt --author-id 1
+```
+
+## License
+
+[MIT License](LICENSE)
+
+## Contact
+
+For inquiries or support, please contact:
+
+- **Email**: [arian24b@gmail.com](mailto:arian24b@gmail.com)
+- **GitHub**: [@arian24b](https://github.com/arian24b)
+
+---
+
+_Made with ❤️ and Python 🐍_
 
 
 ================================================
-File: /.env.example
+File: main.py
+================================================
+from app.cli import cli_app
+
+if __name__ == "__main__":
+    cli_app()
+
+
+================================================
+File: pyproject.toml
+================================================
+[project]
+name = "linkcovery"
+version = "0.3.0"
+description = "Bookmark and Link discovery tool for people with love and Python :)"
+readme = "README.md"
+authors = [{name = "Arian Omrani"}]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic[email]>=2.10.6",
+    "pydantic-settings>=2.7.1",
+    "rich>=13.9.4",
+    "sqlalchemy>=2.0.38",
+    "typer>=0.15.1",
+]
+
+[dependency-groups]
+dev = [
+    "alembic>=1.14.1",
+    "pytest>=8.3.4",
+    "sqlite-web>=0.6.4",
+]
+
+[tool.ruff]
+line-length = 120
+
+[project.urls]
+Homepage = "https://github.com/arian24b/linkcovery"
+Issues = "https://github.com/arian24b/linkcovery/issues"
+
+[project.scripts]
+linkcovery = "app.cli:cli_app"
+
+[tool.uv]
+package = true
+
+
+================================================
+File: .env.example
 ================================================
 DATABASE_NAME=app.db
 DEBUG=False
 
 
 ================================================
-File: /src/exporter.py
+File: .python-version
 ================================================
-from csv import DictWriter
-from json import dump
-from rich.progress import track
+3.13
+
+
+================================================
+File: app/cli/__init__.py
+================================================
+from typer import Typer
+
+from app.cli.commands import user, link, import_export
+from app.core.settings import settings
+
+
+# Initialize Typer for potential future CLI enhancements
+cli_app = Typer(
+    name=settings.APP_NAME,
+    no_args_is_help=True,
+    help=f"{settings.APP_NAME}, Bookmark management CLI Application",
+)
+
+cli_app.add_typer(user.app, name="user")
+cli_app.add_typer(link.app, name="link")
+cli_app.add_typer(import_export.app, name="db")
+
+
+================================================
+File: app/cli/commands/import_export.py
+================================================
+from typer import Typer, Option, Exit
+from os import path
 from pathlib import Path
 
-from database import LinkDatabase, User, Link
-from logger import Logger
+from app.core.logger import AppLogger
+from app.core.utils import check_file
+from app.core.database import user_service
+from app.core.services.import_export.importer import txt_import, csv_import, json_import
+from app.core.services.import_export.exporter import (
+    export_users_to_json,
+    export_users_to_csv,
+    export_links_to_json,
+    export_links_to_csv,
+)
 
-logger = Logger(__name__)
+logger = AppLogger(__name__)
+app = Typer()
 
 
-def export_users_to_json(db: LinkDatabase, output_path: str) -> None:
-    """
-    Exports all users to a JSON file.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        output_path (str): Path to the output JSON file.
-    """
-    users: list[User] = db.read_users()
-    users_data = [user.model_dump() for user in users]
+@app.command("import", help="Import links from a TXT, CSV, or JSON file.")
+def import_links(
+    file_path: str = Option(..., help="Path to the file to import."),
+    author_id: int = Option(..., help="ID of the author to associate with the imported links."),
+) -> None:
+    if not (author := user_service.get_user(user_id=author_id)):
+        logger.error(f"Author with ID '{author_id}' does not exist.")
+        raise Exit(code=1)
 
     try:
-        with open(output_path, "w", encoding="utf-8") as json_file:
-            dump(users_data, json_file, indent=4)
-        logger.info(f"Successfully exported {len(users)} users to {output_path}.")
+        check_file(file_path)
     except Exception as e:
-        logger.error(f"Failed to export users to JSON: {e}")
-
-
-def export_users_to_csv(db: LinkDatabase, output_path: str) -> None:
-    """
-    Exports all users to a CSV file.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        output_path (str): Path to the output CSV file.
-    """
-    users: list[User] = db.read_users()
-    if not users:
-        logger.warning("No users available to export.")
+        logger.error(f"Error checking file: {e}")
         return
+    extension = path.splitext(file_path)[1].lower()
 
+    if extension == ".txt":
+        txt_import(file_path, author.id)
+    elif extension == ".csv":
+        csv_import(file_path, author.id)
+    elif extension == ".json":
+        json_import(file_path, author.id)
+    else:
+        logger.error(f"Unsupported file extension: {extension}")
+
+
+@app.command("export-users", help="Export all users to a JSON or CSV file.")
+def export_users(
+    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
+    output: str = Option("users_export.json", "--output", "-o", help="Output file path", show_default=True),
+) -> None:
+    format = format.lower()
     try:
-        with open(output_path, "w", newline="", encoding="utf-8") as csv_file:
-            writer = DictWriter(csv_file, fieldnames=users[0].model_dump().keys())
-            writer.writeheader()
-            for user in track(users, description="Exporting users..."):
-                writer.writerow(user.dict())
-        logger.info(f"Successfully exported {len(users)} users to {output_path}.")
+        if format == "json":
+            export_users_to_json(output)
+        elif format == "csv":
+            export_users_to_csv(output)
+        else:
+            logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
+            raise Exit(code=1)
     except Exception as e:
-        logger.error(f"Failed to export users to CSV: {e}")
+        logger.error(f"Error exporting users: {e}")
+        raise Exit(code=1)
 
 
-def export_links_to_json(db: LinkDatabase, output_path: str) -> None:
-    """
-    Exports all links to a JSON file.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        output_path (str): Path to the output JSON file.
-    """
-    links_with_authors = db.read_links_with_authors()
-    links_data = []
-    for entry in links_with_authors:
-        link = entry["link"].dict()
-        link["author"] = entry["author"]
-        links_data.append(link)
-
+@app.command("export-links", help="Export links to a JSON or CSV file. Optionally filter by author ID.")
+def export_links(
+    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
+    output: str = Option("links_export.json", "--output", "-o", help="Output file path", show_default=True),
+    author_id: int | None = Option(
+        None, "--author-id", "-a", help="Filter links by author ID. If not provided, exports all links."
+    ),
+) -> None:
+    format = format.lower()
     try:
-        with open(output_path, "w", encoding="utf-8") as json_file:
-            dump(links_data, json_file, indent=4)
-        logger.info(f"Successfully exported {len(links_data)} links to {output_path}.")
+        if format == "json":
+            export_links_to_json(output, author_id)
+        elif format == "csv":
+            export_links_to_csv(output, author_id)
+        else:
+            logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
+            raise Exit(code=1)
     except Exception as e:
-        logger.error(f"Failed to export links to JSON: {e}")
+        logger.error(f"Error exporting links: {e}")
+        raise Exit(code=1)
 
 
-def export_links_to_csv(db: LinkDatabase, output_path: str) -> None:
-    """
-    Exports all links to a CSV file.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        output_path (str): Path to the output CSV file.
-    """
-    links_with_authors = db.read_links_with_authors()
-    if not links_with_authors:
-        logger.warning("No links available to export.")
-        return
-
-    headers = [
-        "id",
-        "url",
-        "domain",
-        "description",
-        "tag",
-        "author_id",
-        "is_read",
-        "created_at",
-        "updated_at",
-        "author_name",
-        "author_email",
-    ]
-
-    try:
-        with open(output_path, "w", newline="", encoding="utf-8") as csv_file:
-            writer = DictWriter(csv_file, fieldnames=headers)
-            writer.writeheader()
-            for entry in track(links_with_authors, description="Exporting links..."):
-                link: Link = entry["link"]
-                author = entry["author"]
-                row = link.model_dump()
-                row["tag"] = ", ".join(link.tag)
-                row["author_name"] = author["name"]
-                row["author_email"] = author["email"]
-                writer.writerow(row)
-        logger.info(f"Successfully exported {len(links_with_authors)} links to {output_path}.")
-    except Exception as e:
-        logger.error(f"Failed to export links to CSV: {e}")
-
-
-def export_all(db: LinkDatabase, format: str = "json", output_dir: str | None = None) -> None:
-    """
-    Exports both users and links to the specified format.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        format (str): Export format ('json' or 'csv').
-        output_dir (Optional[str]): Directory to store exported files. Defaults to current directory.
-    """
+@app.command("export-all", help="Export all users and links to JSON or CSV files.")
+def export_all_command(
+    format: str = Option(
+        "json", "--format", "-f", help="Export format for both users and links: json or csv", show_default=True
+    ),
+    output_dir: str | None = Option(None, "--output-dir", "-d", help="Directory to store exported files."),
+    author_id: int | None = Option(
+        None, "--author-id", "-a", help="Filter links by author ID for export. If not provided, exports all links."
+    ),
+) -> None:
     format = format.lower()
     if format not in {"json", "csv"}:
         logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-        return
+        raise Exit(code=1)
 
     if not output_dir:
         output_dir = Path.cwd()
     else:
         output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            logger.error(f"Failed to create directory '{output_dir}': {e}")
+            raise Exit(code=1)
 
     users_output = output_dir / f"users_export.{format}"
     links_output = output_dir / f"links_export.{format}"
 
-    if format == "json":
-        export_users_to_json(db, str(users_output))
-        export_links_to_json(db, str(links_output))
-    elif format == "csv":
-        export_users_to_csv(db, str(users_output))
-        export_links_to_csv(db, str(links_output))
-
-    logger.info(f"Exported all data successfully to '{users_output}' and '{links_output}'.")
+    try:
+        export_users_to_json(str(users_output))
+        export_links_to_json(str(links_output), author_id)
+        logger.info(f"Exported all data successfully to '{users_output}' and '{links_output}'.")
+    except Exception as e:
+        logger.error(f"Error exporting all data: {e}")
+        raise Exit(code=1)
 
 
 ================================================
-File: /src/database/schema.py
+File: app/cli/commands/link.py
 ================================================
-from pydantic import BaseModel, Field, EmailStr, HttpUrl
-from datetime import datetime, UTC
+from typer import Typer, Option, Exit, prompt
+
+from app.core.logger import AppLogger
+from app.core.database import user_service, link_service
+
+logger = AppLogger(__name__)
+app = Typer()
 
 
-class User(BaseModel):
-    """A User model representing a user in the system.
+@app.command(help="Add a new link to the database.")
+def create(
+    url: str | None = Option(None, help="URL of the link."),
+    domain: str | None = Option(None, help="Domain of the link."),
+    author_email: str | None = Option(None, help="Email of the author."),
+    description: str | None = Option("", help="Description of the link."),
+    tags: list[str] = Option([], "--tag", "-t", help="Tags associated with the link."),
+    is_read: bool = Option(False, "--is-read", "-r", help="Mark the link as read or unread."),
+) -> None:
+    if not url:
+        url = prompt("URL of the link")
+    if not domain:
+        domain = prompt("Domain of the link")
+    if not author_email:
+        author_email = prompt("Author's email")
+    if not (user := user_service.get_user(user_email=author_email)):
+        logger.error(f"Author with email '{author_email}' does not exist.")
+        raise Exit(code=1)
 
-    This model inherits from BaseModel and defines the basic user attributes
-    including an optional ID, required name, and email address.
+    link_id = link_service.create_link(
+        url=url,
+        description=description,
+        domain=domain,
+        tag=", ".join(tags) if isinstance(tags, list) else tags,
+        author_id=user.id,
+        is_read=is_read,
+    )
+    if link_id:
+        logger.info(f"Link added with ID: {link_id}")
+    else:
+        logger.error("Failed to add link.")
 
-    Attributes:
-        id (int|None): The unique identifier for the user. Auto-generated when None.
-        name (str): The user's name. Must be at least 4 characters long.
-        email (EmailStr): The user's email address in valid email format.
 
-    Example:
-        user = User(
-            name="John Doe",
-            email="john.doe@example.com"
+@app.command(help="List all links with their authors.")
+def list_link() -> None:
+    if not (links := link_service.get_links()):
+        logger.warning("No links found.")
+        return
+
+    for link in links:
+        logger.info(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {link.author}")
+
+
+@app.command(help="Search for links based on various filters.")
+def search(
+    domain: str | None = Option(None, help="Filter by domain."),
+    tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
+    description: str | None = Option(None, help="Filter by description."),
+    sort_by: str | None = Option(None, help="Field to sort by (e.g. created_at, updated_at, domain)."),
+    sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
+    limit: int = Option(3, help="Number of results to return."),
+    offset: int = Option(0, help="Number of results to skip."),
+    is_read: bool | None = Option(None, help="Filter by read status."),
+) -> None:
+    criteria = {
+        "domain": domain,
+        "tag": tags,
+        "description": description,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
+        "limit": limit,
+        "offset": offset,
+        "is_read": is_read,
+    }
+    criteria = {k: v for k, v in criteria.items() if v not in [None, [], ""]}
+    results = link_service.search_links(criteria)
+    if not results:
+        logger.warning("No matching links found.")
+        return
+    for link in results:
+        logger.info(
+            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, "
+            f"Description: {link.description}, Tags: {link.tag}, Read: {link.is_read}"
         )
-    """
-
-    id: int | None = Field(None, description="User ID (autogenerated)")
-    name: str = Field(..., min_length=4, description="Name of the user")
-    email: EmailStr = Field(..., description="Email of the user")
 
 
-class Link(BaseModel):
-    """A Pydantic model representing a Link entity in the system.
-
-    This model defines the structure and validation rules for link objects, including
-    their URL, associated metadata, and relationships.
-
-    Attributes:
-        id (int|None): Unique identifier for the link.
-        url (HttpUrl): The complete URL of the link.
-        domain (str): The domain name extracted from the URL.
-        description (str|None): Optional text description of the link's content.
-        tag (list): List of tags associated with the link for categorization.
-        author_id (int): ID reference to the user who created the link.
-        is_read (bool): Flag indicating whether the link has been read, defaults to False.
-        created_at (str): ISO format timestamp of when the link was created.
-        updated_at (str): ISO format timestamp of the link's last modification.
-    """
-
-    id: int | None = Field(None, description="Unique identifier for the link")
-    url: HttpUrl = Field(..., description="The URL of the link")
-    domain: str = Field(..., description="Domain of the URL")
-    description: str | None = Field(None, description="Description of the link")
-    tag: list[str] = Field(default_factory=list, description="Tags associated with the link")
-    author_id: int = Field(..., description="Foreign key to the User model")
-    is_read: bool = Field(default=False, description="Whether the link has been read")
-    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(), description="Creation timestamp")
-    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(), description="Last update timestamp")
+@app.command(help="Delete a link by its ID.")
+def delete(link_id: int = Option(..., help="ID of the link to delete.")) -> None:
+    if link_service.delete_link(link_id):
+        logger.info(f"Link with ID {link_id} has been deleted.")
+    else:
+        logger.error(f"Failed to delete link with ID {link_id}.")
 
 
-class Config:
-    allow_mutation = False
+@app.command(help="Update a link's details by its ID.")
+def update(
+    link_id: int = Option(..., help="ID of the link to update."),
+    url: str | None = Option(None, help="New URL of the link."),
+    domain: str | None = Option(None, help="New domain of the link."),
+    description: str | None = Option(None, help="New description of the link."),
+    tags: list[str] | None = Option(None, "--tag", "-t", help="New tags for the link."),
+    is_read: bool | None = Option(None, "--is-read", "-r", help="Mark as read or unread."),
+) -> None:
+    # Check if link exists
+    if not link_service.get_link(link_id):
+        logger.error(f"No link found with ID {link_id}.")
+        raise Exit(code=1)
+
+    # Collect data to update
+    update_data = {}
+    if url:
+        update_data["url"] = url
+    if domain:
+        update_data["domain"] = domain
+    if description is not None:
+        update_data["description"] = description
+    if tags is not None:
+        update_data["tag"] = ", ".join(tags) if isinstance(tags, list) else tags
+    if is_read is not None:
+        update_data["is_read"] = is_read
+
+    # Perform the update
+    if link_service.update_link(link_id, **update_data):
+        logger.info(f"Link with ID {link_id} has been updated.")
+    else:
+        logger.error(f"Failed to update link with ID {link_id}.")
 
 
-================================================
-File: /src/database/__init__.py
-================================================
-from .database import Database
-from .schema import User, Link
-from .link import LinkDatabase
+@app.command("read-link", help="Mark 3 links as read for a given author.")
+def mark_links_as_read(author_id: int = Option(..., help="ID of the author")) -> None:
+    if not (links := link_service.get_links_by_author(author_id=author_id, number=3)):
+        logger.warning("No links found to update.")
+        return
 
-__all__ = ["Database", "User", "Link", "LinkDatabase"]
+    link_ids = [link.id for link in links if link.id is not None]
+    link_service.update_is_read_for_links(link_ids)
 
-
-================================================
-File: /src/database/database.py
-================================================
-from sqlite3 import connect, Row, Connection
-from contextlib import contextmanager
-from rich import print
-from queue import Queue
-from threading import Lock
-
-from settings import settings
-
-
-class Database:
-    def __init__(self, pool_size: int = 5):
-        self.db_name = settings.DATABASE_NAME
-        self.pool_size = pool_size
-        self.pool = Queue(maxsize=self.pool_size)
-        self.lock = Lock()
-        self._initialize_pool()
-        print(f"[blue]Database initialized with a connection pool of size {self.pool_size}.[/blue]")
-
-    def _initialize_pool(self):
-        """Initialize the connection pool with a fixed number of connections."""
-        for _ in range(self.pool_size):
-            conn = connect(self.db_name, check_same_thread=False)
-            conn.row_factory = Row
-            self.pool.put(conn)
-
-    def close_all(self):
-        """Close all connections in the pool."""
-        while not self.pool.empty():
-            conn = self.pool.get()
-            conn.close()
-        print("[blue]All database connections have been closed.[/blue]")
-
-    @contextmanager
-    def get_connection(self) -> Connection:
-        """
-        Context manager to acquire a database connection from the pool.
-        Ensures the connection is returned to the pool after use.
-        """
-        conn = self.pool.get()
-        try:
-            yield conn
-        finally:
-            self.pool.put(conn)
-
-    @contextmanager
-    def transaction(self):
-        """
-        Context manager for handling transactions.
-        Commits the transaction if block succeeds, otherwise rolls back.
-        """
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            try:
-                cursor.execute("BEGIN")
-                yield cursor
-                conn.commit()
-                print("[green]Transaction committed.[/green]")
-            except Exception as e:
-                conn.rollback()
-                print(f"[red]Transaction rolled back due to error: {e}[/red]")
-                raise
-
-    def is_initialized(self, required_tables: set) -> bool:
-        """
-        Checks if the essential tables ('users' and 'links') exist in the database.
-
-        Returns:
-            bool: True if both tables exist, False otherwise.
-        """
-        existing_tables = set()
-
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = cursor.fetchall()
-            existing_tables = {table["name"] for table in tables}
-
-        if is_init := required_tables.issubset(existing_tables):
-            print("[blue]Database is already initialized.[/blue]")
-        else:
-            print("[yellow]Database is not initialized yet.[/yellow]")
-
-        return is_init
-
-    def __enter__(self):
-        """Enter the runtime context related to this object."""
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exit the runtime context and close all connections."""
-        self.close_all()
+    for link in links:
+        logger.info(f"Marked link {link.id} as read: {link.url}")
 
 
 ================================================
-File: /src/database/link.py
+File: app/cli/commands/user.py
 ================================================
-from sqlite3 import IntegrityError
-from json import dumps, loads
-from datetime import datetime, UTC
-from rich import print
+from typer import Typer, Option
+from rich.table import Table
 
-from .database import Database
-from .schema import User, Link
+from app.core.logger import AppLogger
+from app.core.database import user_service
+
+logger = AppLogger(__name__)
+app = Typer()
 
 
-class LinkDatabase(Database):
-    def create_table(self) -> None:
-        """Create users and links tables."""
-        with self.transaction() as cursor:
-            # Create the users table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    email TEXT NOT NULL UNIQUE
-                )
-            """)
+@app.command(name="create", help="Create a new user with the specified name and email.")
+def create(name: str = Option(..., prompt=True), email: str = Option(..., prompt=True)):
+    try:
+        user = user_service.create_user({"name": name, "email": email})
+        logger.print(f"{name}, your account has been created with ID: {user.id} and Email: {email}")
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
 
-            # Create the links table with a foreign key to users
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS links (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    url TEXT NOT NULL UNIQUE,
-                    domain TEXT NOT NULL,
-                    description TEXT,
-                    tag TEXT,
-                    author_id INTEGER NOT NULL,
-                    is_read INTEGER DEFAULT 0,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    FOREIGN KEY (author_id) REFERENCES users (id)
-                )
-            """)
 
-            # Create an index on the domain column to speed up domain-based searches
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_links_domain ON links (domain)
-            """)
+@app.command(name="read", help="Fetch a user by ID.")
+def read_user(user_id: int):
+    if not (user := user_service.get_user(user_id)):
+        logger.error(f"No user found with ID {user_id}")
+        return
+    table = Table(title="User")
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="magenta")
+    table.add_column("Email", style="green")
+    table.add_row(str(user.id), user.name, user.email)
+    logger.print(table)
 
-            # Create an index on the created_at column to speed up sorting
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_links_created_at ON links (created_at)
-            """)
-        print("[blue]Tables and indexes created successfully.[/blue]")
 
-    def create_user(self, user: User) -> int | None:
-        """Insert a new user."""
-        try:
-            with self.transaction() as cursor:
-                cursor.execute(
-                    """
-                    INSERT INTO users (name, email)
-                    VALUES (?, ?)
-                    """,
-                    (user.name, user.email),
-                )
-                user_id = cursor.lastrowid
-                print("[green]User created successfully.[/green]")
-                return user_id
-        except IntegrityError as e:
-            print(f"[red]Error: User with email {user.email} already exists. ({e})[/red]")
-            # Retrieve the existing user's ID
-            if existing_user := self.get_user_by_email(user.email):
-                return existing_user.id
-            return None
-        except Exception as e:
-            print(f"[red]Unexpected error occurred while creating user: {e}[/red]")
-            return None
+@app.command()
+def update(user_id: int, name: str = Option(None, prompt=True), email: str = Option(None, prompt=True)):
+    update_data = {}
+    if name:
+        update_data["name"] = name
+    if email:
+        update_data["email"] = email
 
-    def create_link(self, link: Link) -> int | None:
-        """Insert a new link."""
-        try:
-            with self.transaction() as cursor:
-                cursor.execute(
-                    """
-                    INSERT INTO links (url, domain, description, tag, author_id, is_read, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        str(link.url),
-                        link.domain,
-                        link.description,
-                        dumps(link.tag),
-                        link.author_id,
-                        int(link.is_read),
-                        link.created_at,
-                        link.updated_at,
-                    ),
-                )
-                link_id = cursor.lastrowid
-                print("[green]Link created successfully.[/green]")
-                return link_id
-        except IntegrityError as e:
-            print(f"[red]Error: Link with URL {link.url} already exists or invalid author ID. ({e})[/red]")
-            return None
-        except Exception as e:
-            print(f"[red]Unexpected error occurred while creating link: {e}[/red]")
-            return None
+    if not update_data:
+        logger.warning("No updates provided.")
+        return
 
-    def create_user_and_link(self, user: User, link: Link) -> bool:
-        """
-        Create a user and a link atomically.
-        If either operation fails, neither is committed.
-        """
-        try:
-            user_id = self.create_user(user)
-            if user_id is None:
-                raise Exception("Failed to create or retrieve user.")
+    if user_service.update_user(user_id, update_data):
+        logger.print(f"User with ID: {user_id} updated successfully")
+    else:
+        logger.error(f"User with ID: {user_id} not found.")
 
-            link.author_id = user_id
-            self.create_link(link)
-            return True
-        except Exception as e:
-            print(f"[red]Failed to create user and link atomically: {e}[/red]")
-            return False
 
-    def get_user_by_email(self, email: str) -> User | None:
-        """Retrieve a user by email."""
-        try:
-            with self.transaction() as cursor:
-                cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-                row = cursor.fetchone()
-                if row:
-                    return User(**dict(row))
-                return None
-        except Exception as e:
-            print(f"[red]Unexpected error occurred while retrieving user: {e}[/red]")
-            return None
+@app.command()
+def delete(user_id: int):
+    user_service.delete_user(user_id)
+    logger.print(f"User with ID: {user_id} deleted")
 
-    def read_users(self) -> list[User]:
-        """Retrieve all users."""
-        try:
-            with self.transaction() as cursor:
-                cursor.execute("SELECT * FROM users")
-                rows = cursor.fetchall()
-                return [User(**dict(row)) for row in rows]
-        except Exception as e:
-            print(f"[red]Unexpected error occurred while reading users: {e}[/red]")
-            return []
 
-    def read_links_with_authors(self) -> list[dict]:
-        """Retrieve all links with their authors."""
-        with self.transaction() as cursor:
-            cursor.execute("""
-                SELECT links.*, users.name as author_name, users.email as author_email
-                FROM links
-                JOIN users ON links.author_id = users.id
-            """)
-            rows = cursor.fetchall()
+@app.command()
+def list():
+    table = Table(title="Users")
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="magenta")
+    table.add_column("Email", style="green")
 
-        results = []
-        for row in rows:
-            row_dict = dict(row)
-            # Extract link fields explicitly
-            link_data = {key: row_dict[key] for key in Link.__fields__.keys()}
-            link_data["tag"] = loads(link_data["tag"])  # Convert JSON string to list
-            link = Link(**link_data)
-
-            # Extract author information
-            author = {
-                "name": row_dict["author_name"],
-                "email": row_dict["author_email"],
-            }
-
-            results.append({"link": link, "author": author})
-
-        return results
-
-    def read_link(self, link_id: int) -> Link | None:
-        """Retrieve a specific link by ID."""
-        with self.transaction() as cursor:
-            cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
-            row = cursor.fetchone()
-        if row:
-            row_dict = dict(row)
-            # Extract and parse the tag, then remove it from the row_dict
-            tag_json = row_dict.pop("tag")
-            return Link(**row_dict, tag=loads(tag_json))
-        return None
-
-    def update_link(self, link_id: int, updated_link: Link) -> bool:
-        """Update a link by ID."""
-        try:
-            updated_link.updated_at = datetime.now(UTC).isoformat()
-            with self.transaction() as cursor:
-                cursor.execute(
-                    """
-                    UPDATE links
-                    SET url = ?, domain = ?, description = ?, tag = ?, is_read = ?, updated_at = ?
-                    WHERE id = ?
-                    """,
-                    (
-                        str(updated_link.url),
-                        updated_link.domain,
-                        updated_link.description,
-                        dumps(updated_link.tag),
-                        int(updated_link.is_read),
-                        updated_link.updated_at,
-                        link_id,
-                    ),
-                )
-                if cursor.rowcount == 0:
-                    print(f"[yellow]No link found with ID {link_id}. Nothing was updated.[/yellow]")
-                    return False
-                else:
-                    cursor.connection.commit()
-                    print("[green]Link updated successfully.[/green]")
-                    return True
-        except IntegrityError as e:
-            print(f"[red]Error: Duplicate URL or invalid update data. ({e})[/red]")
-            return False
-        except Exception as e:
-            print(f"[red]Unexpected error occurred while updating link: {e}[/red]")
-            return False
-
-    def delete_link(self, link_id: int) -> None:
-        """Delete a link by ID."""
-        try:
-            with self.transaction() as cursor:
-                cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
-                if cursor.rowcount == 0:
-                    print(f"[yellow]No link found with ID {link_id}. Nothing was deleted.[/yellow]")
-                else:
-                    cursor.connection.commit()
-                    print("[green]Link deleted successfully.[/green]")
-        except Exception as e:
-            print(f"[red]Unexpected error occurred while deleting link: {e}[/red]")
-
-    def search_links(
-        self,
-        domain: str | None = None,
-        tags: list[str] | None = None,
-        description: str | None = None,
-        sort_by: str = "created_at",
-        sort_order: str = "ASC",
-        limit: int = 10,
-        offset: int = 0,
-        is_read: bool | None = False,
-    ) -> list[Link]:
-        """Search for links by domain, tags, or description with sorting and pagination."""
-        try:
-            query = "SELECT * FROM links WHERE 1=1"
-            parameters = []
-
-            # Filter by is not read
-            if is_read:
-                query += " AND is_read = 0"
-
-            # Filter by domain (case-insensitive)
-            if domain:
-                query += " AND LOWER(domain) LIKE ?"
-                parameters.append(f"%{domain.lower()}%")
-
-            # Filter by description (case-insensitive)
-            if description:
-                query += " AND LOWER(description) LIKE ?"
-                parameters.append(f"%{description.lower()}%")
-
-            # Filter by tags using JSON1 extension
-            if tags:
-                # For each tag, ensure it exists in the JSON array
-                tag_conditions = " AND ".join(
-                    ["EXISTS (SELECT 1 FROM json_each(links.tag) WHERE json_each.value = ?)" for _ in tags]
-                )
-                query += f" {tag_conditions}"
-                parameters.extend(tags)
-
-            # Validate sort_by field
-            allowed_sort_fields = {"created_at", "updated_at", "domain"}
-            if sort_by not in allowed_sort_fields:
-                raise ValueError(f"Invalid sort_by field: {sort_by}. Allowed fields: {allowed_sort_fields}")
-
-            # Validate sort_order
-            sort_order = sort_order.upper()
-            if sort_order not in {"ASC", "DESC"}:
-                raise ValueError("Invalid sort_order; use 'ASC' or 'DESC'")
-
-            # Append sorting
-            query += f" ORDER BY {sort_by} {sort_order}"
-
-            # Append pagination
-            query += " LIMIT ? OFFSET ?"
-            parameters.extend([limit, offset])
-
-            # Execute the query
-            with self.transaction() as cursor:
-                cursor.execute(query, parameters)
-                rows = cursor.fetchall()
-
-            # Convert rows to Link objects
-            links = []
-            for row in rows:
-                row_dict = dict(row)
-                row_dict["tag"] = loads(row_dict["tag"]) if row_dict["tag"] else []
-                links.append(Link(**row_dict))
-
-            return links
-        except ValueError as ve:
-            print(f"[red]Validation error: {ve}[/red]")
-            return []
-        except Exception as e:
-            print(f"[red]Unexpected error occurred during search: {e}[/red]")
-            return []
-
-    def read_links(self, limit: int = 3) -> list[Link]:
-        """Retrieve a specific number of links."""
-        with self.transaction() as cursor:
-            cursor.execute("SELECT * FROM links ORDER BY created_at LIMIT ?", (limit,))
-            rows = cursor.fetchall()
-
-        # Convert rows to Link objects
-        links = []
-        for row in rows:
-            row_dict = dict(row)
-            row_dict["tag"] = loads(row_dict["tag"]) if row_dict["tag"] else []
-            links.append(Link(**row_dict))
-
-        return links
-
-    def update_is_read_for_links(self, link_ids: list[int]) -> None:
-        """Update the 'is_read' field for a list of links."""
-        try:
-            with self.transaction() as cursor:
-                cursor.executemany(
-                    """
-                    UPDATE links
-                    SET is_read = 1
-                    WHERE id = ?
-                    """,
-                    [(link_id,) for link_id in link_ids],  # List of link IDs
-                )
-            print(f"[green]Successfully updated 'is_read' for {len(link_ids)} links.[/green]")
-        except Exception as e:
-            print(f"[red]Failed to update 'is_read' for links: {e}[/red]")
+    if not (users := user_service.get_users()):
+        logger.print("No users found.")
+        return
+    for user in users:
+        table.add_row(str(user.id), user.name, user.email)
+    logger.print(table)
 
 
 ================================================
-File: /src/settings.py
-================================================
-from rich import pretty, traceback
-from pydantic_settings import BaseSettings
-
-
-class Settings(BaseSettings):
-    traceback.install(show_locals=True)
-    pretty.install()
-
-    APP_NAME: str = "LinkCovery"
-    DATABASE_NAME: str = "app.db"
-    DEBUG: bool = False
-    ALLOW_EXTENSIONS: list = [
-        "csv",
-        "txt",
-        "json",
-    ]
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
-
-settings = Settings()
-
-
-================================================
-File: /src/logger.py
+File: app/core/logger.py
 ================================================
 from logging import getLogger, Formatter, DEBUG, INFO
 from rich.console import Console
 from rich.logging import RichHandler
 
-from settings import settings
+from .settings import settings
 
 
-class Logger:
+class AppLogger:
     def __init__(self, name: str):
         self.console = Console()
         self.logger = getLogger(name)
@@ -779,696 +688,537 @@ class Logger:
     def exception(self, msg: str) -> None:
         self.logger.exception(msg)
 
-
-================================================
-File: /src/cli.py
-================================================
-#!/usr/bin/env python3
-
-from typer import Option, Exit, prompt
-from datetime import datetime, UTC
-from os import path
-from pathlib import Path
-from json import load
-
-from main import app, db
-from database import User, Link
-from importer import check_file, import_txt, import_csv, import_links_from_json
-from exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
-from logger import Logger
-
-logger = Logger(__name__)
-
-
-# User Commands
-@app.command(
-    name="user",
-    help="Manage users: list all users with --list or create a new user with --create.",
-)
-def manage_user(
-    list_users: bool = Option(False, "--list", help="List all users."),
-    create: bool = Option(False, "--create", help="Create a new user."),
-    name: str | None = Option(None, "--name", help="Name of the new user."),
-    email: str | None = Option(None, "--email", help="Email of the new user."),
-) -> None:
-    """
-    Manage users: list them or create a new one depending on the flags provided.
-    """
-    if list_users and create:
-        logger.error("Cannot use --list and --create at the same time.")
-        raise Exit(code=1)
-    elif list_users:
-        users = db.read_users()
-        if not users:
-            logger.warning("No users found.")
-        else:
-            for user in users:
-                logger.info(f"ID: {user.id}, Name: {user.name}, Email: {user.email}")
-    elif create:
-        if not name or not email:
-            logger.error("Both --name and --email must be provided when using --create.")
-            raise Exit(code=1)
-        user = User(
-            id=None,
-            name=name,
-            email=email,
-        )
-        if user_id := db.create_user(user):
-            logger.info(f"User '{name}' added with ID: {user_id}")
-        else:
-            logger.error(f"Failed to add user '{name}'.")
-    else:
-        logger.error(
-            "Please specify either --list to list users or --create along with --name and --email to create a new user."
-        )
-        raise Exit(code=1)
-
-
-# Link Commands
-@app.command("link-add", help="Add a new link to the database.")
-def add_link(
-    url: str | None = Option(None, help="URL of the link."),
-    domain: str | None = Option(None, help="Domain of the link."),
-    author_email: str | None = Option(None, help="Email of the author."),
-    description: str | None = Option("", help="Description of the link."),
-    tags: list[str] = Option([], "--tag", "-t", help="Tags associated with the link."),
-) -> None:
-    """
-    Add a new link to the database.
-    """
-    if not url:
-        url = prompt("URL of the link")
-    if not domain:
-        domain = prompt("Domain of the link")
-    if not author_email:
-        author_email = prompt("Author's email")
-
-    user = db.get_user_by_email(author_email)
-    if not user:
-        logger.error(f"Author with email '{author_email}' does not exist.")
-        raise Exit(code=1)
-
-    link = Link(
-        id=None,
-        url=url,
-        domain=domain,
-        description=description,
-        tag=tags,
-        author_id=user.id,
-    )
-
-    if link_id := db.create_link(link):
-        logger.info(f"Link added with ID: {link_id}")
-    else:
-        logger.error("Failed to add link.")
-
-
-@app.command("link-list", help="List all links with their authors.")
-def list_links() -> None:
-    """
-    List all links with their authors.
-    """
-    links_with_authors = db.read_links_with_authors()
-    if not links_with_authors:
-        logger.warning("No links found.")
-        return None
-    for entry in links_with_authors:
-        link: Link = entry["link"]
-        author = entry["author"]
-        logger.info(
-            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {author['name']} ({author['email']})"
-        )
-
-
-@app.command("link-search", help="Search for links based on domain, tags, or description.")
-def search_links(
-    domain: str | None = Option(None, help="Filter by domain."),
-    tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
-    description: str | None = Option(None, help="Filter by description."),
-    sort_by: str = Option("created_at", help="Field to sort by."),
-    sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
-    limit: int = Option(3, help="Number of results to return."),
-    offset: int = Option(0, help="Number of results to skip."),
-    is_read: bool | None = Option(None, help="Filter by read status."),
-) -> None:
-    """
-    Search for links based on domain, tags, or description.
-    """
-    results = db.search_links(
-        domain=domain,
-        tags=tags,
-        description=description,
-        sort_by=sort_by,
-        sort_order=sort_order,
-        limit=limit,
-        offset=offset,
-        is_read=is_read,
-    )
-    if not results:
-        logger.warning("No matching links found.")
-        return None
-    for link in results:
-        logger.info(
-            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Description: {link.description}, Tags: {', '.join(link.tag)}"
-        )
-
-
-@app.command("link-delete", help="Delete a link by its ID.")
-def delete_link(link_id: int = Option(..., help="ID of the link to delete.")) -> None:
-    """
-    Delete a link by its ID.
-    """
-    if db.delete_link(link_id):
-        logger.info(f"Link with ID {link_id} has been deleted.")
-    else:
-        logger.error(f"Failed to delete link with ID {link_id}.")
-
-
-@app.command("link-update", help="Update a link's details by its ID.")
-def update_link(
-    link_id: int = Option(..., help="ID of the link to update."),
-    url: str | None = Option(None, help="New URL of the link."),
-    domain: str | None = Option(None, help="New domain of the link."),
-    description: str | None = Option(None, help="New description of the link."),
-    tags: list[str] | None = Option(None, "--tag", "-t", help="New tags for the link."),
-    is_read: bool | None = Option(None, help="Mark as read or unread."),
-) -> None:
-    """
-    Update a link's details by its ID.
-    """
-    existing_link = db.read_link(link_id)
-    if not existing_link:
-        logger.error(f"No link found with ID {link_id}.")
-        raise Exit(code=1)
-
-    if url is None and domain is None and description is None and tags is None and is_read is None:
-        logger.warning("No updates provided. Use options to specify fields to update.")
-        raise Exit()
-
-    if url:
-        existing_link.url = url
-    if domain:
-        existing_link.domain = domain
-    if description is not None:
-        existing_link.description = description
-    if tags is not None:
-        existing_link.tag = tags
-    if is_read is not None:
-        existing_link.is_read = is_read
-
-    existing_link.updated_at = datetime.now(UTC).isoformat()
-
-    if db.update_link(link_id, existing_link):
-        logger.info(f"Link with ID {link_id} has been updated.")
-    else:
-        logger.error(f"Failed to update link with ID {link_id}.")
-
-
-@app.command("link-mark-read", help="Mark 3 links as read.")
-def mark_links_as_read() -> None:
-    """
-    Retrieve 3 links from the database and mark them as read (is_read = 1).
-    """
-    links = db.read_links(limit=3)
-    if not links:
-        logger.warning("No links found to update.")
-        return
-
-    link_ids = [link.id for link in links if link.id is not None]
-    db.update_is_read_for_links(link_ids)
-
-    for link in links:
-        logger.info(f"Marked link {link.id} as read: {link.url}")
-
-
-# Import/Export Commands
-@app.command("import", help="Import links from a TXT or CSV file.")
-def import_links(
-    file_path: str = Option(..., help="Path to the .txt or .csv file to import."),
-    author_id: int = Option(..., help="ID of the author to associate with the imported links."),
-) -> None:
-    """
-    Import links from a TXT or CSV file into the database.
-    """
-    try:
-        if check_file(file_path):
-            extension = path.splitext(file_path)[1].lower()
-            try:
-                if extension == ".txt":
-                    import_txt(file_path, author_id, db)
-                elif extension == ".csv":
-                    import_csv(file_path, author_id, db)
-                elif extension == ".json":
-                    with open(file_path, "r", encoding="utf-8") as json_file:
-                        data = load(json_file)
-                        if isinstance(data, list) and all("url" in item for item in data):
-                            import_links_from_json(file_path, db)
-                else:
-                    logger.error(f"Unsupported file extension: {extension}")
-            except Exception as e:
-                logger.error(f"Import failed: {e}")
-    except FileNotFoundError as fnf_error:
-        logger.error(f"{fnf_error}")
-        raise Exit(code=1)
-    except ValueError as val_error:
-        logger.error(f"{val_error}")
-        raise Exit(code=1)
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        raise Exit(code=1)
-
-
-@app.command("export-users", help="Export all users to a JSON or CSV file.")
-def export_users(
-    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
-    output: str = Option("users_export.json", "--output", "-o", help="Output file path", show_default=True),
-) -> None:
-    """
-    Export all users to the specified format (JSON or CSV).
-    """
-    format = format.lower()
-    if format == "json":
-        export_users_to_json(db, output)
-    elif format == "csv":
-        export_users_to_csv(db, output)
-    else:
-        logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-
-
-@app.command("export-links", help="Export all links to a JSON or CSV file.")
-def export_links(
-    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
-    output: str = Option("links_export.json", "--output", "-o", help="Output file path", show_default=True),
-) -> None:
-    """
-    Export all links to the specified format (JSON or CSV).
-    """
-    format = format.lower()
-    if format == "json":
-        export_links_to_json(db, output)
-    elif format == "csv":
-        export_links_to_csv(db, output)
-    else:
-        logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-
-
-@app.command("export-all", help="Export all users and links to JSON or CSV files.")
-def export_all_command(
-    format: str = Option(
-        "json", "--format", "-f", help="Export format for both users and links: json or csv", show_default=True
-    ),
-    output_dir: str | None = Option(None, "--output-dir", "-d", help="Directory to store exported files."),
-) -> None:
-    """
-    Export all users and links to the specified format (JSON or CSV) within a directory.
-    """
-    format = format.lower()
-    if format not in {"json", "csv"}:
-        logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-        raise Exit(code=1)
-
-    if not output_dir:
-        output_dir = Path.cwd()
-    else:
-        output_dir = Path(output_dir)
-        try:
-            output_dir.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            logger.error(f"Failed to create directory '{output_dir}': {e}")
-            raise Exit(code=1)
-
-    users_output = output_dir / f"users_export.{format}"
-    links_output = output_dir / f"links_export.{format}"
-
-    for output_path in [users_output, links_output]:
-        if output_path.exists():
-            overwrite = prompt(f"File '{output_path}' already exists. Overwrite? (y/n)", default="n")
-            if overwrite.lower() != "y":
-                logger.warning(f"Skipped exporting to '{output_path}'.")
-                raise Exit()
-
-    export_all(db, format, str(output_dir))
-
-
-@app.command("test-log")
-def test_log() -> None:
-    """
-    Test logging functionality.
-    """
-    logger.debug("This is a debug message.")
-    logger.info("This is an info message.")
-    logger.warning("This is a warning message.")
-    logger.error("This is an error message.")
-    logger.critical("This is a critical message.")
-
-
-if __name__ == "__main__":
-    app()
+    def print(self, msg: str) -> None:
+        self.console.print(msg)
 
 
 ================================================
-File: /src/importer.py
+File: app/core/settings.py
+================================================
+from rich import pretty, traceback
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    APP_NAME: str = "LinkCovery"
+    DATABASE_NAME: str = "app.db"
+    DEBUG: bool = False
+    ALLOW_EXTENSIONS: list = [
+        ".txt",
+        ".csv",
+        ".json",
+    ]
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+
+settings = Settings()
+
+
+if settings.DEBUG:
+    traceback.install(show_locals=True)
+    pretty.install()
+
+
+================================================
+File: app/core/utils.py
 ================================================
 from os import path
-from rich import print
-from pydantic import HttpUrl, ValidationError
-from urllib.parse import urlparse
-from csv import DictReader
-from json import JSONDecodeError, load
 
-from settings import settings
-from database import LinkDatabase, User, Link
+from app.core.settings import settings
 
 
 def check_file(file_path: str) -> bool:
-    """
-    Validates the existence and extension of the provided file.
-
-    Args:
-        file_path (str): Path to the file to be checked.
-
-    Returns:
-        bool: True if the file exists and has a valid extension.
-
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file extension is not allowed.
-    """
     if not path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    extension = path.splitext(file_path)[1].lower()
-    if extension not in {f".{ext}" for ext in settings.ALLOW_EXTENSIONS}:
+    if (extension := path.splitext(file_path)[1].lower()) not in settings.ALLOW_EXTENSIONS:
         raise ValueError(f"Invalid file extension: {extension}. Allowed extensions: {settings.ALLOW_EXTENSIONS}")
 
     return True
 
 
-def extract_domain(url: str) -> str:
-    """
-    Extracts the domain from a given URL.
-
-    Args:
-        url (str): The URL from which to extract the domain.
-
-    Returns:
-        str: The domain of the URL.
-    """
-    parsed_url = urlparse(url)
-    return parsed_url.netloc
+def get_description(text: str | None) -> str:
+    return text
 
 
-def parse_tags(domain: str) -> list[str]:
-    """
-    Generates tags based on the domain.
+================================================
+File: app/core/database/__init__.py
+================================================
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-    Args:
-        domain (str): The domain to generate tags from.
+from app.core.settings import settings
+from app.core.database.models import Base, User, Link
+from app.core.database.crud import UserService, LinkService
 
-    Returns:
-        List[str]: A list of tags.
-    """
-    return domain.split(".")
+engine = create_engine(f"sqlite:///{settings.DATABASE_NAME}")
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Create tables
+Base.metadata.create_all(bind=engine)
 
-def import_txt(file_path: str, author_id: int, db: LinkDatabase):
-    """
-    Imports links from a .txt file. Each line in the file should contain one URL.
+# Initialize services
+session = SessionLocal()
+user_service = UserService(session)
+link_service = LinkService(session)
 
-    Args:
-        file_path (str): Path to the .txt file.
-        author_id (int): ID of the author to associate with the imported links.
-        db (LinkDatabase): Instance of the database connection.
-    """
-    try:
-        with open(file_path, "r", encoding="utf-8") as txtfile:
-            links = [line.strip() for line in txtfile if line.strip()]
-
-        if not links:
-            print("[yellow]No links found in the TXT file.[/yellow]")
-            return
-
-        with db.transaction():
-            for line_number, link in enumerate(links, start=1):
-                try:
-                    url = HttpUrl(link)
-                    domain = extract_domain(str(url))
-                    tags = parse_tags(domain)
-                    link_obj = Link(
-                        id=None,
-                        url=url,
-                        domain=domain,
-                        description="Imported from TXT",
-                        tag=tags,
-                        author_id=author_id,
-                    )
-                    link_id = db.create_link(link_obj)
-                    if link_id:
-                        print(f"[green]Line {line_number}: Link imported with ID {link_id}.[/green]")
-                except ValidationError as ve:
-                    print(f"[red]Line {line_number}: Invalid URL '{link}'. Error: {ve}[/red]")
-                    raise  # Trigger transaction rollback
-                except Exception as e:
-                    print(f"[red]Line {line_number}: Failed to import link '{link}'. Error: {e}[/red]")
-                    raise  # Trigger transaction rollback
-
-        print("[green]All links from TXT file have been imported successfully.[/green]")
-    except Exception as e:
-        print(f"[red]Failed to import from TXT file: {e}[/red]")
+__all__ = ["user_service", "link_service", "User", "Link"]
 
 
-def import_csv(file_path: str, author_id: int, db: LinkDatabase):
-    """
-    Imports links from a .csv file. The CSV should have headers corresponding to Link fields.
+================================================
+File: app/core/database/crud.py
+================================================
+from sqlalchemy.orm import Session
+from datetime import datetime
 
-    Expected CSV Headers:
-    - url
-    - domain
-    - description
-    - tag (comma-separated if multiple)
-    - is_read
-
-    Args:
-        file_path (str): Path to the .csv file.
-        author_id (int): ID of the author to associate with the imported links.
-        db (LinkDatabase): Instance of the database connection.
-    """
-    try:
-        with open(file_path, "r", encoding="utf-8") as csvfile:
-            reader = DictReader(csvfile)
-            required_fields = {"url", "domain", "description", "tag", "is_read"}
-            if not required_fields.issubset(reader.fieldnames):
-                print(f"[red]CSV file is missing required fields. Required fields: {required_fields}[/red]")
-                return
-
-            links = list(reader)
-            if not links:
-                print("[yellow]No links found in the CSV file.[/yellow]")
-                return
-
-            with db.transaction():
-                for row_number, row in enumerate(links, start=2):  # Start at 2 considering header
-                    try:
-                        url = HttpUrl(row["url"])
-                        domain = row["domain"] or extract_domain(str(url))
-                        tags = [tag.strip() for tag in row["tag"].split(",")] if row["tag"] else []
-                        is_read = row.get("is_read", "False").strip().lower() in {"1", "true", "yes"}
-
-                        link_obj = Link(
-                            id=None,
-                            url=url,
-                            domain=domain,
-                            description=row.get("description", "Imported from CSV"),
-                            tag=tags,
-                            author_id=author_id,
-                            is_read=is_read,
-                        )
-                        link_id = db.create_link(link_obj)
-                        if link_id:
-                            print(f"[green]Row {row_number}: Link imported with ID {link_id}.[/green]")
-                    except ValidationError as ve:
-                        print(f"[red]Row {row_number}: Invalid data. Error: {ve}[/red]")
-                        raise  # Trigger transaction rollback
-                    except Exception as e:
-                        print(f"[red]Row {row_number}: Failed to import link. Error: {e}[/red]")
-                        raise  # Trigger transaction rollback
-
-        print("[green]All links from CSV file have been imported successfully.[/green]")
-    except Exception as e:
-        print(f"[red]Failed to import from CSV file: {e}[/red]")
+from app.core.database.repositories import UserRepository, LinkRepository
 
 
-def import_links_from_json(file_path: str, db: LinkDatabase):
-    """
-    Imports links from a JSON file.
+class UserService:
+    def __init__(self, session: Session):
+        self.user_repository = UserRepository(session)
 
-    Args:
-        file_path (str): Path to the JSON file.
-        db (LinkDatabase): Instance of the database connection.
-    """
-    try:
-        with open(file_path, "r", encoding="utf-8") as json_file:
-            links_data = load(json_file)
+    def create_user(self, user_data):
+        return self.user_repository.create(user_data)
 
-        if not links_data:
-            print("[yellow]No links found in the JSON file.[/yellow]")
-            return
-
-        new_links = []
-        for index, link_dict in enumerate(links_data, start=1):
-            try:
-                # Extract author_email to find or create the user
-                author_info = link_dict.pop("author", {})
-                author_email = author_info.get("email")
-                if not author_email:
-                    print(f"[red]Link {index}: Missing author email. Skipping.[/red]")
-                    continue
-
-                user = db.get_user_by_email(author_email)
-                if not user:
-                    # Optionally, create the user if they don't exist
-                    user = User(name=author_info.get("name", "Unknown"), email=author_email)
-                    user_id = db.create_user(user)
-                    if not user_id:
-                        print(f"[red]Link {index}: Failed to create user '{author_email}'. Skipping link.[/red]")
-                        continue
-                    user.id = user_id
-
-                # Prepare Link object
-                link_obj = Link(**link_dict)
-                link_obj.author_id = user.id
-
-                # Check if link already exists
-                existing_link = db.read_link_by_url(link_obj.url)
-                if existing_link:
-                    print(f"[yellow]Link with URL '{link_obj.url}' already exists. Skipping.[/yellow]")
-                    continue
-
-                new_links.append(link_obj)
-            except ValidationError as ve:
-                print(f"[red]Link {index}: Validation error: {ve}[/red]")
-                raise  # Trigger transaction rollback
-            except Exception as e:
-                print(f"[red]Link {index}: Failed to prepare link. Error: {e}[/red]")
-                raise  # Trigger transaction rollback
-
-        if new_links:
-            db.bulk_create_links(new_links)
-            print(f"[green]Successfully imported {len(new_links)} links from JSON file.[/green]")
+    def get_user(self, user_id: int | None = None, user_email: str | None = None):
+        if user_id:
+            return self.user_repository.get_by_id(user_id)
+        elif user_email:
+            return self.user_repository.get_by_email(user_email)
         else:
-            print("[yellow]No new links to import.[/yellow]")
+            return None
 
-    except JSONDecodeError as jde:
-        print(f"[red]Invalid JSON format: {jde}[/red]")
+    def update_user(self, user_id: int, user_data):
+        return self.user_repository.update(user_id, user_data)
+
+    def delete_user(self, user_id: int):
+        return self.user_repository.delete(user_id)
+
+    def get_users(self):
+        return self.user_repository.get_all()
+
+
+class LinkService:
+    def __init__(self, session: Session):
+        self.link_repository = LinkRepository(session)
+
+    def create_link(self, **link_data):
+        link_data["created_at"] = datetime.utcnow()
+        link_data["updated_at"] = link_data["created_at"]
+        return self.link_repository.create(link_data)
+
+    def get_link(self, link_id: int | None = None, link_url: str | None = None):
+        if link_id:
+            return self.link_repository.get_by_id(link_id)
+        elif link_url:
+            return self.link_repository.get_by_url(link_url)
+        else:
+            return None
+
+    def search_links(self, search_criteria):
+        return self.link_repository.search(search_criteria)
+
+    def update_link(self, link_id: int, **link_data):
+        link_data["updated_at"] = datetime.utcnow()
+        return self.link_repository.update(link_id, link_data)
+
+    def delete_link(self, link_id: int):
+        return self.link_repository.delete(link_id)
+
+    def get_links(self):
+        return self.link_repository.get_all()
+
+    def get_links_by_author(self, author_id: int, number: int | None = None):
+        return self.link_repository.get_links_by_author(author_id, number)
+
+
+================================================
+File: app/core/database/models.py
+================================================
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy.orm import relationship, declarative_base, validates
+
+Base = declarative_base()
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False, unique=True)
+
+    links = relationship("Link", back_populates="author")
+
+    @validates("name")
+    def validate_name(self, key, value):
+        if len(value) < 4:
+            raise ValueError("Name must be at least 4 characters long.")
+        return value
+
+    @validates("email")
+    def validate_email(self, key, value):
+        return value
+
+
+class Link(Base):
+    __tablename__ = "links"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    url = Column(String, nullable=False)
+    domain = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    tag = Column(String, nullable=False)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(String, nullable=False)
+    updated_at = Column(String, nullable=False)
+
+    author = relationship("User", back_populates="links")
+
+    @validates("url")
+    def validate_url(self, key, value):
+        if not value.startswith("http://") and not value.startswith("https://"):
+            raise ValueError("Invalid URL format.")
+        return value
+
+    @validates("domain")
+    def validate_domain(self, key, value):
+        if not value or len(value.strip()) == 0:
+            raise ValueError("Domain cannot be empty or just whitespace.")
+        if "." not in value:
+            raise ValueError("Domain must contain at least one dot.")
+        return value.lower()
+
+    @validates("author_id")
+    def validate_author(self, key, value):
+        if not value:
+            raise ValueError("Author ID is required.")
+        return value
+
+
+================================================
+File: app/core/database/repositories.py
+================================================
+from sqlalchemy.orm import Session
+
+from app.core.database.models import User, Link
+
+
+class UserRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(self, user_data):
+        if self.get_by_email(user_data.get("email")):
+            raise ValueError(f"User with email '{user_data.get('email')}' already exists.")
+        user = User(**user_data)
+        self.session.add(user)
+        self.session.commit()
+        return user
+
+    def get_by_id(self, user_id: int):
+        return self.session.query(User).filter(User.id == user_id).first()
+
+    def get_by_email(self, email: str):
+        return self.session.query(User).filter(User.email == email).first()
+
+    def update(self, user_id: int, user_data):
+        if user := self.get_by_id(user_id):
+            for key, value in user_data.items():
+                setattr(user, key, value)
+            self.session.commit()
+        return user
+
+    def delete(self, user_id: int):
+        if user := self.get_by_id(user_id):
+            self.session.delete(user)
+            self.session.commit()
+
+    def get_all(self):
+        return self.session.query(User).all()
+
+
+class LinkRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(self, link_data):
+        if self.get_by_url(link_data.get("url")):
+            raise ValueError(f"Link with URL '{link_data.get('url')}' already exists.")
+        link = Link(**link_data)
+        self.session.add(link)
+        self.session.commit()
+        return link
+
+    def get_by_id(self, link_id: int):
+        return self.session.query(Link).filter(Link.id == link_id).first()
+
+    def get_by_url(self, url: str):
+        return self.session.query(Link).filter(Link.url == url).first()
+
+    def search(self, search_criteria):
+        query = self.session.query(Link)
+        # Filter by domain if provided
+        if search_criteria.get("domain"):
+            query = query.filter(Link.domain.contains(search_criteria["domain"]))
+        # Filter by each tag provided
+        if search_criteria.get("tag"):
+            for tag in search_criteria["tag"]:
+                query = query.filter(Link.tag.contains(tag))
+        # Filter by description if provided
+        if search_criteria.get("description"):
+            query = query.filter(Link.description.contains(search_criteria["description"]))
+        # Filter by read status if provided
+        if search_criteria.get("is_read") is not None:
+            query = query.filter(Link.is_read == search_criteria["is_read"])
+        # Sorting: if a sort field is provided and exists on the Link model
+        sort_by = search_criteria.get("sort_by")
+        sort_order = search_criteria.get("sort_order", "ASC")
+        if sort_by and hasattr(Link, sort_by):
+            column = getattr(Link, sort_by)
+            if sort_order.upper() == "DESC":
+                query = query.order_by(column.desc())
+            else:
+                query = query.order_by(column.asc())
+        # Pagination: apply offset and limit if provided
+        if search_criteria.get("offset") is not None:
+            query = query.offset(search_criteria["offset"])
+        if search_criteria.get("limit") is not None:
+            query = query.limit(search_criteria["limit"])
+        return query.all()
+
+    def update(self, link_id: int, link_data):
+        if link := self.get_by_id(link_id):
+            for key, value in link_data.items():
+                setattr(link, key, value)
+            self.session.commit()
+        return link
+
+    def delete(self, link_id: int):
+        if link := self.get_by_id(link_id):
+            self.session.delete(link)
+            self.session.commit()
+
+    def get_all(self):
+        return self.session.query(Link).all()
+
+    def get_links_by_author(self, author_id: int, number: int | None = None):
+        if number:
+            return self.session.query(Link).filter(Link.author_id == author_id).limit(number).all()
+        return self.session.query(Link).filter(Link.author_id == author_id).all()
+
+
+================================================
+File: app/core/services/import_export/exporter.py
+================================================
+from csv import DictWriter
+from json import dump
+from rich.progress import track
+
+from app.core.database import link_service, user_service
+from app.core.logger import AppLogger
+
+logger = AppLogger(__name__)
+
+
+def export_users_to_json(output_path: str) -> None:
+    users = user_service.get_users()
+    users_data = []
+    for user in users:
+        users_data.append({col: getattr(user, col) for col in user.__table__.columns.keys()})
+    try:
+        with open(output_path, "w", encoding="utf-8") as json_file:
+            dump(users_data, json_file, indent=4)
+        logger.info(f"Successfully exported {len(users)} users to {output_path}.")
     except Exception as e:
-        print(f"[red]Failed to import links from JSON file: {e}[/red]")
+        logger.error(f"Failed to export users to JSON: {e}")
 
 
-================================================
-File: /src/__init__.py
-================================================
-from .database import Database, User, Link, LinkDatabase
-from .importer import check_file, import_txt, import_csv, import_links_from_json
-from .exporter import export_users_to_json, export_users_to_csv, export_links_to_json, export_links_to_csv, export_all
-from .logger import Logger
+def export_users_to_csv(output_path: str) -> None:
+    users = user_service.get_users()
+    if not users:
+        logger.warning("No users available to export.")
+        return
 
-__all__ = [
-    "Database",
-    "User",
-    "Link",
-    "LinkDatabase",
-    "check_file",
-    "import_txt",
-    "import_csv",
-    "import_links_from_json",
-    "export_users_to_json",
-    "export_users_to_csv",
-    "export_links_to_json",
-    "export_links_to_csv",
-    "export_all",
-    "Logger",
-]
+    try:
+        with open(output_path, "w", newline="", encoding="utf-8") as csv_file:
+            fieldnames = list(users[0].__table__.columns.keys())
+            writer = DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
+            for user in track(users, description="Exporting users..."):
+                row = {col: getattr(user, col) for col in fieldnames}
+                writer.writerow(row)
+        logger.info(f"Successfully exported {len(users)} users to {output_path}.")
+    except Exception as e:
+        logger.error(f"Failed to export users to CSV: {e}")
 
 
-================================================
-File: /src/main.py
-================================================
-from typer import Typer
-
-from database import LinkDatabase
-from logger import Logger
-from settings import settings
-
-logger = Logger(__name__)
-
-# Initialize database with settings
-db = LinkDatabase()
-db.get_connection()
-
-# Initialize Typer for potential future CLI enhancements
-app = Typer(
-    name=settings.APP_NAME,
-    no_args_is_help=True,
-    help=f"{settings.APP_NAME} CLI Application",
-    rich_markup_mode=True,
-)
-
-
-def initialize_database():
-    """
-    Initializes the database by creating necessary tables and indexes.
-    """
-    db = LinkDatabase()
-
-    if db.is_initialized({"users", "links"}):
-        logger.warning("Database initialization skipped. The database is already set up.")
+def export_links_to_json(output_path: str, author_id: int | None = None) -> None:
+    if author_id is not None:
+        links = link_service.get_links_by_author(author_id)
     else:
-        db.create_table()
-        logger.warning("Database has been initialized successfully.")
+        links = link_service.get_links()
+    links_data = []
+    for link in links:
+        link_data = {col: getattr(link, col) for col in link.__table__.columns.keys()}
+        if link.author:
+            link_data["author"] = {col: getattr(link.author, col) for col in link.author.__table__.columns.keys()}
+        links_data.append(link_data)
+    try:
+        with open(output_path, "w", encoding="utf-8") as json_file:
+            dump(links_data, json_file, indent=4)
+        logger.info(f"Successfully exported {len(links_data)} links to {output_path}.")
+    except Exception as e:
+        logger.error(f"Failed to export links to JSON: {e}")
 
-    db.close_all()
 
+def export_links_to_csv(output_path: str, author_id: int | None = None) -> None:
+    if author_id is not None:
+        links = link_service.get_links_by_author(author_id)
+    else:
+        links = link_service.get_links()
+    if not links:
+        logger.warning("No links available to export.")
+        return
 
-if __name__ == "__main__":
-    initialize_database()
+    headers = list(links[0].__table__.columns.keys()) + ["author_name", "author_email"]
+    try:
+        with open(output_path, "w", newline="", encoding="utf-8") as csv_file:
+            writer = DictWriter(csv_file, fieldnames=headers)
+            writer.writeheader()
+            for link in track(links, description="Exporting links..."):
+                row = {col: getattr(link, col) for col in link.__table__.columns.keys()}
+                if link.author:
+                    row["author_name"] = link.author.name
+                    row["author_email"] = link.author.email
+                else:
+                    row["author_name"] = ""
+                    row["author_email"] = ""
+                writer.writerow(row)
+        logger.info(f"Successfully exported {len(links)} links to {output_path}.")
+    except Exception as e:
+        logger.error(f"Failed to export links to CSV: {e}")
 
 
 ================================================
-File: /pyproject.toml
+File: app/core/services/import_export/importer.py
 ================================================
-[project]
-name = "linkcovery"
-version = "0.3.0"
-description = "Bookmark and Link discovery tool for people with love and Python :)"
-readme = "README.md"
-authors = [{name = "Arian Omrani"}]
-requires-python = ">=3.13"
-dependencies = [
-    "pydantic[email]>=2.10.6",
-    "pydantic-settings>=2.7.1",
-    "rich>=13.9.4",
-    "sqlalchemy>=2.0.38",
-    "typer>=0.15.1",
-]
+from pydantic import HttpUrl, ValidationError, parse_obj_as
+from urllib.parse import urlparse
+from csv import DictReader
+from json import JSONDecodeError, load
 
-[dependency-groups]
-dev = [
-    "alembic>=1.14.1",
-    "pytest>=8.3.4",
-    "sqlite-web>=0.6.4",
-]
+from app.core.logger import AppLogger
+from app.core.utils import get_description
+from app.core.database import link_service
 
-[tool.ruff]
-line-length = 120
-
-[project.urls]
-Homepage = "https://github.com/arian24b/linkcovery"
-Issues = "https://github.com/arian24b/linkcovery/issues"
-
-[project.scripts]
-linkcovery = "cli:app"
-
-[tool.uv]
-package = true
+logger = AppLogger(__name__)
 
 
+def txt_import(file_path: str, author_id: int):
+    with open(file_path, "r", encoding="utf-8") as content:
+        links = [line.strip() for line in content if line.strip()]
+        if not links:
+            logger.info("No links found in the TXT file.")
+            return
+
+    added_link = 0
+    for line_number, link in enumerate(links, start=1):
+        try:
+            url = str(parse_obj_as(HttpUrl, link))
+            domain = urlparse(url).netloc
+            tags = ", ".join(domain.split("."))
+            link_service.create_link(
+                url=url,
+                description=get_description(None),
+                domain=domain,
+                tag=tags,
+                author_id=author_id,
+            )
+            added_link += 1
+        except (ValidationError, Exception) as e:
+            logger.error(f"Failed to add link at line {line_number}. Error: {e}")
+
+    logger.info(f"Successfully imported {added_link} links from TXT file for user {author_id}.")
+
+
+def csv_import(file_path: str, author_id: int):
+    with open(file_path, "r", encoding="utf-8") as content:
+        reader = DictReader(content)
+        if not reader.fieldnames:
+            logger.info("CSV file is empty or invalid.")
+            return
+
+        required_fields = {"url", "domain", "description", "tag", "is_read"}
+        if not required_fields.issubset(reader.fieldnames):
+            logger.info(f"CSV file is missing required fields. Required fields: {required_fields}")
+            return
+
+        links = list(reader)
+        if not links:
+            logger.info("No links found in the CSV file.")
+            return
+
+    added_link = 0
+    for line_number, row in enumerate(links, start=2):
+        try:
+            url = str(parse_obj_as(HttpUrl, row["url"]))
+            domain = row.get("domain") or urlparse(url).netloc
+            tags = row.get("tag") or ", ".join(domain.split("."))
+            is_read = str(row.get("is_read", "False")).strip().lower() in {"1", "true", "yes"}
+            link_service.create_link(
+                url=url,
+                description=get_description(row.get("description")),
+                domain=domain,
+                tag=tags,
+                author_id=author_id,
+                is_read=is_read,
+            )
+            added_link += 1
+        except (ValidationError, Exception) as e:
+            logger.error(f"Failed to add link at line {line_number}. Error: {e}")
+
+    logger.info(f"Successfully imported {added_link} links from CSV file for user {author_id}.")
+
+
+def json_import(file_path: str, author_id: int):
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            links_data = load(f)
+    except JSONDecodeError as e:
+        logger.error(f"Invalid JSON format: {e}")
+        return
+    except Exception as e:
+        logger.error(f"Failed to open JSON file: {e}")
+        return
+
+    if not links_data:
+        logger.info("No links found in the JSON file.")
+        return
+
+    added_link = 0
+    for index, link_dict in enumerate(links_data, start=1):
+        try:
+            url = str(parse_obj_as(HttpUrl, link_dict["url"]))
+            domain = link_dict.get("domain") or urlparse(url).netloc
+            tags = link_dict.get("tag") or ", ".join(domain.split("."))
+            description = get_description(link_dict.get("description"))
+            is_read = link_dict.get("is_read", False)
+            link_service.create_link(
+                url=url,
+                description=description,
+                domain=domain,
+                tag=tags,
+                author_id=author_id,
+                is_read=is_read,
+            )
+            added_link += 1
+        except (ValidationError, Exception) as e:
+            logger.error(f"Failed to add link at index {index} from JSON. Error: {e}")
+
+    logger.info(f"Successfully imported {added_link} links from JSON file for user {author_id}.")
