@@ -3,6 +3,8 @@ name = "linkcovery"
 version = "0.3.0"
 description = "Bookmark and Link discovery tool for people with love and Python :)"
 readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["bookmark", "link", "discovery", "tool", "python"]
 authors = [{name = "Arian Omrani"}]
 requires-python = ">=3.13"
 dependencies = [
@@ -32,3 +34,6 @@ linkcovery = "app.cli:cli_app"
 
 [tool.uv]
 package = true
+
+[tool.setuptools]
+license-files = ["LICENSE"]

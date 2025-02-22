@@ -35,6 +35,14 @@
 - **Python 3.13+**: Ensure Python 3.13 or higher is installed on your system.
 - **UV**: Used for dependency management and packaging.
 
+### Using Pypi
+
+```bash
+uv tool install linkcovery
+
+uvx --python 3.13 linkcovery
+```
+
 ### Steps
 
 1. **Clone the Repository**
