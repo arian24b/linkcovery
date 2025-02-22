@@ -34,3 +34,6 @@ linkcovery = "app.cli:cli_app"
 
 [tool.uv]
 package = true
+
+[tool.setuptools]
+license-files = []
