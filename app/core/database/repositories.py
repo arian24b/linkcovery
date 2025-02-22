@@ -8,6 +8,8 @@ class UserRepository:
         self.session = session
 
     def create(self, user_data):
+        if self.get_by_email(user_data.get("email")):
+            raise ValueError(f"User with email '{user_data.get('email')}' already exists.")
         user = User(**user_data)
         self.session.add(user)
         self.session.commit()
@@ -40,6 +42,8 @@ class LinkRepository:
         self.session = session
 
     def create(self, link_data):
+        if self.get_by_url(link_data.get("url")):
+            raise ValueError(f"Link with URL '{link_data.get('url')}' already exists.")
         link = Link(**link_data)
         self.session.add(link)
         self.session.commit()
