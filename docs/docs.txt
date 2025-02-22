@@ -1,6 +1,5 @@
 Directory structure:
 └── linkcovery/
-    ├── README.md
     ├── app.db
     ├── main.py
     ├── pyproject.toml
@@ -13,8 +12,7 @@ Directory structure:
     │   │   ├── __init__.py
     │   │   ├── __pycache__/
     │   │   └── commands/
-    │   │       ├── export.py
-    │   │       ├── import_.py
+    │   │       ├── import_export.py
     │   │       ├── link.py
     │   │       ├── user.py
     │   │       └── __pycache__/
@@ -35,310 +33,6 @@ Directory structure:
     │               ├── importer.py
     │               └── __pycache__/
     └── docs/
-
-================================================
-File: README.md
-================================================
-# Linkcovery
-
-![Linkcovery Logo](https://via.placeholder.com/150) <!-- Replace with actual logo if available -->
-
-**Linkcovery** is a robust link discovery tool built with Python, designed to help you efficiently manage and explore your collection of links. Whether you're a developer, researcher, or avid internet surfer, Linkcovery provides an intuitive CLI to add, search, and organize your links seamlessly.
-
-## Table of Contents
-
-- [Features](#features)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-  - [User Commands](#user-commands)
-  - [Link Commands](#link-commands)
-  - [Import Commands](#import-commands)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-
-## Features
-
-- **Add and Manage Users**: Easily add new users and list existing ones.
-- **Link Management**: Add, list, search, update, and delete links with comprehensive metadata.
-- **Import Functionality**: Import links from TXT and CSV files efficiently.
-- **Search Capabilities**: Advanced search with filtering by domain, tags, and description, along with sorting and pagination.
-- **Atomic Operations**: Ensures data integrity with atomic transactions when creating users and links.
-- **Rich CLI Interface**: User-friendly command-line interface with prompts and colored outputs for better usability.
-- **SQLite Database with Connection Pooling**: Efficient database management using SQLite with a connection pool for optimized performance.
-
-## Installation
-
-### Prerequisites
-
-- **Python 3.13+**: Ensure you have Python version 3.13 or higher installed.
-- **UV**: Used for dependency management and packaging.
-
-### Steps
-
-1. **Clone the Repository**
-
-   ```bash
-   git clone https://github.com/yourusername/linkcovery.git
-   cd linkcovery
-   ```
-
-2. **Install Dependencies**
-
-   Using UV:
-
-   ```bash
-   uv sync
-   ```
-
-3. **Set Up Environment Variables**
-
-   Copy the example environment file and configure as needed.
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit the `.env` file to set your desired configurations.
-
-4. **Run cli**
-
-   Before running the application, initialize the SQLite database.
-
-   ```bash
-   uv run linkcovery --help
-   ```
-
-## Configuration
-
-Linkcovery uses environment variables for configuration. Here's how to set them up:
-
-1. **Environment Variables**
-
-   Create a `.env` file in the root directory based on `.env.example`:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Configure `.env`**
-
-   ```env
-   DATABASE_NAME=app.db
-   DEBUG=True
-   ALLOW_EXTENTIONS=csv,txt
-   ```
-
-   - `DATABASE_NAME`: Name of the SQLite database file.
-   - `DEBUG`: Enable or disable debug mode.
-   - `ALLOW_EXTENTIONS`: Allowed file extensions for import functionality.
-
-## Usage
-
-Linkcovery provides a comprehensive CLI built with [Typer](https://typer.tiangolo.com/) for managing users and links. Below are the available commands and their descriptions.
-
-### Running the CLI
-
-Activate the virtual environment and run the CLI:
-
-```bash
-uv run
-```
-
-Alternatively, use Poetry to run commands without activating the shell:
-
-```bash
-uv run linkcovery [COMMAND]
-```
-
-### User Commands
-
-#### Add a New User
-
-Add a new user to the database.
-
-```bash
-linkcovery user-add
-```
-
-You will be prompted to enter the user's name and email.
-
-**Options:**
-
-- `--name, -n`: Name of the user.
-- `--email, -e`: Email of the user.
-
-**Example:**
-
-```bash
-linkcovery user-add --name "Alice" --email "alice@example.com"
-```
-
-#### List All Users
-
-Display a list of all users in the database.
-
-```bash
-linkcovery user-list
-```
-
-**Example:**
-
-```bash
-linkcovery user-list
-```
-
-### Link Commands
-
-#### Add a New Link
-
-Add a new link to the database.
-
-```bash
-linkcovery link-add
-```
-
-You can provide options or use interactive prompts.
-
-**Options:**
-
-- `--url, -u`: URL of the link.
-- `--domain, -d`: Domain of the link.
-- `--author-email, -a`: Email of the author.
-- `--description, -desc`: Description of the link.
-- `--tag, -t`: Tags associated with the link.
-
-**Example:**
-
-```bash
-linkcovery link-add --url "https://example.com" --domain "example.com" --author-email "alice@example.com" --description "An example website" --tag "example" "test"
-```
-
-#### List All Links
-
-Display all links along with their authors.
-
-```bash
-linkcovery link-list
-```
-
-**Example:**
-
-```bash
-linkcovery link-list
-```
-
-#### Search for Links
-
-Search for links based on various criteria.
-
-```bash
-linkcovery link-search [OPTIONS]
-```
-
-**Options:**
-
-- `--domain, -d`: Filter by domain.
-- `--tag, -t`: Tags to filter by.
-- `--description, -desc`: Filter by description.
-- `--sort-by, -s`: Field to sort by (`created_at`, `updated_at`, `domain`).
-- `--sort-order, -o`: Sort order (`ASC`, `DESC`).
-- `--limit, -l`: Number of results to return.
-- `--offset, -of`: Number of results to skip.
-
-**Example:**
-
-```bash
-linkcovery link-search --domain "example" --tag "test" --description "example" --sort-by "created_at" --sort-order "DESC" --limit 5 --offset 0
-```
-
-#### Delete a Link
-
-Delete a link by its ID.
-
-```bash
-linkcovery link-delete --link-id [ID]
-```
-
-**Options:**
-
-- `--link-id, -id`: ID of the link to delete.
-
-**Example:**
-
-```bash
-linkcovery link-delete --link-id 1
-```
-
-#### Update a Link
-
-Update details of a link by its ID.
-
-```bash
-linkcovery link-update [OPTIONS]
-```
-
-**Options:**
-
-- `--link-id, -id`: ID of the link to update.
-- `--url, -u`: New URL.
-- `--domain, -d`: New domain.
-- `--description, -desc`: New description.
-- `--tag, -t`: New tags.
-- `--is-read, -r`: Mark as read (`True` or `False`).
-
-**Example:**
-
-```bash
-linkcovery link-update --link-id 1 --description "Updated description" --is-read True
-```
-
-### Import Commands
-
-#### Import Links from a File
-
-Import links from a TXT or CSV file.
-
-```bash
-linkcovery import --file-path [PATH] --author-id [ID]
-```
-
-**Options:**
-
-- `--file-path, -f`: Path to the `.txt` or `.csv` file.
-- `--author-id, -a`: ID of the author to associate with the imported links.
-
-**Examples:**
-
-- Import from TXT:
-
-  ```bash
-  linkcovery import --file-path links.txt --author-id 1
-  ```
-
-- Import from CSV:
-
-  ```bash
-  linkcovery import --file-path links.csv --author-id 1
-  ```
-
-## License
-
-[MIT License](LICENSE)
-
-## Contact
-
-For any inquiries or support, please contact:
-
-- **Email**: [arian24b@gmail.com](mailto:arian24b@gmail.com)
-- **GitHub**: [@arian24b](https://github.com/arian24b)
-
----
-
-_Made with ❤️ and Python 🐍_
-
 
 ================================================
 File: main.py
@@ -406,7 +100,7 @@ File: app/cli/__init__.py
 ================================================
 from typer import Typer
 
-from app.cli.commands import user, link, import_
+from app.cli.commands import user, link, import_export
 from app.core.settings import settings
 
 
@@ -419,118 +113,31 @@ cli_app = Typer(
 
 cli_app.add_typer(user.app, name="user")
 cli_app.add_typer(link.app, name="link")
-cli_app.add_typer(import_.app, name="db")
+cli_app.add_typer(import_export.app, name="db")
 
 
 ================================================
-File: app/cli/commands/export.py
-================================================
-from typer import Typer, Option, Exit
-from os import path
-
-from app.core.logger import AppLogger
-from app.core.utils import check_file
-from app.core.database import user_service
-from app.core.services.import_export.importer import txt, csv
-# from app.core.services.import_export.exporter import (
-#     export_users_to_json,
-#     export_users_to_csv,
-#     export_links_to_json,
-#     export_links_to_csv,
-#     export_all,
-# )
-
-logger = AppLogger(__name__)
-
-app = Typer()
-
-
-# @app.command("export-users", help="Export all users to a JSON or CSV file.")
-# def export_users(
-#     format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
-#     output: str = Option("users_export.json", "--output", "-o", help="Output file path", show_default=True),
-# ) -> None:
-#     """
-#     Export all users to the specified format (JSON or CSV).
-#     """
-#     format = format.lower()
-#     if format == "json":
-#         export_users_to_json(user_service, output)
-#     elif format == "csv":
-#         export_users_to_csv(user_service, output)
-#     else:
-#         logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-
-
-# @app.command("export-links", help="Export all links to a JSON or CSV file.")
-# def export_links(
-#     format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
-#     output: str = Option("links_export.json", "--output", "-o", help="Output file path", show_default=True),
-# ) -> None:
-#     """
-#     Export all links to the specified format (JSON or CSV).
-#     """
-#     format = format.lower()
-#     if format == "json":
-#         export_links_to_json(link_service, output)
-#     elif format == "csv":
-#         export_links_to_csv(link_service, output)
-#     else:
-#         logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-
-
-# @app.command("export-all", help="Export all users and links to JSON or CSV files.")
-# def export_all_command(
-#     format: str = Option(
-#         "json", "--format", "-f", help="Export format for both users and links: json or csv", show_default=True
-#     ),
-#     output_dir: str | None = Option(None, "--output-dir", "-d", help="Directory to store exported files."),
-# ) -> None:
-#     """
-#     Export all users and links to the specified format (JSON or CSV) within a directory.
-#     """
-#     format = format.lower()
-#     if format not in {"json", "csv"}:
-#         logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-#         raise Exit(code=1)
-
-#     if not output_dir:
-#         output_dir = Path.cwd()
-#     else:
-#         output_dir = Path(output_dir)
-#         try:
-#             output_dir.mkdir(parents=True, exist_ok=True)
-#         except Exception as e:
-#             logger.error(f"Failed to create directory '{output_dir}': {e}")
-#             raise Exit(code=1)
-
-#     users_output = output_dir / f"users_export.{format}"
-#     links_output = output_dir / f"links_export.{format}"
-
-#     for output_path in [users_output, links_output]:
-#         if output_path.exists():
-#             overwrite = prompt(f"File '{output_path}' already exists. Overwrite? (y/n)", default="n")
-#             if overwrite.lower() != "y":
-#                 logger.warning(f"Skipped exporting to '{output_path}'.")
-#                 raise Exit()
-
-#     export_all(user_service, link_service, format, str(output_dir))
-
-
-================================================
-File: app/cli/commands/import_.py
+File: app/cli/commands/import_export.py
 ================================================
 from typer import Typer, Option, Exit
 from os import path
 
 from app.core.logger import AppLogger
 from app.core.utils import check_file
-from app.core.database import user_service
-from app.core.services.import_export.importer import txt, csv
+from app.core.database import user_service, link_service
+from app.core.services.import_export.importer import txt_import, csv_import, json_import
+from pathlib import Path
+
+from app.core.services.import_export.exporter import (
+    export_users_to_json,
+    export_users_to_csv,
+    export_links_to_json,
+    export_links_to_csv,
+    export_all,
+)
 
 
 logger = AppLogger(__name__)
-
 app = Typer()
 
 
@@ -547,13 +154,85 @@ def import_links(
         extension = path.splitext(file_path)[1].lower()
 
     if extension == ".txt":
-        txt(file_path, author.id)
+        txt_import(file_path, author.id)
     elif extension == ".csv":
-        csv(file_path, author.id)
-    # elif extension == ".json":
-    #     json(file_path, author.id)
+        csv_import(file_path, author.id)
+    elif extension == ".json":
+        json_import(file_path, author.id)
     else:
         logger.error(f"Unsupported file extension: {extension}")
+
+
+@app.command("export-users", help="Export all users to a JSON or CSV file.")
+def export_users(
+    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
+    output: str = Option("users_export.json", "--output", "-o", help="Output file path", show_default=True),
+) -> None:
+    format = format.lower()
+    try:
+        if format == "json":
+            export_users_to_json(user_service, output)
+        elif format == "csv":
+            export_users_to_csv(user_service, output)
+        else:
+            logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
+            raise Exit(code=1)
+    except Exception as e:
+        logger.error(f"Error exporting users: {e}")
+        raise Exit(code=1)
+
+
+@app.command("export-links", help="Export all links to a JSON or CSV file.")
+def export_links(
+    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
+    output: str = Option("links_export.json", "--output", "-o", help="Output file path", show_default=True),
+) -> None:
+    format = format.lower()
+    try:
+        if format == "json":
+            export_links_to_json(link_service, output)
+        elif format == "csv":
+            export_links_to_csv(link_service, output)
+        else:
+            logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
+            raise Exit(code=1)
+    except Exception as e:
+        logger.error(f"Error exporting links: {e}")
+        raise Exit(code=1)
+
+
+@app.command("export-all", help="Export all users and links to JSON or CSV files.")
+def export_all_command(
+    format: str = Option(
+        "json", "--format", "-f", help="Export format for both users and links: json or csv", show_default=True
+    ),
+    output_dir: str | None = Option(None, "--output-dir", "-d", help="Directory to store exported files."),
+) -> None:
+    format = format.lower()
+    if format not in {"json", "csv"}:
+        logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
+        raise Exit(code=1)
+
+    if not output_dir:
+        output_dir = Path.cwd()
+    else:
+        output_dir = Path(output_dir)
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            logger.error(f"Failed to create directory '{output_dir}': {e}")
+            raise Exit(code=1)
+
+    # Construct file paths for logging purposes (the exporter function will handle writing)
+    users_output = output_dir / f"users_export.{format}"
+    links_output = output_dir / f"links_export.{format}"
+
+    try:
+        export_all(user_service, link_service, format, str(output_dir))
+        logger.info(f"Exported all data successfully to '{users_output}' and '{links_output}'.")
+    except Exception as e:
+        logger.error(f"Error exporting all data: {e}")
+        raise Exit(code=1)
 
 
 ================================================
@@ -619,30 +298,41 @@ def list_link() -> None:
         logger.info(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {link.author}")
 
 
-@app.command(help="Search for links based on domain, tags, or description.")
+@app.command(help="Search for links based on domain, tags, description, and sort options.")
 def search(
     domain: str | None = Option(None, help="Filter by domain."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
+    description: str | None = Option(None, help="Filter by description."),
+    sort_by: str | None = Option(None, help="Field to sort by (e.g. created_at, updated_at, domain)."),
+    sort_order: str = Option("ASC", help="Sort order: ASC or DESC."),
     limit: int = Option(3, help="Number of results to return."),
+    offset: int = Option(0, help="Number of results to skip."),
     is_read: bool | None = Option(None, help="Filter by read status."),
 ) -> None:
     """
-    Search for links based on domain, tags, or description.
+    Search for links with advanced filtering, sorting, and pagination.
     """
-    results = link_service.search_links(
-        {
-            "domain": domain,
-            "tag": tags,  # Note: you may need to adjust if multiple tags should be handled differently
-            "limit": limit,
-            "is_read": is_read,
-        }
-    )
+    # Build the search criteria dictionary
+    criteria = {
+        "domain": domain,
+        "tag": tags,
+        "description": description,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
+        "limit": limit,
+        "offset": offset,
+        "is_read": is_read,
+    }
+    # Remove keys with empty or None values
+    criteria = {k: v for k, v in criteria.items() if v not in [None, [], ""]}
+    results = link_service.search_links(criteria)
     if not results:
         logger.warning("No matching links found.")
-        return None
+        return
     for link in results:
         logger.info(
-            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Description: {link.description}, Tags: {', '.join(link.tag)}"
+            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, "
+            f"Description: {link.description}, Tags: {link.tag}"
         )
 
 
@@ -1099,10 +789,33 @@ class LinkRepository:
 
     def search(self, search_criteria):
         query = self.session.query(Link)
-        if "url" in search_criteria:
-            query = query.filter(Link.url.contains(search_criteria["url"]))
-        if "tag" in search_criteria:
-            query = query.filter(Link.tag.contains(search_criteria["tag"]))
+        # Filter by domain if provided
+        if search_criteria.get("domain"):
+            query = query.filter(Link.domain.contains(search_criteria["domain"]))
+        # Filter by each tag provided
+        if search_criteria.get("tag"):
+            for tag in search_criteria["tag"]:
+                query = query.filter(Link.tag.contains(tag))
+        # Filter by description if provided
+        if search_criteria.get("description"):
+            query = query.filter(Link.description.contains(search_criteria["description"]))
+        # Filter by read status if provided
+        if search_criteria.get("is_read") is not None:
+            query = query.filter(Link.is_read == search_criteria["is_read"])
+        # Sorting: if a sort field is provided and exists on the Link model
+        sort_by = search_criteria.get("sort_by")
+        sort_order = search_criteria.get("sort_order", "ASC")
+        if sort_by and hasattr(Link, sort_by):
+            column = getattr(Link, sort_by)
+            if sort_order.upper() == "DESC":
+                query = query.order_by(column.desc())
+            else:
+                query = query.order_by(column.asc())
+        # Pagination: apply offset and limit if provided
+        if search_criteria.get("offset") is not None:
+            query = query.offset(search_criteria["offset"])
+        if search_criteria.get("limit") is not None:
+            query = query.limit(search_criteria["limit"])
         return query.all()
 
     def update(self, link_id: int, link_data):
@@ -1134,21 +847,14 @@ from json import dump
 from rich.progress import track
 from pathlib import Path
 
-from app.core.models_old import LinkDatabase, User, Link
+from app.core.database import link_service, user_service, Link, User
 from app.core.logger import AppLogger
 
 logger = AppLogger(__name__)
 
 
-def export_users_to_json(db: LinkDatabase, output_path: str) -> None:
-    """
-    Exports all users to a JSON file.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        output_path (str): Path to the output JSON file.
-    """
-    users: list[User] = db.read_users()
+def export_users_to_json(output_path: str) -> None:
+    users: list[User] = user_service.get_users()
     users_data = [user.model_dump() for user in users]
 
     try:
@@ -1159,15 +865,8 @@ def export_users_to_json(db: LinkDatabase, output_path: str) -> None:
         logger.error(f"Failed to export users to JSON: {e}")
 
 
-def export_users_to_csv(db: LinkDatabase, output_path: str) -> None:
-    """
-    Exports all users to a CSV file.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        output_path (str): Path to the output CSV file.
-    """
-    users: list[User] = db.read_users()
+def export_users_to_csv(output_path: str) -> None:
+    users: list[User] = user_service.get_users()
     if not users:
         logger.warning("No users available to export.")
         return
@@ -1183,15 +882,8 @@ def export_users_to_csv(db: LinkDatabase, output_path: str) -> None:
         logger.error(f"Failed to export users to CSV: {e}")
 
 
-def export_links_to_json(db: LinkDatabase, output_path: str) -> None:
-    """
-    Exports all links to a JSON file.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        output_path (str): Path to the output JSON file.
-    """
-    links_with_authors = db.read_links_with_authors()
+def export_links_to_json(output_path: str, author_id: int) -> None:
+    links_with_authors = link_service.get_links_by_author(author_id)
     links_data = []
     for entry in links_with_authors:
         link = entry["link"].dict()
@@ -1206,15 +898,8 @@ def export_links_to_json(db: LinkDatabase, output_path: str) -> None:
         logger.error(f"Failed to export links to JSON: {e}")
 
 
-def export_links_to_csv(db: LinkDatabase, output_path: str) -> None:
-    """
-    Exports all links to a CSV file.
-
-    Args:
-        db (LinkDatabase): The database instance.
-        output_path (str): Path to the output CSV file.
-    """
-    links_with_authors = db.read_links_with_authors()
+def export_links_to_csv(output_path: str, author_id: int) -> None:
+    links_with_authors = link_service.get_links_by_author(author_id)
     if not links_with_authors:
         logger.warning("No links available to export.")
         return
@@ -1250,7 +935,7 @@ def export_links_to_csv(db: LinkDatabase, output_path: str) -> None:
         logger.error(f"Failed to export links to CSV: {e}")
 
 
-def export_all(db: LinkDatabase, format: str = "json", output_dir: str | None = None) -> None:
+def export_all(author_id: int, format: str = "json", output_dir: str | None = None) -> None:
     """
     Exports both users and links to the specified format.
 
@@ -1274,11 +959,11 @@ def export_all(db: LinkDatabase, format: str = "json", output_dir: str | None = 
     links_output = output_dir / f"links_export.{format}"
 
     if format == "json":
-        export_users_to_json(db, str(users_output))
-        export_links_to_json(db, str(links_output))
+        export_users_to_json(str(users_output))
+        export_links_to_json(str(links_output), author_id)
     elif format == "csv":
-        export_users_to_csv(db, str(users_output))
-        export_links_to_csv(db, str(links_output))
+        export_users_to_csv(str(users_output))
+        export_links_to_csv(str(links_output), author_id)
 
     logger.info(f"Exported all data successfully to '{users_output}' and '{links_output}'.")
 
@@ -1289,17 +974,17 @@ File: app/core/services/import_export/importer.py
 from pydantic import HttpUrl
 from urllib.parse import urlparse
 from csv import DictReader
-# from json import JSONDecodeError, load
+from json import JSONDecodeError, load
 
 from app.core.logger import AppLogger
 from app.core.utils import get_description
-from app.core.database import link_service, Link
+from app.core.database import link_service
 
 
 logger = AppLogger(__name__)
 
 
-def txt(file_path: str, author_id: int):
+def txt_import(file_path: str, author_id: int):
     with open(file_path, "r", encoding="utf-8") as content:
         if not (links := [line.strip() for line in content if line.strip()]):
             logger.info("No links found in the TXT file.")
@@ -1327,7 +1012,7 @@ def txt(file_path: str, author_id: int):
     logger.info(f"Successfully imported {added_link} links from TXT file for user {author_id}.")
 
 
-def csv(file_path: str, author_id: int):
+def csv_import(file_path: str, author_id: int):
     with open(file_path, "r", encoding="utf-8") as content:
         reader = DictReader(content)
 
@@ -1374,59 +1059,52 @@ def csv(file_path: str, author_id: int):
     logger.info(f"Successfully imported {added_link} links from CSV file for user {author_id}.")
 
 
-# TODO:add import json
-# def json(file_path: str, author_id: int):
-#     with open(file_path, "r", encoding="utf-8") as json_file:
-#         if not (links_data := load(json_file)):
-#             logger.info("No links found in the JSON file.")
-#             return
+def json_import(file_path: str, author_id: int):
+    """
+    Import links from a JSON file.
+
+    The JSON file is expected to contain a list of dictionaries,
+    each with at least a "url" key and optionally "domain", "description", "tag", and "is_read".
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            links_data = load(f)
+    except JSONDecodeError as e:
+        logger.error(f"Invalid JSON format: {e}")
+        return
+    except Exception as e:
+        logger.error(f"Failed to open JSON file: {e}")
+        return
+
+    if not links_data:
+        logger.info("No links found in the JSON file.")
+        return
+
+    added_link = 0
+
+    for index, link_dict in enumerate(links_data, start=1):
+        try:
+            url = str(HttpUrl(link_dict["url"]))
+            domain = link_dict.get("domain", urlparse(url).netloc)
+            # If no tag is provided, generate one from the domain
+            tags = link_dict.get("tag")
+            if not tags:
+                tags = ",".join(domain.split("."))
+            description = get_description(link_dict.get("description"))
+            is_read = link_dict.get("is_read", False)
+
+            link_service.create_link(
+                url=url,
+                description=description,
+                domain=domain,
+                tag=tags,
+                author_id=author_id,
+                is_read=is_read,
+            )
+            added_link += 1
+        except Exception as e:
+            logger.error(f"Failed to add link at index {index} from JSON. Error: {e}")
+
+    logger.info(f"Successfully imported {added_link} links from JSON file for user {author_id}.")
 
 
-#         new_links = []
-#         for index, link_dict in enumerate(links_data, start=1):
-#             try:
-#                 # Extract author_email to find or create the user
-#                 author_info = link_dict.pop("author", {})
-#                 author_email = author_info.get("email")
-#                 if not author_email:
-#                     print(f"[red]Link {index}: Missing author email. Skipping.[/red]")
-#                     continue
-
-#                 user = db.get_user_by_email(author_email)
-#                 if not user:
-#                     # Optionally, create the user if they don't exist
-#                     user = User(name=author_info.get("name", "Unknown"), email=author_email)
-#                     user_id = db.create_user(user)
-#                     if not user_id:
-#                         print(f"[red]Link {index}: Failed to create user '{author_email}'. Skipping link.[/red]")
-#                         continue
-#                     user.id = user_id
-
-#                 # Prepare Link object
-#                 link_obj = Link(**link_dict)
-#                 link_obj.author_id = user.id
-
-#                 # Check if link already exists
-#                 existing_link = db.read_link_by_url(link_obj.url)
-#                 if existing_link:
-#                     print(f"[yellow]Link with URL '{link_obj.url}' already exists. Skipping.[/yellow]")
-#                     continue
-
-#                 new_links.append(link_obj)
-#             except ValidationError as ve:
-#                 print(f"[red]Link {index}: Validation error: {ve}[/red]")
-#                 raise  # Trigger transaction rollback
-#             except Exception as e:
-#                 print(f"[red]Link {index}: Failed to prepare link. Error: {e}[/red]")
-#                 raise  # Trigger transaction rollback
-
-#         if new_links:
-#             db.bulk_create_links(new_links)
-#             print(f"[green]Successfully imported {len(new_links)} links from JSON file.[/green]")
-#         else:
-#             print("[yellow]No new links to import.[/yellow]")
-
-#     except JSONDecodeError as jde:
-#         print(f"[red]Invalid JSON format: {jde}[/red]")
-#     except Exception as e:
-#         print(f"[red]Failed to import links from JSON file: {e}[/red]")

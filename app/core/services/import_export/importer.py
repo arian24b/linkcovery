@@ -11,7 +11,7 @@ from app.core.database import link_service
 logger = AppLogger(__name__)
 
 
-def txt(file_path: str, author_id: int):
+def txt_import(file_path: str, author_id: int):
     with open(file_path, "r", encoding="utf-8") as content:
         if not (links := [line.strip() for line in content if line.strip()]):
             logger.info("No links found in the TXT file.")
@@ -39,7 +39,7 @@ def txt(file_path: str, author_id: int):
     logger.info(f"Successfully imported {added_link} links from TXT file for user {author_id}.")
 
 
-def csv(file_path: str, author_id: int):
+def csv_import(file_path: str, author_id: int):
     with open(file_path, "r", encoding="utf-8") as content:
         reader = DictReader(content)
 
