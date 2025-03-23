@@ -4,7 +4,7 @@ from app.core.logger import AppLogger
 from app.core.database import user_service, link_service
 
 logger = AppLogger(__name__)
-app = Typer()
+app = Typer(no_args_is_help=True)
 
 
 @app.command(help="Add a new link to the database.")
@@ -40,7 +40,7 @@ def create(
         logger.error("Failed to add link.")
 
 
-@app.command(help="List all links with their authors.")
+@app.command(name="list", help="List all links with their authors.")
 def list_link() -> None:
     if not (links := link_service.get_links()):
         logger.warning("No links found.")
@@ -125,7 +125,7 @@ def update(
         logger.error(f"Failed to update link with ID {link_id}.")
 
 
-@app.command("read-link", help="Mark 3 links as read for a given author.")
+@app.command(name="read", help="Mark 3 links as read for a given author.")
 def mark_links_as_read(author_id: int = Option(..., help="ID of the author")) -> None:
     if not (links := link_service.get_links_by_author(author_id=author_id, number=3)):
         logger.warning("No links found to update.")

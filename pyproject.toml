@@ -1,6 +1,6 @@
 [project]
 name = "linkcovery"
-version = "0.3.0"
+version = "0.3.1"
 description = "Bookmark and Link discovery tool for people with love and Python :)"
 readme = "README.md"
 license = {file = "LICENSE"}
