@@ -1,4 +1,5 @@
 from typer import Typer, Option, Exit, prompt
+from typing import List
 
 from app.core.logger import AppLogger
 from app.core.database import user_service, link_service
@@ -95,18 +96,13 @@ def delete(link_id: int = Option(..., help="ID of the link to delete.")) -> None
 
 @app.command(help="Update a link's details by its ID.")
 def update(
-    link_id: int = Option(..., help="ID of the link to update."),
+    link_id: List[int] = Option(..., help="ID of the link's to update."),
     url: str | None = Option(None, help="New URL of the link."),
     domain: str | None = Option(None, help="New domain of the link."),
     description: str | None = Option(None, help="New description of the link."),
     tags: list[str] | None = Option(None, "--tag", "-t", help="New tags for the link."),
     is_read: bool | None = Option(None, "--is-read", "-r", help="Mark as read or unread."),
 ) -> None:
-    # Check if link exists
-    if not link_service.get_link(link_id):
-        logger.error(f"No link found with ID {link_id}.")
-        raise Exit(code=1)
-
     # Collect data to update
     update_data = {}
     if url:
@@ -121,10 +117,15 @@ def update(
         update_data["is_read"] = is_read
 
     # Perform the update
-    if link_service.update_link(link_id, **update_data):
-        logger.info(f"Link with ID {link_id} has been updated.")
-    else:
-        logger.error(f"Failed to update link with ID {link_id}.")
+    for lid in link_id:
+        # Check if link exists
+        if not link_service.get_link(lid):
+            logger.error(f"No link found with ID {lid}.")
+
+        if link_service.update_link(lid, **update_data):
+            logger.info(f"Link with ID {lid} has been updated.")
+        else:
+            logger.error(f"Failed to update link with ID {lid}.")
 
 
 @app.command(name="read", help="Mark 3 links as read for a given author.")
