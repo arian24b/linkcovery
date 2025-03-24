@@ -53,6 +53,7 @@ def list_link() -> None:
 @app.command(help="Search for links based on various filters.")
 def search(
     domain: str | None = Option(None, help="Filter by domain."),
+    url: str | None = Option(None, help="Filter by URL."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
     description: str | None = Option(None, help="Filter by description."),
     sort_by: str | None = Option(None, help="Field to sort by (e.g. created_at, updated_at, domain)."),
@@ -63,6 +64,7 @@ def search(
 ) -> None:
     criteria = {
         "domain": domain,
+        "url": url,
         "tag": tags,
         "description": description,
         "sort_by": sort_by,
