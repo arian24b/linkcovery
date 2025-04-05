@@ -12,12 +12,10 @@ app = Typer(no_args_is_help=True)
 @app.command(help="Add a new link to the database.")
 def update_link_description() -> None:
     for link in link_service.get_links():
-        if not link.description:
+        if link.description == "Imported from TXT" or not link.description:
             if description := fetch_description(link.url):
                 link_service.update_link(link.id, description=description)
                 logger.info(f"Link {link.id} updated with fetched description.")
             else:
                 logger.error(f"Failed to fetch description for link {link.id}.")
-        else:
-            logger.info(f"Link {link.id} already has a description.")
     logger.info("All links processed.")
