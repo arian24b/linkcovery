@@ -37,3 +37,20 @@ def update_link_domain() -> None:
             updated_links.append(link.id)
 
     logger.info(f"Total links updated: {len(updated_links)}\n Links updated:\n{updated_links}")
+
+
+@app.command(help="remove www from url, change http:// to https://.")
+def update_link_url() -> None:
+    updated_links = []
+
+    for link in link_service.get_links():
+        if link.url.startswith("www."):
+            new_url = link.url[4:]
+            link_service.update_link(link.id, url=new_url)
+            updated_links.append(link.id)
+        elif link.url.startswith("http://"):
+            new_url = "https://" + link.url[7:]
+            link_service.update_link(link.id, url=new_url)
+            updated_links.append(link.id)
+
+    logger.info(f"Total links updated: {len(updated_links)}\n Links updated:\n{updated_links}")
