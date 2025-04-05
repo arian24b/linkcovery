@@ -1,5 +1,6 @@
+from re import IGNORECASE, compile
+
 from httpx import Client, RequestError
-from re import compile, IGNORECASE
 
 
 def fetch_description(url: str) -> str:
@@ -17,15 +18,14 @@ def fetch_description(url: str) -> str:
 
         if response.is_success:
             meta_description_pattern = compile(
-                r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']', IGNORECASE
+                r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']',
+                IGNORECASE,
             )
 
             if match := meta_description_pattern.search(response.text):
                 return match.group(1)
-            else:
-                return "No description tag found."
-        else:
-            return f"Failed to fetch the page, status code: {response.status_code}"
+            return "No description tag found."
+        return f"Failed to fetch the page, status code: {response.status_code}"
 
     except RequestError as e:
         return f"Error fetching the page: {e}"

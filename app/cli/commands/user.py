@@ -1,8 +1,8 @@
-from typer import Typer, Option
 from rich.table import Table
+from typer import Option, Typer
 
-from app.core.logger import AppLogger
 from app.core.database import user_service
+from app.core.logger import AppLogger
 
 logger = AppLogger(__name__)
 app = Typer(no_args_is_help=True)

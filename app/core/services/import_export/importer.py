@@ -1,17 +1,18 @@
-from pydantic import HttpUrl, ValidationError, parse_obj_as
-from urllib.parse import urlparse
 from csv import DictReader
 from json import JSONDecodeError, load
+from urllib.parse import urlparse
 
+from pydantic import HttpUrl, ValidationError, parse_obj_as
+
+from app.core.database import link_service
 from app.core.logger import AppLogger
 from app.core.utils import get_description
-from app.core.database import link_service
 
 logger = AppLogger(__name__)
 
 
 def txt_import(file_path: str, author_id: int):
-    with open(file_path, "r", encoding="utf-8") as content:
+    with open(file_path, encoding="utf-8") as content:
         links = [line.strip() for line in content if line.strip()]
         if not links:
             logger.info("No links found in the TXT file.")
@@ -38,7 +39,7 @@ def txt_import(file_path: str, author_id: int):
 
 
 def csv_import(file_path: str, author_id: int):
-    with open(file_path, "r", encoding="utf-8") as content:
+    with open(file_path, encoding="utf-8") as content:
         reader = DictReader(content)
         if not reader.fieldnames:
             logger.info("CSV file is empty or invalid.")
@@ -78,7 +79,7 @@ def csv_import(file_path: str, author_id: int):
 
 def json_import(file_path: str, author_id: int):
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             links_data = load(f)
     except JSONDecodeError as e:
         logger.error(f"Invalid JSON format: {e}")
