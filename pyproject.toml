@@ -13,6 +13,7 @@ dependencies = [
     "rich>=13.9.4",
     "sqlalchemy>=2.0.38",
     "typer>=0.15.1",
+    "httpx>=0.28.1",
 ]
 
 [dependency-groups]

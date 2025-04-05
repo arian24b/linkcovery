@@ -48,7 +48,9 @@ def list_link() -> None:
         return
 
     for link in links:
-        logger.info(f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, Author: {link.author.name}")
+        logger.info(
+            f"ID: {link.id}, Domain: {link.domain}, URL: {link.url}, Description: {link.description}, Author: {link.author.name}"
+        )
 
 
 @app.command(help="Search for links based on various filters.")
