@@ -5,7 +5,7 @@ from app.core.logger import AppLogger
 from app.core.database import user_service
 
 logger = AppLogger(__name__)
-app = Typer()
+app = Typer(no_args_is_help=True)
 
 
 @app.command(name="create", help="Create a new user with the specified name and email.")

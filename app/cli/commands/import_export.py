@@ -14,10 +14,10 @@ from app.core.services.import_export.exporter import (
 )
 
 logger = AppLogger(__name__)
-app = Typer()
+app = Typer(no_args_is_help=True)
 
 
-@app.command("import", help="Import links from a TXT, CSV, or JSON file.")
+@app.command(name="import", help="Import links from a TXT, CSV, or JSON file.")
 def import_links(
     file_path: str = Option(..., help="Path to the file to import."),
     author_id: int = Option(..., help="ID of the author to associate with the imported links."),
@@ -43,26 +43,26 @@ def import_links(
         logger.error(f"Unsupported file extension: {extension}")
 
 
-@app.command("export-users", help="Export all users to a JSON or CSV file.")
-def export_users(
-    format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
-    output: str = Option("users_export.json", "--output", "-o", help="Output file path", show_default=True),
-) -> None:
-    format = format.lower()
-    try:
-        if format == "json":
-            export_users_to_json(output)
-        elif format == "csv":
-            export_users_to_csv(output)
-        else:
-            logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-            raise Exit(code=1)
-    except Exception as e:
-        logger.error(f"Error exporting users: {e}")
-        raise Exit(code=1)
+# @app.command("export-users", help="Export all users to a JSON or CSV file.")
+# def export_users(
+#     format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
+#     output: str = Option("users_export.json", "--output", "-o", help="Output file path", show_default=True),
+# ) -> None:
+#     format = format.lower()
+#     try:
+#         if format == "json":
+#             export_users_to_json(output)
+#         elif format == "csv":
+#             export_users_to_csv(output)
+#         else:
+#             logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
+#             raise Exit(code=1)
+#     except Exception as e:
+#         logger.error(f"Error exporting users: {e}")
+#         raise Exit(code=1)
 
 
-@app.command("export-links", help="Export links to a JSON or CSV file. Optionally filter by author ID.")
+@app.command(name="export", help="Export links to a JSON or CSV file. Optionally filter by author ID.")
 def export_links(
     format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
     output: str = Option("links_export.json", "--output", "-o", help="Output file path", show_default=True),
@@ -84,7 +84,7 @@ def export_links(
         raise Exit(code=1)
 
 
-@app.command("export-all", help="Export all users and links to JSON or CSV files.")
+@app.command(name="backup", help="Export all users and links to JSON or CSV files.")
 def export_all_command(
     format: str = Option(
         "json", "--format", "-f", help="Export format for both users and links: json or csv", show_default=True
