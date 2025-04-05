@@ -65,6 +65,12 @@ def search(
     limit: int = Option(3, help="Number of results to return."),
     offset: int = Option(0, help="Number of results to skip."),
     is_read: bool | None = Option(None, help="Filter by read status."),
+    feilds: list[str] = Option(
+        ["id", "url", "domain", "description", "tag", "is_read"],
+        "--fields",
+        "-f",
+        help="Fields to display in the results.",
+    ),
 ) -> None:
     criteria = {
         "id": id,
@@ -81,14 +87,29 @@ def search(
     }
     criteria = {k: v for k, v in criteria.items() if v not in [None, [], ""]}
     results = link_service.search_links(criteria)
+
     if not results:
         logger.warning("No matching links found.")
         return
+
     for link in results:
-        logger.info(
-            f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, "
-            f"Description: {link.description}, Tags: {link.tag}, Read: {link.is_read}",
-        )
+        # Prepare the output based on requested fields
+        output_parts = []
+        for field in feilds:
+            if field == "id" and hasattr(link, "id"):
+                output_parts.append(f"ID: {link.id}")
+            elif field == "url" and hasattr(link, "url"):
+                output_parts.append(f"URL: {link.url}")
+            elif field == "domain" and hasattr(link, "domain"):
+                output_parts.append(f"Domain: {link.domain}")
+            elif field == "description" and hasattr(link, "description"):
+                output_parts.append(f"Description: {link.description}")
+            elif field == "tag" and hasattr(link, "tag"):
+                output_parts.append(f"Tags: {link.tag}")
+            elif field == "is_read" and hasattr(link, "is_read"):
+                output_parts.append(f"Read: {link.is_read}")
+
+        logger.info(", ".join(output_parts))
 
 
 @app.command(help="Delete a link by its ID.")
