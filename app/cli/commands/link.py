@@ -55,6 +55,8 @@ def list_link() -> None:
 
 @app.command(help="Search for links based on various filters.")
 def search(
+    id: int | None = Option(None, help="Filter by link ID."),
+    author_id: int | None = Option(None, help="Filter by author ID."),
     domain: str | None = Option(None, help="Filter by domain."),
     url: str | None = Option(None, help="Filter by URL."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags to filter by."),
@@ -66,6 +68,8 @@ def search(
     is_read: bool | None = Option(None, help="Filter by read status."),
 ) -> None:
     criteria = {
+        "id": id,
+        "author_id": author_id,
         "domain": domain,
         "url": url,
         "tag": tags,

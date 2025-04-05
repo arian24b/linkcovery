@@ -58,6 +58,14 @@ class LinkRepository:
     def search(self, search_criteria):
         query = self.session.query(Link)
 
+        # Filter by ID if provided
+        if search_criteria.get("id"):
+            query = query.filter(Link.id == search_criteria["id"])
+
+        # Filter by author ID if provided
+        if search_criteria.get("author_id"):
+            query = query.filter(Link.author_id == search_criteria["author_id"])
+
         # Filter by URL if provided
         if search_criteria.get("url"):
             query = query.filter(Link.url.contains(search_criteria["url"]))
