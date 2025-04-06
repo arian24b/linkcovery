@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "LinkCovery"
     DATABASE_NAME: str = "app.db"
     DEBUG: bool = False
+    PROXY: str = "http://127.0.0.1:2080"
     ALLOW_EXTENSIONS: list = [
         ".txt",
         ".csv",

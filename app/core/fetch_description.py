@@ -2,6 +2,8 @@ from re import IGNORECASE, compile
 
 from httpx import Client, RequestError
 
+from app.core.settings import settings
+
 
 def fetch_description(url: str) -> str:
     headers = {
@@ -13,7 +15,7 @@ def fetch_description(url: str) -> str:
     }
 
     try:
-        with Client(headers=headers, proxy="http://127.0.0.1:2080", verify=False, follow_redirects=True) as client:
+        with Client(headers=headers, proxy=settings.PROXY, verify=False, follow_redirects=True) as client:
             response = client.get(url)
 
         if response.is_success:
