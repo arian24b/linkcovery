@@ -13,7 +13,7 @@ def update_link_description() -> None:
     updated_links = []
 
     for link in link_service.get_links():
-        if link.description == "Imported from TXT" or not link.description:
+        if link.description in ["No description tag found.", "Imported from TXT"] or not link.description:
             if description := fetch_description(link.url):
                 link_service.update_link(link.id, description=description)
                 updated_links.append(link.id)
