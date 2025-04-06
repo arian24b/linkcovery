@@ -6,7 +6,7 @@ from pydantic import HttpUrl, ValidationError, parse_obj_as
 
 from app.core.database import link_service
 from app.core.logger import AppLogger
-from app.core.utils import get_description
+from app.core.fetch_description import fetch_description
 
 logger = AppLogger(__name__)
 
@@ -26,7 +26,7 @@ def txt_import(file_path: str, author_id: int):
             tags = ", ".join(domain.split("."))
             link_service.create_link(
                 url=url,
-                description=get_description(None),
+                description=fetch_description(url),
                 domain=domain,
                 tag=tags,
                 author_id=author_id,
@@ -64,7 +64,7 @@ def csv_import(file_path: str, author_id: int):
             is_read = str(row.get("is_read", "False")).strip().lower() in {"1", "true", "yes"}
             link_service.create_link(
                 url=url,
-                description=get_description(row.get("description")),
+                description=fetch_description(url),
                 domain=domain,
                 tag=tags,
                 author_id=author_id,
@@ -98,7 +98,7 @@ def json_import(file_path: str, author_id: int):
             url = str(parse_obj_as(HttpUrl, link_dict["url"]))
             domain = link_dict.get("domain") or urlparse(url).netloc
             tags = link_dict.get("tag") or ", ".join(domain.split("."))
-            description = get_description(link_dict.get("description"))
+            description = fetch_description(url)
             is_read = link_dict.get("is_read", False)
             link_service.create_link(
                 url=url,

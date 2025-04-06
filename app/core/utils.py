@@ -11,7 +11,3 @@ def check_file(file_path: str) -> bool:
         raise ValueError(f"Invalid file extension: {extension}. Allowed extensions: {settings.ALLOW_EXTENSIONS}")
 
     return True
-
-
-def get_description(text: str | None) -> str:
-    return text
