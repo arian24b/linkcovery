@@ -155,13 +155,13 @@ def update(
 
 
 @app.command(name="read", help="Mark 3 links as read for a given author.")
-def mark_links_as_read(author_id: int = Option(..., help="ID of the author")) -> None:
-    if not (links := link_service.get_links_by_author(author_id=author_id, number=3)):
-        logger.warning("No links found to update.")
+def read_link(author_id: int = Option(..., help="ID of the author")) -> None:
+    if not (links := link_service.get_links_by_author(author_id, 3)):
+        logger.warning("No links found for the author.")
         return
 
-    link_ids = [link.id for link in links if link.id is not None]
-    link_service.update_is_read_for_links(link_ids)
-
     for link in links:
-        logger.info(f"Marked link {link.id} as read: {link.url}")
+        if link_service.update_link(link.id, is_read=True):
+            logger.info(f"Link with ID {link.id} marked as read.")
+        else:
+            logger.error(f"Failed to mark link with ID {link.id} as read.")
