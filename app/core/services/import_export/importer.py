@@ -5,8 +5,8 @@ from urllib.parse import urlparse
 from pydantic import HttpUrl, ValidationError, parse_obj_as
 
 from app.core.database import link_service
-from app.core.logger import AppLogger
 from app.core.fetch_description import fetch_description
+from app.core.logger import AppLogger
 
 logger = AppLogger(__name__)
 
