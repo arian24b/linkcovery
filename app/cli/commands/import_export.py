@@ -1,17 +1,17 @@
-from typer import Typer, Option, Exit
 from os import path
 from pathlib import Path
 
-from app.core.logger import AppLogger
-from app.core.utils import check_file
+from typer import Exit, Option, Typer
+
 from app.core.database import user_service
-from app.core.services.import_export.importer import txt_import, csv_import, json_import
+from app.core.logger import AppLogger
 from app.core.services.import_export.exporter import (
-    export_users_to_json,
-    export_users_to_csv,
-    export_links_to_json,
     export_links_to_csv,
+    export_links_to_json,
+    export_users_to_json,
 )
+from app.core.services.import_export.importer import csv_import, json_import, txt_import
+from app.core.utils import check_file
 
 logger = AppLogger(__name__)
 app = Typer(no_args_is_help=True)
@@ -29,7 +29,7 @@ def import_links(
     try:
         check_file(file_path)
     except Exception as e:
-        logger.error(f"Error checking file: {e}")
+        logger.exception(f"Error checking file: {e}")
         return
     extension = path.splitext(file_path)[1].lower()
 
@@ -67,7 +67,10 @@ def export_links(
     format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
     output: str = Option("links_export.json", "--output", "-o", help="Output file path", show_default=True),
     author_id: int | None = Option(
-        None, "--author-id", "-a", help="Filter links by author ID. If not provided, exports all links."
+        None,
+        "--author-id",
+        "-a",
+        help="Filter links by author ID. If not provided, exports all links.",
     ),
 ) -> None:
     format = format.lower()
@@ -80,18 +83,25 @@ def export_links(
             logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
             raise Exit(code=1)
     except Exception as e:
-        logger.error(f"Error exporting links: {e}")
+        logger.exception(f"Error exporting links: {e}")
         raise Exit(code=1)
 
 
 @app.command(name="backup", help="Export all users and links to JSON or CSV files.")
 def export_all_command(
     format: str = Option(
-        "json", "--format", "-f", help="Export format for both users and links: json or csv", show_default=True
+        "json",
+        "--format",
+        "-f",
+        help="Export format for both users and links: json or csv",
+        show_default=True,
     ),
     output_dir: str | None = Option(None, "--output-dir", "-d", help="Directory to store exported files."),
     author_id: int | None = Option(
-        None, "--author-id", "-a", help="Filter links by author ID for export. If not provided, exports all links."
+        None,
+        "--author-id",
+        "-a",
+        help="Filter links by author ID for export. If not provided, exports all links.",
     ),
 ) -> None:
     format = format.lower()
@@ -106,7 +116,7 @@ def export_all_command(
         try:
             output_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            logger.error(f"Failed to create directory '{output_dir}': {e}")
+            logger.exception(f"Failed to create directory '{output_dir}': {e}")
             raise Exit(code=1)
 
     users_output = output_dir / f"users_export.{format}"
@@ -117,5 +127,5 @@ def export_all_command(
         export_links_to_json(str(links_output), author_id)
         logger.info(f"Exported all data successfully to '{users_output}' and '{links_output}'.")
     except Exception as e:
-        logger.error(f"Error exporting all data: {e}")
+        logger.exception(f"Error exporting all data: {e}")
         raise Exit(code=1)

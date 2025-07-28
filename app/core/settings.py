@@ -1,5 +1,5 @@
-from rich import pretty, traceback
 from pydantic_settings import BaseSettings
+from rich import pretty, traceback
 
 
 class Settings(BaseSettings):

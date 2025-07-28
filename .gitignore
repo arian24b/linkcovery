@@ -190,3 +190,5 @@ coverage.xml
 *.sqlite3
 *.lock
 *.log
+
+.ruff_cache

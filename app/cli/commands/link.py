@@ -1,8 +1,7 @@
-from typer import Typer, Option, Exit, prompt
-from typing import List
+from typer import Exit, Option, Typer, prompt
 
+from app.core.database import link_service, user_service
 from app.core.logger import AppLogger
-from app.core.database import user_service, link_service
 
 logger = AppLogger(__name__)
 app = Typer(no_args_is_help=True)
@@ -82,7 +81,7 @@ def search(
     for link in results:
         logger.info(
             f"ID: {link.id}, URL: {link.url}, Domain: {link.domain}, "
-            f"Description: {link.description}, Tags: {link.tag}, Read: {link.is_read}"
+            f"Description: {link.description}, Tags: {link.tag}, Read: {link.is_read}",
         )
 
 
@@ -96,7 +95,7 @@ def delete(link_id: int = Option(..., help="ID of the link to delete.")) -> None
 
 @app.command(help="Update a link's details by its ID.")
 def update(
-    link_id: List[int] = Option(..., help="ID of the link's to update."),
+    link_id: list[int] = Option(..., help="ID of the link's to update."),
     url: str | None = Option(None, help="New URL of the link."),
     domain: str | None = Option(None, help="New domain of the link."),
     description: str | None = Option(None, help="New description of the link."),

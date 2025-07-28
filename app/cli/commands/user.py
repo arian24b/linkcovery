@@ -1,24 +1,24 @@
-from typer import Typer, Option
 from rich.table import Table
+from typer import Option, Typer
 
-from app.core.logger import AppLogger
 from app.core.database import user_service
+from app.core.logger import AppLogger
 
 logger = AppLogger(__name__)
 app = Typer(no_args_is_help=True)
 
 
 @app.command(name="create", help="Create a new user with the specified name and email.")
-def create(name: str = Option(..., prompt=True), email: str = Option(..., prompt=True)):
+def create(name: str = Option(..., prompt=True), email: str = Option(..., prompt=True)) -> None:
     try:
         user = user_service.create_user({"name": name, "email": email})
         logger.print(f"{name}, your account has been created with ID: {user.id} and Email: {email}")
     except Exception as e:
-        logger.error(f"Error creating user: {e}")
+        logger.exception(f"Error creating user: {e}")
 
 
 @app.command(name="read", help="Fetch a user by ID.")
-def read_user(user_id: int):
+def read_user(user_id: int) -> None:
     if not (user := user_service.get_user(user_id)):
         logger.error(f"No user found with ID {user_id}")
         return
@@ -31,7 +31,7 @@ def read_user(user_id: int):
 
 
 @app.command()
-def update(user_id: int, name: str = Option(None, prompt=True), email: str = Option(None, prompt=True)):
+def update(user_id: int, name: str = Option(None, prompt=True), email: str = Option(None, prompt=True)) -> None:
     update_data = {}
     if name:
         update_data["name"] = name
@@ -49,13 +49,13 @@ def update(user_id: int, name: str = Option(None, prompt=True), email: str = Opt
 
 
 @app.command()
-def delete(user_id: int):
+def delete(user_id: int) -> None:
     user_service.delete_user(user_id)
     logger.print(f"User with ID: {user_id} deleted")
 
 
 @app.command()
-def list():
+def list() -> None:
     table = Table(title="Users")
     table.add_column("ID", style="cyan")
     table.add_column("Name", style="magenta")

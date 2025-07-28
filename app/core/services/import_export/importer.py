@@ -1,17 +1,18 @@
-from pydantic import HttpUrl, ValidationError, parse_obj_as
-from urllib.parse import urlparse
 from csv import DictReader
 from json import JSONDecodeError, load
+from urllib.parse import urlparse
 
+from pydantic import HttpUrl, ValidationError, parse_obj_as
+
+from app.core.database import link_service
 from app.core.logger import AppLogger
 from app.core.utils import get_description
-from app.core.database import link_service
 
 logger = AppLogger(__name__)
 
 
-def txt_import(file_path: str, author_id: int):
-    with open(file_path, "r", encoding="utf-8") as content:
+def txt_import(file_path: str, author_id: int) -> None:
+    with open(file_path, encoding="utf-8") as content:
         links = [line.strip() for line in content if line.strip()]
         if not links:
             logger.info("No links found in the TXT file.")
@@ -32,13 +33,13 @@ def txt_import(file_path: str, author_id: int):
             )
             added_link += 1
         except (ValidationError, Exception) as e:
-            logger.error(f"Failed to add link at line {line_number}. Error: {e}")
+            logger.exception(f"Failed to add link at line {line_number}. Error: {e}")
 
     logger.info(f"Successfully imported {added_link} links from TXT file for user {author_id}.")
 
 
-def csv_import(file_path: str, author_id: int):
-    with open(file_path, "r", encoding="utf-8") as content:
+def csv_import(file_path: str, author_id: int) -> None:
+    with open(file_path, encoding="utf-8") as content:
         reader = DictReader(content)
         if not reader.fieldnames:
             logger.info("CSV file is empty or invalid.")
@@ -71,20 +72,20 @@ def csv_import(file_path: str, author_id: int):
             )
             added_link += 1
         except (ValidationError, Exception) as e:
-            logger.error(f"Failed to add link at line {line_number}. Error: {e}")
+            logger.exception(f"Failed to add link at line {line_number}. Error: {e}")
 
     logger.info(f"Successfully imported {added_link} links from CSV file for user {author_id}.")
 
 
-def json_import(file_path: str, author_id: int):
+def json_import(file_path: str, author_id: int) -> None:
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             links_data = load(f)
     except JSONDecodeError as e:
-        logger.error(f"Invalid JSON format: {e}")
+        logger.exception(f"Invalid JSON format: {e}")
         return
     except Exception as e:
-        logger.error(f"Failed to open JSON file: {e}")
+        logger.exception(f"Failed to open JSON file: {e}")
         return
 
     if not links_data:
@@ -109,6 +110,6 @@ def json_import(file_path: str, author_id: int):
             )
             added_link += 1
         except (ValidationError, Exception) as e:
-            logger.error(f"Failed to add link at index {index} from JSON. Error: {e}")
+            logger.exception(f"Failed to add link at index {index} from JSON. Error: {e}")
 
     logger.info(f"Successfully imported {added_link} links from JSON file for user {author_id}.")

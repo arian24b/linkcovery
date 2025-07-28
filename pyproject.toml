@@ -22,18 +22,18 @@ dev = [
     "sqlite-web>=0.6.4",
 ]
 
-[tool.ruff]
-line-length = 120
+[project.scripts]
+linkcovery = "app.cli:cli_app"
 
 [project.urls]
 Homepage = "https://github.com/arian24b/linkcovery"
 Issues = "https://github.com/arian24b/linkcovery/issues"
 
-[project.scripts]
-linkcovery = "app.cli:cli_app"
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"] # Standard checks + isort
 
 [tool.uv]
 package = true
-
-[tool.setuptools]
-license-files = ["LICENSE"]

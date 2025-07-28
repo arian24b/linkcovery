@@ -1,15 +1,16 @@
 from sqlalchemy.orm import Session
 
-from app.core.database.models import User, Link
+from app.core.database.models import Link, User
 
 
 class UserRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session) -> None:
         self.session = session
 
     def create(self, user_data):
         if self.get_by_email(user_data.get("email")):
-            raise ValueError(f"User with email '{user_data.get('email')}' already exists.")
+            msg = f"User with email '{user_data.get('email')}' already exists."
+            raise ValueError(msg)
         user = User(**user_data)
         self.session.add(user)
         self.session.commit()
@@ -28,7 +29,7 @@ class UserRepository:
             self.session.commit()
         return user
 
-    def delete(self, user_id: int):
+    def delete(self, user_id: int) -> None:
         if user := self.get_by_id(user_id):
             self.session.delete(user)
             self.session.commit()
@@ -38,12 +39,13 @@ class UserRepository:
 
 
 class LinkRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session) -> None:
         self.session = session
 
     def create(self, link_data):
         if self.get_by_url(link_data.get("url")):
-            raise ValueError(f"Link with URL '{link_data.get('url')}' already exists.")
+            msg = f"Link with URL '{link_data.get('url')}' already exists."
+            raise ValueError(msg)
         link = Link(**link_data)
         self.session.add(link)
         self.session.commit()
@@ -102,7 +104,7 @@ class LinkRepository:
             self.session.commit()
         return link
 
-    def delete(self, link_id: int):
+    def delete(self, link_id: int) -> None:
         if link := self.get_by_id(link_id):
             self.session.delete(link)
             self.session.commit()

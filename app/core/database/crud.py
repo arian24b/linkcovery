@@ -1,11 +1,12 @@
-from sqlalchemy.orm import Session
 from datetime import datetime
 
-from app.core.database.repositories import UserRepository, LinkRepository
+from sqlalchemy.orm import Session
+
+from app.core.database.repositories import LinkRepository, UserRepository
 
 
 class UserService:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session) -> None:
         self.user_repository = UserRepository(session)
 
     def create_user(self, user_data):
@@ -14,10 +15,9 @@ class UserService:
     def get_user(self, user_id: int | None = None, user_email: str | None = None):
         if user_id:
             return self.user_repository.get_by_id(user_id)
-        elif user_email:
+        if user_email:
             return self.user_repository.get_by_email(user_email)
-        else:
-            return None
+        return None
 
     def update_user(self, user_id: int, user_data):
         return self.user_repository.update(user_id, user_data)
@@ -30,7 +30,7 @@ class UserService:
 
 
 class LinkService:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session) -> None:
         self.link_repository = LinkRepository(session)
 
     def create_link(self, **link_data):
@@ -41,10 +41,9 @@ class LinkService:
     def get_link(self, link_id: int | None = None, link_url: str | None = None):
         if link_id:
             return self.link_repository.get_by_id(link_id)
-        elif link_url:
+        if link_url:
             return self.link_repository.get_by_url(link_url)
-        else:
-            return None
+        return None
 
     def search_links(self, search_criteria):
         return self.link_repository.search(search_criteria)

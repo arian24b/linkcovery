@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
-from sqlalchemy.orm import relationship, declarative_base, validates
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import declarative_base, relationship, validates
 
 Base = declarative_base()
 
@@ -16,7 +16,8 @@ class User(Base):
     @validates("name")
     def validate_name(self, key, value):
         if len(value) < 4:
-            raise ValueError("Name must be at least 4 characters long.")
+            msg = "Name must be at least 4 characters long."
+            raise ValueError(msg)
         return value
 
     @validates("email")
@@ -42,19 +43,23 @@ class Link(Base):
     @validates("url")
     def validate_url(self, key, value):
         if not value.startswith("http://") and not value.startswith("https://"):
-            raise ValueError("Invalid URL format.")
+            msg = "Invalid URL format."
+            raise ValueError(msg)
         return value
 
     @validates("domain")
     def validate_domain(self, key, value):
         if not value or len(value.strip()) == 0:
-            raise ValueError("Domain cannot be empty or just whitespace.")
+            msg = "Domain cannot be empty or just whitespace."
+            raise ValueError(msg)
         if "." not in value:
-            raise ValueError("Domain must contain at least one dot.")
+            msg = "Domain must contain at least one dot."
+            raise ValueError(msg)
         return value.lower()
 
     @validates("author_id")
     def validate_author(self, key, value):
         if not value:
-            raise ValueError("Author ID is required.")
+            msg = "Author ID is required."
+            raise ValueError(msg)
         return value

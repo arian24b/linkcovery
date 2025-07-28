@@ -1,8 +1,7 @@
 from typer import Typer
 
-from app.cli.commands import user, link, import_export
+from app.cli.commands import import_export, link, user
 from app.core.settings import settings
-
 
 # Initialize Typer for potential future CLI enhancements
 cli_app = Typer(
