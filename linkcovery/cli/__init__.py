@@ -4,8 +4,8 @@ from typing import Optional
 import typer
 from typer import Context, Option, Typer, echo
 
-from app.cli.commands import config, import_export, link, version
-from app.core.settings import settings
+from linkcovery.cli.commands import config, import_export, link, version
+from linkcovery.core.settings import settings
 
 # Initialize Typer for potential future CLI enhancements
 cli_app = Typer(

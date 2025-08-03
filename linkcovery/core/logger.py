@@ -3,10 +3,10 @@ from logging import DEBUG, INFO, Formatter, getLogger
 from rich.console import Console
 from rich.logging import RichHandler
 
-from app.core.config import config_manager
+from linkcovery.core.settings import config_manager
 
 
-class AppLogger:
+class Logger:
     def __init__(self, name: str) -> None:
         self.console = Console()
         self.logger = getLogger(name)

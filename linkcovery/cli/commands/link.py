@@ -1,9 +1,9 @@
 from typer import Option, Typer, prompt
 
-from app.core.database import link_service
-from app.core.logger import AppLogger
+from linkcovery.core.database import link_service
+from linkcovery.core.logger import Logger
 
-logger = AppLogger(__name__)
+logger = Logger(__name__)
 app = Typer(no_args_is_help=True)
 
 

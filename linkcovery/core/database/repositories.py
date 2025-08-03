@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.core.database.models import Link
-from app.core.exceptions import EntityAlreadyExistsError, RepositoryError
+from linkcovery.core.database.models import Link
+from linkcovery.core.exceptions import EntityAlreadyExistsError, RepositoryError
 
 
 class LinkRepository:

@@ -1,14 +1,34 @@
-from csv import DictReader
-from json import JSONDecodeError, load
+from csv import DictReader, DictWriter
+from json import JSONDecodeError, dump, load
+from os import path
 from urllib.parse import urlparse
 
 from pydantic import HttpUrl, ValidationError, parse_obj_as
+from rich.progress import track
 
-from app.core.database import link_service
-from app.core.logger import AppLogger
-from app.core.utils import get_description
+from linkcovery.core.database import link_service
+from linkcovery.core.logger import Logger
+from linkcovery.core.settings import config_manager
 
-logger = AppLogger(__name__)
+logger = Logger(__name__)
+
+
+def check_file(file_path: str) -> bool:
+    if not path.exists(file_path):
+        msg = f"File not found: {file_path}"
+        raise FileNotFoundError(msg)
+
+    extension = path.splitext(file_path)[1].lower()
+    allowed_extensions = config_manager.config.allowed_extensions
+    if extension not in allowed_extensions:
+        msg = f"Invalid file extension: {extension}. Allowed extensions: {allowed_extensions}"
+        raise ValueError(msg)
+
+    return True
+
+
+def get_description(text: str | None) -> str:
+    return text or ""
 
 
 def txt_import(file_path: str) -> None:
@@ -110,3 +130,39 @@ def json_import(file_path: str) -> None:
             logger.exception(f"Failed to add link at index {index} from JSON. Error: {e}")
 
     logger.info(f"Successfully imported {added_link} links from JSON file.")
+
+
+def export_links_to_json(output_path: str) -> None:
+    """Export all links to JSON format."""
+    links = link_service.get_links()
+    links_data = []
+    for link in links:
+        link_data = {col.name: getattr(link, col.name) for col in link.__table__.columns}
+        links_data.append(link_data)
+
+    try:
+        with open(output_path, "w", encoding="utf-8") as json_file:
+            dump(links_data, json_file, indent=4)
+        logger.info(f"Successfully exported {len(links_data)} links to {output_path}.")
+    except Exception as e:
+        logger.exception(f"Failed to export links to JSON: {e}")
+
+
+def export_links_to_csv(output_path: str) -> None:
+    """Export all links to CSV format."""
+    links = link_service.get_links()
+    if not links:
+        logger.warning("No links available to export.")
+        return
+
+    headers = [col.name for col in links[0].__table__.columns]
+    try:
+        with open(output_path, "w", newline="", encoding="utf-8") as csv_file:
+            writer = DictWriter(csv_file, fieldnames=headers)
+            writer.writeheader()
+            for link in track(links, description="Exporting links..."):
+                row = {col.name: getattr(link, col.name) for col in link.__table__.columns}
+                writer.writerow(row)
+        logger.info(f"Successfully exported {len(links)} links to {output_path}.")
+    except Exception as e:
+        logger.exception(f"Failed to export links to CSV: {e}")

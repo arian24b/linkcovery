@@ -1,8 +1,8 @@
 """Database package with improved session management."""
 
-from app.core.database.crud import LinkService
-from app.core.database.models import Link
-from app.core.database.session_manager import db_manager
+from linkcovery.core.database.crud import LinkService
+from linkcovery.core.database.models import Link
+from linkcovery.core.database.session_manager import db_manager
 
 
 def get_link_service() -> LinkService:

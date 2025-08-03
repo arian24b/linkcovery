@@ -7,8 +7,8 @@ from typing import Protocol
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.core.config import config_manager
-from app.core.database.models import Base
+from linkcovery.core.database.models import Base
+from linkcovery.core.settings import config_manager
 
 
 class DatabaseSession(Protocol):

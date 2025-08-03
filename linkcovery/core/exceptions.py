@@ -13,14 +13,6 @@ class LinKCoveryError(Exception):
         self.details = details or {}
 
 
-class ValidationError(LinKCoveryError):
-    """Raised when input validation fails."""
-
-
-class ConfigurationError(LinKCoveryError):
-    """Raised when configuration is invalid or missing."""
-
-
 class DatabaseError(LinKCoveryError):
     """Base class for database-related errors."""
 
@@ -55,20 +47,6 @@ class RepositoryError(DatabaseError):
 
 class ImportExportError(LinKCoveryError):
     """Raised when import/export operations fail."""
-
-
-class InvalidFileFormatError(ImportExportError):
-    """Raised when file format is not supported or invalid."""
-
-    def __init__(self, file_path: str, expected_formats: list[str], details: dict[str, Any] | None = None) -> None:
-        message = f"Invalid file format for '{file_path}'. Expected: {', '.join(expected_formats)}"
-        super().__init__(message, "INVALID_FILE_FORMAT", details)
-        self.file_path = file_path
-        self.expected_formats = expected_formats
-
-
-class CLIError(LinKCoveryError):
-    """Raised when CLI command execution fails."""
 
 
 # Error handler decorator

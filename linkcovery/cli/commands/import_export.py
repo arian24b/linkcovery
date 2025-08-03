@@ -3,15 +3,17 @@ from pathlib import Path
 
 from typer import Exit, Option, Typer
 
-from app.core.logger import AppLogger
-from app.core.services.import_export.exporter import (
+from linkcovery.core.logger import Logger
+from linkcovery.core.utils import (
+    check_file,
+    csv_import,
     export_links_to_csv,
     export_links_to_json,
+    json_import,
+    txt_import,
 )
-from app.core.services.import_export.importer import csv_import, json_import, txt_import
-from app.core.utils import check_file
 
-logger = AppLogger(__name__)
+logger = Logger(__name__)
 app = Typer(no_args_is_help=True)
 
 
