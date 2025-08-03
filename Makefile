@@ -1,6 +1,6 @@
 # Makefile for LinKCovery
 
-.PHONY: help install dev build clean test test-cov test-watch lint format type-check setup-dev binary
+.PHONY: help install dev build clean test test-cov test-watch lint format type-check setup-dev binary run version
 
 # Default target
 help:
@@ -17,6 +17,8 @@ help:
 	@echo "  format      Format code"
 	@echo "  type-check  Run type checking with mypy"
 	@echo "  setup-dev   Set up development environment"
+	@echo "  run         Run the application"
+	@echo "  version     Show version"
 
 # Install production dependencies
 install:
@@ -36,7 +38,7 @@ test:
 
 # Run tests with coverage
 test-cov:
-	uv run pytest tests/ --cov=app --cov-report=html --cov-report=term-missing
+	uv run pytest tests/ --cov=linkcovery --cov-report=html --cov-report=term-missing
 
 # Run tests in watch mode (requires pytest-watch)
 test-watch:
@@ -66,8 +68,16 @@ format:
 
 # Run type checking
 type-check:
-	uv run mypy app/ || echo "MyPy not configured yet"
+	uv run mypy linkcovery/ || echo "MyPy not configured yet"
 
 # Fix linting issues
 lint-fix:
 	uv run ruff check . --fix
+
+# Run the application
+run:
+	uv run python main.py
+
+# Show version
+version:
+	uv run python -c "import linkcovery; print(linkcovery.__version__)" || uv run linkcovery version

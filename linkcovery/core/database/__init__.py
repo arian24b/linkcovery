@@ -1,29 +1,43 @@
 """Database package with improved session management."""
 
+from collections.abc import Generator
+from contextlib import contextmanager
+
 from linkcovery.core.database.crud import LinkService
 from linkcovery.core.database.models import Link
 from linkcovery.core.database.session_manager import db_manager
 
 
-def get_link_service() -> LinkService:
-    """Factory function to create link service with proper session management."""
+@contextmanager
+def get_link_service() -> Generator[LinkService]:
+    """Context manager that provides a link service with proper session management."""
     with db_manager.get_session() as session:
-        return LinkService(session)
+        yield LinkService(session)
 
 
-# For backward compatibility - these will be deprecated
-def _create_legacy_services():
-    """Create legacy services for backward compatibility."""
-    with db_manager.get_session() as session:
-        return LinkService(session)
+def get_legacy_link_service() -> LinkService:
+    """Create legacy link service for backward compatibility.
+
+    TODO: Remove this after refactoring all CLI commands to use get_link_service().
+    WARNING: This creates a service without proper session management.
+    """
+    # This is a simplified version for backward compatibility
+    # It should be replaced with the context manager version
+    session = db_manager.SessionLocal()
+    return LinkService(session)
 
 
-# Legacy services for backward compatibility
-# TODO: Remove these after refactoring all CLI commands
-try:
-    link_service = _create_legacy_services()
-except Exception:
-    # Fallback if database is not available
-    link_service = None
+# For backward compatibility - lazy initialization
+class _LazyLinkService:
+    """Lazy initialization wrapper for link service."""
+
+    def __getattr__(self, name):
+        """Delegate attribute access to a fresh link service instance."""
+        service = get_legacy_link_service()
+        return getattr(service, name)
+
+
+# Legacy service for backward compatibility
+link_service = _LazyLinkService()
 
 __all__ = ["Link", "db_manager", "get_link_service", "link_service"]

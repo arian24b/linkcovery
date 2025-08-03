@@ -19,7 +19,7 @@ class AppConfig(BaseModel):
     max_search_results: int = 10
     app_name: str = "LinkCovery"
 
-    def __post_init__(self):
+    def model_post_init(self, __context: Any) -> None:
         """Set default database path if not provided."""
         if not self.database_path:
             data_dir = Path(user_data_dir("linkcovery"))
