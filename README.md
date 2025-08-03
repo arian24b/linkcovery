@@ -12,7 +12,7 @@ Linkcovery is a powerful bookmark and link discovery tool built with Python, des
 ### Core Functionality
 - **Link Management**: Add, update, delete, and organize links
 - **Advanced Search**: Search by domain, tags, description, and more
-- **Import/Export**: Support for JSON, CSV, and TXT formats
+- **Import/Export**: Support for JSON formats
 - **Tagging System**: Organize links with custom tags
 - **Read Status**: Track which links you've read
 
@@ -80,18 +80,12 @@ uv run linkcovery link search --description "repository"
 ```bash
 # Export to JSON
 uv run linkcovery import-export export --format json --output links.json
-
-# Export to CSV
-uv run linkcovery import-export export --format csv --output links.csv
 ```
 
 ### Import Links
 ```bash
 # Import from JSON
 uv run linkcovery import-export import --file links.json --format json
-
-# Import from CSV
-uv run linkcovery import-export import --file links.csv --format csv
 ```
 
 ## 🛠️ CLI Commands
@@ -218,7 +212,7 @@ uv run linkcovery config set debug true
 Default configuration values:
 - `database_path`: Auto-detected system data directory
 - `debug`: `false`
-- `allowed_extensions`: `[".txt", ".csv", ".json"]`
+- `allowed_extensions`: `[".json"]`
 - `default_export_format`: `"json"`
 - `max_search_results`: `10`
 - `app_name`: `"LinkCovery"`

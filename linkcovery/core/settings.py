@@ -14,7 +14,7 @@ class AppConfig(BaseModel):
 
     database_path: str = ""
     debug: bool = False
-    allowed_extensions: list[str] = [".txt", ".csv", ".json"]
+    allowed_extensions: list[str] = [".json"]
     default_export_format: str = "json"
     max_search_results: int = 10
     app_name: str = "LinkCovery"

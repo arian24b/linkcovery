@@ -4,6 +4,11 @@ from typer import Option, Typer, prompt
 
 from linkcovery.core.database import link_service
 from linkcovery.core.logger import Logger
+from linkcovery.core.utils import (
+    check_file,
+    export_links_to_json,
+    json_import,
+)
 
 app = Typer(no_args_is_help=True)
 logger = Logger(__name__)
@@ -142,3 +147,20 @@ def show(link_id: int = Option(..., help="ID of the link to show.")) -> None:
         )
     else:
         logger.error(f"No link found with ID {link_id}.")
+
+
+@app.command(name="import", help="Import links from a JSON file.")
+def import_links(
+    file_path: str = Option(..., help="Path to the file to import."),
+) -> None:
+    if check_file(file_path) and file_path.split(".")[-1].lower() == "json":
+        json_import(file_path)
+    else:
+        logger.error(f"File {file_path} does not exist or is not a valid JSON file.")
+
+
+@app.command(name="backup", help="Backup links to a JSON file.")
+def export_links(
+    output: str = Option("links_backup.json", "--output", "-o", help="Output file name", show_default=True),
+) -> None:
+    export_links_to_json(output)
