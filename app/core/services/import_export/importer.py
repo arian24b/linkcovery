@@ -11,7 +11,7 @@ from app.core.utils import get_description
 logger = AppLogger(__name__)
 
 
-def txt_import(file_path: str, author_id: int) -> None:
+def txt_import(file_path: str) -> None:
     with open(file_path, encoding="utf-8") as content:
         links = [line.strip() for line in content if line.strip()]
         if not links:
@@ -29,16 +29,15 @@ def txt_import(file_path: str, author_id: int) -> None:
                 description=get_description(None),
                 domain=domain,
                 tag=tags,
-                author_id=author_id,
             )
             added_link += 1
         except (ValidationError, Exception) as e:
             logger.exception(f"Failed to add link at line {line_number}. Error: {e}")
 
-    logger.info(f"Successfully imported {added_link} links from TXT file for user {author_id}.")
+    logger.info(f"Successfully imported {added_link} links from TXT file.")
 
 
-def csv_import(file_path: str, author_id: int) -> None:
+def csv_import(file_path: str) -> None:
     with open(file_path, encoding="utf-8") as content:
         reader = DictReader(content)
         if not reader.fieldnames:
@@ -67,17 +66,16 @@ def csv_import(file_path: str, author_id: int) -> None:
                 description=get_description(row.get("description")),
                 domain=domain,
                 tag=tags,
-                author_id=author_id,
                 is_read=is_read,
             )
             added_link += 1
         except (ValidationError, Exception) as e:
             logger.exception(f"Failed to add link at line {line_number}. Error: {e}")
 
-    logger.info(f"Successfully imported {added_link} links from CSV file for user {author_id}.")
+    logger.info(f"Successfully imported {added_link} links from CSV file.")
 
 
-def json_import(file_path: str, author_id: int) -> None:
+def json_import(file_path: str) -> None:
     try:
         with open(file_path, encoding="utf-8") as f:
             links_data = load(f)
@@ -105,11 +103,10 @@ def json_import(file_path: str, author_id: int) -> None:
                 description=description,
                 domain=domain,
                 tag=tags,
-                author_id=author_id,
                 is_read=is_read,
             )
             added_link += 1
         except (ValidationError, Exception) as e:
             logger.exception(f"Failed to add link at index {index} from JSON. Error: {e}")
 
-    logger.info(f"Successfully imported {added_link} links from JSON file for user {author_id}.")
+    logger.info(f"Successfully imported {added_link} links from JSON file.")

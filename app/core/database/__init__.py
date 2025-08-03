@@ -1,19 +1,29 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+"""Database package with improved session management."""
 
-from app.core.database.crud import LinkService, UserService
-from app.core.database.models import Base, Link, User
-from app.core.settings import settings
+from app.core.database.crud import LinkService
+from app.core.database.models import Link
+from app.core.database.session_manager import db_manager
 
-engine = create_engine(f"sqlite:///{settings.DATABASE_NAME}")
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+def get_link_service() -> LinkService:
+    """Factory function to create link service with proper session management."""
+    with db_manager.get_session() as session:
+        return LinkService(session)
 
-# Initialize services
-session = SessionLocal()
-user_service = UserService(session)
-link_service = LinkService(session)
 
-__all__ = ["Link", "User", "link_service", "user_service"]
+# For backward compatibility - these will be deprecated
+def _create_legacy_services():
+    """Create legacy services for backward compatibility."""
+    with db_manager.get_session() as session:
+        return LinkService(session)
+
+
+# Legacy services for backward compatibility
+# TODO: Remove these after refactoring all CLI commands
+try:
+    link_service = _create_legacy_services()
+except Exception:
+    # Fallback if database is not available
+    link_service = None
+
+__all__ = ["Link", "db_manager", "get_link_service", "link_service"]

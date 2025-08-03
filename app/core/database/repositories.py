@@ -1,41 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.core.database.models import Link, User
-
-
-class UserRepository:
-    def __init__(self, session: Session) -> None:
-        self.session = session
-
-    def create(self, user_data):
-        if self.get_by_email(user_data.get("email")):
-            msg = f"User with email '{user_data.get('email')}' already exists."
-            raise ValueError(msg)
-        user = User(**user_data)
-        self.session.add(user)
-        self.session.commit()
-        return user
-
-    def get_by_id(self, user_id: int):
-        return self.session.query(User).filter(User.id == user_id).first()
-
-    def get_by_email(self, email: str):
-        return self.session.query(User).filter(User.email == email).first()
-
-    def update(self, user_id: int, user_data):
-        if user := self.get_by_id(user_id):
-            for key, value in user_data.items():
-                setattr(user, key, value)
-            self.session.commit()
-        return user
-
-    def delete(self, user_id: int) -> None:
-        if user := self.get_by_id(user_id):
-            self.session.delete(user)
-            self.session.commit()
-
-    def get_all(self):
-        return self.session.query(User).all()
+from app.core.database.models import Link
+from app.core.exceptions import EntityAlreadyExistsError, RepositoryError
 
 
 class LinkRepository:
@@ -43,13 +9,20 @@ class LinkRepository:
         self.session = session
 
     def create(self, link_data):
+        """Create a new link with better error handling."""
         if self.get_by_url(link_data.get("url")):
-            msg = f"Link with URL '{link_data.get('url')}' already exists."
-            raise ValueError(msg)
-        link = Link(**link_data)
-        self.session.add(link)
-        self.session.commit()
-        return link
+            msg = "Link"
+            raise EntityAlreadyExistsError(msg, link_data.get("url"))
+
+        try:
+            link = Link(**link_data)
+            self.session.add(link)
+            self.session.commit()
+            return link
+        except Exception as e:
+            self.session.rollback()
+            msg = f"Failed to create link: {e}"
+            raise RepositoryError(msg) from e
 
     def get_by_id(self, link_id: int):
         return self.session.query(Link).filter(Link.id == link_id).first()
@@ -111,8 +84,3 @@ class LinkRepository:
 
     def get_all(self):
         return self.session.query(Link).all()
-
-    def get_links_by_author(self, author_id: int, number: int | None = None):
-        if number:
-            return self.session.query(Link).filter(Link.author_id == author_id).limit(number).all()
-        return self.session.query(Link).filter(Link.author_id == author_id).all()

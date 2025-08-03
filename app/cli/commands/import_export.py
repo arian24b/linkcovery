@@ -3,12 +3,10 @@ from pathlib import Path
 
 from typer import Exit, Option, Typer
 
-from app.core.database import user_service
 from app.core.logger import AppLogger
 from app.core.services.import_export.exporter import (
     export_links_to_csv,
     export_links_to_json,
-    export_users_to_json,
 )
 from app.core.services.import_export.importer import csv_import, json_import, txt_import
 from app.core.utils import check_file
@@ -20,12 +18,7 @@ app = Typer(no_args_is_help=True)
 @app.command(name="import", help="Import links from a TXT, CSV, or JSON file.")
 def import_links(
     file_path: str = Option(..., help="Path to the file to import."),
-    author_id: int = Option(..., help="ID of the author to associate with the imported links."),
 ) -> None:
-    if not (author := user_service.get_user(user_id=author_id)):
-        logger.error(f"Author with ID '{author_id}' does not exist.")
-        raise Exit(code=1)
-
     try:
         check_file(file_path)
     except Exception as e:
@@ -34,51 +27,26 @@ def import_links(
     extension = path.splitext(file_path)[1].lower()
 
     if extension == ".txt":
-        txt_import(file_path, author.id)
+        txt_import(file_path)
     elif extension == ".csv":
-        csv_import(file_path, author.id)
+        csv_import(file_path)
     elif extension == ".json":
-        json_import(file_path, author.id)
+        json_import(file_path)
     else:
         logger.error(f"Unsupported file extension: {extension}")
 
 
-# @app.command("export-users", help="Export all users to a JSON or CSV file.")
-# def export_users(
-#     format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
-#     output: str = Option("users_export.json", "--output", "-o", help="Output file path", show_default=True),
-# ) -> None:
-#     format = format.lower()
-#     try:
-#         if format == "json":
-#             export_users_to_json(output)
-#         elif format == "csv":
-#             export_users_to_csv(output)
-#         else:
-#             logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
-#             raise Exit(code=1)
-#     except Exception as e:
-#         logger.error(f"Error exporting users: {e}")
-#         raise Exit(code=1)
-
-
-@app.command(name="export", help="Export links to a JSON or CSV file. Optionally filter by author ID.")
+@app.command(name="export", help="Export links to a JSON or CSV file.")
 def export_links(
     format: str = Option("json", "--format", "-f", help="Export format: json or csv", show_default=True),
     output: str = Option("links_export.json", "--output", "-o", help="Output file path", show_default=True),
-    author_id: int | None = Option(
-        None,
-        "--author-id",
-        "-a",
-        help="Filter links by author ID. If not provided, exports all links.",
-    ),
 ) -> None:
     format = format.lower()
     try:
         if format == "json":
-            export_links_to_json(output, author_id)
+            export_links_to_json(output)
         elif format == "csv":
-            export_links_to_csv(output, author_id)
+            export_links_to_csv(output)
         else:
             logger.error(f"Unsupported export format: {format}. Choose 'json' or 'csv'.")
             raise Exit(code=1)
@@ -87,22 +55,16 @@ def export_links(
         raise Exit(code=1)
 
 
-@app.command(name="backup", help="Export all users and links to JSON or CSV files.")
+@app.command(name="backup", help="Export all links to JSON or CSV files.")
 def export_all_command(
     format: str = Option(
         "json",
         "--format",
         "-f",
-        help="Export format for both users and links: json or csv",
+        help="Export format: json or csv",
         show_default=True,
     ),
     output_dir: str | None = Option(None, "--output-dir", "-d", help="Directory to store exported files."),
-    author_id: int | None = Option(
-        None,
-        "--author-id",
-        "-a",
-        help="Filter links by author ID for export. If not provided, exports all links.",
-    ),
 ) -> None:
     format = format.lower()
     if format not in {"json", "csv"}:
@@ -110,22 +72,23 @@ def export_all_command(
         raise Exit(code=1)
 
     if not output_dir:
-        output_dir = Path.cwd()
+        output_dir_path = Path.cwd()
     else:
-        output_dir = Path(output_dir)
+        output_dir_path = Path(output_dir)
         try:
-            output_dir.mkdir(parents=True, exist_ok=True)
+            output_dir_path.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            logger.exception(f"Failed to create directory '{output_dir}': {e}")
+            logger.exception(f"Failed to create directory '{output_dir_path}': {e}")
             raise Exit(code=1)
 
-    users_output = output_dir / f"users_export.{format}"
-    links_output = output_dir / f"links_export.{format}"
+    links_output = output_dir_path / f"links_export.{format}"
 
     try:
-        export_users_to_json(str(users_output))
-        export_links_to_json(str(links_output), author_id)
-        logger.info(f"Exported all data successfully to '{users_output}' and '{links_output}'.")
+        if format == "json":
+            export_links_to_json(str(links_output))
+        else:  # csv
+            export_links_to_csv(str(links_output))
+        logger.info(f"Exported all links successfully to '{links_output}'.")
     except Exception as e:
-        logger.exception(f"Error exporting all data: {e}")
+        logger.exception(f"Error exporting links: {e}")
         raise Exit(code=1)

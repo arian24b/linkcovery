@@ -3,24 +3,25 @@ from logging import DEBUG, INFO, Formatter, getLogger
 from rich.console import Console
 from rich.logging import RichHandler
 
-from .settings import settings
+from app.core.config import config_manager
 
 
 class AppLogger:
     def __init__(self, name: str) -> None:
         self.console = Console()
         self.logger = getLogger(name)
-        self.logger.setLevel(DEBUG if settings.DEBUG else INFO)
+        debug_mode = config_manager.config.debug
+        self.logger.setLevel(DEBUG if debug_mode else INFO)
         log_handler = RichHandler(
-            show_time=settings.DEBUG,
-            show_level=settings.DEBUG,
-            show_path=settings.DEBUG,
+            show_time=debug_mode,
+            show_level=debug_mode,
+            show_path=debug_mode,
             rich_tracebacks=True,
             console=self.console,
         )
-        log_handler.setLevel(DEBUG if settings.DEBUG else INFO)
+        log_handler.setLevel(DEBUG if debug_mode else INFO)
 
-        if settings.DEBUG:
+        if debug_mode:
             formatter = Formatter("[%(asctime)s] %(name)s - %(levelname)s: %(message)s")
         else:
             formatter = Formatter("%(message)s")

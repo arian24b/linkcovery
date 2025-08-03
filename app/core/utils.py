@@ -1,6 +1,6 @@
 from os import path
 
-from app.core.settings import settings
+from app.core.config import config_manager
 
 
 def check_file(file_path: str) -> bool:
@@ -8,12 +8,14 @@ def check_file(file_path: str) -> bool:
         msg = f"File not found: {file_path}"
         raise FileNotFoundError(msg)
 
-    if (extension := path.splitext(file_path)[1].lower()) not in settings.ALLOW_EXTENSIONS:
-        msg = f"Invalid file extension: {extension}. Allowed extensions: {settings.ALLOW_EXTENSIONS}"
+    extension = path.splitext(file_path)[1].lower()
+    allowed_extensions = config_manager.config.allowed_extensions
+    if extension not in allowed_extensions:
+        msg = f"Invalid file extension: {extension}. Allowed extensions: {allowed_extensions}"
         raise ValueError(msg)
 
     return True
 
 
 def get_description(text: str | None) -> str:
-    return text
+    return text or ""
