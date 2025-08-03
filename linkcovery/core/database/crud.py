@@ -5,7 +5,12 @@ from sqlalchemy.orm import Session
 
 from linkcovery.core.database.models import Link
 from linkcovery.core.database.repositories import LinkRepository
-from linkcovery.core.exceptions import EntityAlreadyExistsError, EntityNotFoundError, ServiceError, handle_service_errors
+from linkcovery.core.exceptions import (
+    EntityAlreadyExistsError,
+    EntityNotFoundError,
+    ServiceError,
+    handle_service_errors,
+)
 
 
 class LinkService:
