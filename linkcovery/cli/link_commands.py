@@ -14,11 +14,11 @@ app = Typer(no_args_is_help=True)
 logger = Logger(__name__)
 
 
-@app.command(help="Add a new link to the database.")
-def create(
+@app.command(name="add", help="Add a new link to the database.")
+def add_link(
     url: str | None = Option(None, help="URL of the link."),
-    domain: str | None = Option(None, help="Domain of the link."),
-    description: str | None = Option("", help="Description of the link."),
+    domain: str | None = Option(None, "-d",help="Domain of the link."),
+    description: str | None = Option("","-D", help="Description of the link."),
     tags: list[str] = Option([], "--tag", "-t", help="Tags associated with the link."),
     is_read: bool = Option(False, "--is-read", "-r", help="Mark the link as read or unread."),
 ) -> None:

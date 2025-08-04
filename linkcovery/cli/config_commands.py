@@ -1,5 +1,6 @@
 """Configuration management CLI commands."""
 
+import importlib.metadata
 import json
 
 from rich.table import Table
@@ -92,3 +93,24 @@ def edit_config() -> None:
     logger.print(
         f"\n[yellow]To edit manually, modify:[/yellow] [bold cyan]{config_manager.get_config_file_path()}[/bold cyan]",
     )
+
+
+@app.command(name="show", help="Show version information")
+def show_version() -> None:
+    """Show the current version of LinkCovery."""
+    try:
+        # Try to get version from installed package first
+        version = importlib.metadata.version("linkcovery")
+        logger.print(f"[bold cyan]LinkCovery[/bold cyan] version [bold green]{version}[/bold green]")
+    except importlib.metadata.PackageNotFoundError:
+        try:
+            # Fallback to package version
+            import linkcovery
+
+            version = linkcovery.__version__
+            logger.print(
+                f"[bold cyan]LinkCovery[/bold cyan] version [bold green]{version}[/bold green] "
+                f"[yellow](development)[/yellow]",
+            )
+        except (ImportError, AttributeError):
+            logger.print("[yellow]Version information not available (development mode)[/yellow]")

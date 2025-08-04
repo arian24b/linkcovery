@@ -3,7 +3,7 @@ import importlib.metadata
 import typer
 from typer import Context, Option, Typer, echo
 
-from linkcovery.cli import config_commands, import_export_commands, link_commands, version_commands
+from linkcovery.cli import config_commands, link_commands
 from linkcovery.core.settings import settings
 
 # Initialize Typer for potential future CLI enhancements
@@ -57,7 +57,5 @@ def main(
 
 
 # Add sub-commands
-cli_app.add_typer(link_commands.app, name="link", help="Manage links and bookmarks")
-cli_app.add_typer(import_export_commands.app, name="import-export", help="Import/export data")
+cli_app.add_typer(link_commands.app, help="Manage links and bookmarks")
 cli_app.add_typer(config_commands.app, name="config", help="Manage configuration")
-cli_app.add_typer(version_commands.app, name="version", help="Show version information")
