@@ -115,24 +115,20 @@ uv run linkcovery import-export import --file links.json --format json
 
 ```
 linkcovery/
+├── main.py                      # Entry point
 ├── linkcovery/
-│   ├── cli/                 # CLI interface
-│   │   ├── commands.py      # CLI command definitions
-│   │   ├── handlers.py      # CLI command handlers
-│   │   └── __init__.py      # CLI app initialization
-│   └── core/                # Core functionality
-│       ├── database/        # Database layer
-│       │   ├── models.py    # SQLAlchemy models
-│       │   ├── crud.py      # CRUD operations
-│       │   ├── repositories.py  # Repository pattern
-│       │   └── session_manager.py  # Database session management
-│       ├── exceptions.py    # Custom exceptions
-│       ├── logger.py        # Logging configuration
-│       ├── settings.py      # Configuration management
-│       └── utils.py         # Utility functions
-├── main.py                  # Entry point
-├── pyproject.toml          # Project configuration
-└── README.md               # This file
+│   ├── __init__.py
+│   ├── cli/
+│   │   ├── __init__.py          # CLI app initialization
+│   │   └── commands.py          # All CLI commands
+│   └── core/
+│       ├── __init__.py
+│       ├── config.py            # Simple configuration
+│       ├── database.py          # Database operations
+│       ├── models.py            # SQLAlchemy models
+│       └── utils.py             # Utility functions
+├── pyproject.toml              # Project configuration
+└── README.md                   # This file
 ```
 
 ## 🧪 Development
