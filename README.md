@@ -1,34 +1,33 @@
-# Linkcovery CLI - Bookmark and Link Management Tool
+# LinKCovery - Modern Bookmark Management CLI
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
-Linkcovery is a powerful bookmark and link discovery tool built with Python, designed to help users efficiently manage and explore their collection of links. It provides an intuitive command-line interface (CLI) that enables developers, researchers, and avid internet users to seamlessly add, search, and organize links.
+LinKCovery is a modern, fast, and intuitive bookmark management tool built with Python. It provides a beautiful command-line interface that makes managing, searching, and organizing your links effortless.
 
-## 🚀 Features
+## ✨ Features
 
-### Core Functionality
-- **Link Management**: Add, update, delete, and organize links
-- **Advanced Search**: Search by domain, tags, description, and more
-- **Import/Export**: Support for JSON formats
-- **Tagging System**: Organize links with custom tags
-- **Read Status**: Track which links you've read
+### 🚀 Core Functionality
+- **Smart Link Management**: Add, edit, delete, and organize links with ease
+- **Powerful Search**: Search by URL, description, tags, domain, or read status
+- **Data Portability**: Import and export your bookmarks in JSON format
+- **Read Tracking**: Keep track of which links you've read
+- **Rich Statistics**: Get insights into your bookmark collection
 
-### Technical Features
-- **Type Safety**: Full Pydantic validation for all inputs
-- **Database Migrations**: Alembic-powered schema management
-- **Comprehensive Testing**: Unit and integration tests
-- **Code Quality**: Pre-commit hooks with linting and formatting
-- **Modular Architecture**: Clean separation of concerns with handler patterns
-- **Error Handling**: Custom exception hierarchy for better debugging
+### 🏗️ Technical Excellence
+- **Modern Architecture**: Clean separation of concerns with service layers
+- **Type Safety**: Full Pydantic validation and type hints throughout
+- **Error Handling**: Comprehensive error handling with helpful messages
+- **Beautiful UI**: Rich terminal interface with tables and colors
+- **Configuration**: Flexible configuration system with file-based storage
+- **Cross-Platform**: Works seamlessly on macOS, Linux, and Windows
 
 ## 📦 Installation
 
 ### Prerequisites
 - Python 3.13 or higher
-- [uv](https://github.com/astral-sh/uv) package manager
+- [uv](https://github.com/astral-sh/uv) package manager (recommended)
 
 ### Install from Source
 ```bash
@@ -44,91 +43,158 @@ uv add linkcovery
 
 ## 🎯 Quick Start
 
-### Initialize Database
-```bash
-# Create initial database migration
-uv run alembic upgrade head
-```
-
 ### Add Your First Link
 ```bash
-uv run linkcovery link create
-  --url "https://github.com/arian24b/linkcovery"
-  --domain "github.com"
-  --description "LinKCovery GitHub Repository"
-  --tag "github" --tag "project"
+uv run python main.py links add "https://github.com/arian24b/linkcovery" \
+  --desc "LinKCovery GitHub Repository" \
+  --tag "github,project"
 ```
 
 ### List Your Links
 ```bash
-uv run linkcovery link list
+uv run python main.py links list
 ```
 
-### Search Links
+### Search Your Bookmarks
 ```bash
+# Search by keyword
+uv run python main.py links search github
+
 # Search by domain
-uv run linkcovery link search --domain "github.com"
+uv run python main.py links search --domain github.com
 
 # Search by tag
-uv run linkcovery link search --tag "project"
-
-# Search by description
-uv run linkcovery link search --description "repository"
+uv run python main.py links search --tag project
 ```
 
-### Export Links
+### Export Your Data
 ```bash
-# Export to JSON
-uv run linkcovery import-export export --format json --output links.json
+uv run python main.py data export my-bookmarks.json
 ```
 
-### Import Links
+### Import Bookmarks
 ```bash
-# Import from JSON
-uv run linkcovery import-export import --file links.json --format json
+uv run python main.py data import my-bookmarks.json
 ```
 
-## 🛠️ CLI Commands
+## � CLI Reference
 
-### Link Management
-- `linkcovery link create` - Add a new link
-- `linkcovery link list` - List all links
-- `linkcovery link search` - Search links by various criteria
-- `linkcovery link update` - Update an existing link
-- `linkcovery link delete` - Delete a link
-- `linkcovery link mark-read` - Mark a link as read
+### Link Management (`links`)
+- `links add <url>` - Add a new bookmark
+  - `--desc, -d` - Description for the link
+  - `--tag, -t` - Tag to categorize the link
+  - `--read, -r` - Mark as already read
+- `links list` - List all bookmarks
+  - `--limit, -l` - Maximum number of links to show
+  - `--read-only` - Show only read links
+  - `--unread-only` - Show only unread links
+- `links search [query]` - Search bookmarks
+  - `--domain` - Filter by domain
+  - `--tag, -t` - Filter by tag
+  - `--read-only` - Show only read links
+  - `--unread-only` - Show only unread links
+  - `--limit, -l` - Maximum results
+- `links show <id>` - Show detailed link information
+- `links edit <id>` - Edit an existing link
+  - `--url` - New URL
+  - `--desc, -d` - New description
+  - `--tag, -t` - New tag
+  - `--read` - Mark as read
+  - `--unread` - Mark as unread
+- `links delete <id>` - Delete a link
+  - `--force, -f` - Skip confirmation
+- `links mark-read <id>` - Mark a link as read
+- `links mark-unread <id>` - Mark a link as unread
 
-### Import/Export
-- `linkcovery import-export import` - Import links from file
-- `linkcovery import-export export` - Export links to file
+### Data Management (`data`)
+- `data export <file>` - Export links to JSON
+  - `--force, -f` - Overwrite existing file
+- `data import <file>` - Import links from JSON
 
-### Configuration
-- `linkcovery config get` - Get configuration value
-- `linkcovery config set` - Set configuration value
-- `linkcovery config list` - List all configuration
-- `linkcovery config reset` - Reset to defaults
+### Configuration (`config`)
+- `config show` - Show current configuration
+- `config get <key>` - Get a specific configuration value
+- `config set <key> <value>` - Set a configuration value
+- `config reset` - Reset to default configuration
 
-### Utility
-- `linkcovery version` - Show version information
+### General Commands
+- `stats` - Show bookmark statistics
+- `version` - Show version information
 
-## 📁 Project Structure
+## ⚙️ Configuration
+
+LinKCovery stores its configuration in your system's config directory:
+- **macOS**: `~/Library/Application Support/linkcovery/config.json`
+- **Linux**: `~/.config/linkcovery/config.json` 
+- **Windows**: `%APPDATA%/linkcovery/config.json`
+
+### Available Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `app_name` | "LinKCovery" | Application name |
+| `version` | "1.0.0" | Application version |
+| `database_path` | (auto-detected) | Custom database path |
+| `default_export_format` | "json" | Default export format |
+| `max_search_results` | 50 | Maximum search results |
+| `allowed_extensions` | [".json"] | Allowed file extensions |
+| `debug` | false | Enable debug mode |
+
+### Examples
+```bash
+# Set maximum search results
+uv run python main.py config set max_search_results 100
+
+# Enable debug mode
+uv run python main.py config set debug true
+
+# View all settings
+uv run python main.py config show
+```
+
+## 🗄️ Database
+
+LinKCovery uses SQLite for data storage. The database is automatically created in your system's data directory:
+
+- **macOS**: `~/Library/Application Support/linkcovery/links.db`
+- **Linux**: `~/.local/share/linkcovery/links.db`
+- **Windows**: `%APPDATA%/linkcovery/links.db`
+
+### Database Schema
+
+The `links` table contains:
+- `id` - Unique identifier (primary key)
+- `url` - The bookmark URL (unique, required)
+- `domain` - Extracted domain name (required)
+- `description` - Optional description text
+- `tag` - Associated tag for categorization
+- `is_read` - Boolean read status
+- `created_at` - ISO timestamp of creation
+- `updated_at` - ISO timestamp of last update
+
+## 🏗️ Project Structure
 
 ```
 linkcovery/
-├── main.py                      # Entry point
+├── main.py                         # Application entry point
 ├── linkcovery/
-│   ├── __init__.py
-│   ├── cli/
-│   │   ├── __init__.py          # CLI app initialization
-│   │   └── commands.py          # All CLI commands
-│   └── core/
-│       ├── __init__.py
-│       ├── config.py            # Simple configuration
-│       ├── database.py          # Database operations
-│       ├── models.py            # SQLAlchemy models
-│       └── utils.py             # Utility functions
-├── pyproject.toml              # Project configuration
-└── README.md                   # This file
+│   ├── cli/                        # Command-line interface
+│   │   ├── __init__.py            # Main CLI app and routing
+│   │   ├── links.py               # Link management commands
+│   │   ├── config.py              # Configuration commands
+│   │   ├── data.py                # Import/export commands
+│   │   └── utils.py               # CLI utilities and decorators
+│   ├── core/                      # Core business logic
+│   │   ├── config.py              # Configuration management
+│   │   ├── database.py            # Database service layer
+│   │   ├── exceptions.py          # Custom exception classes
+│   │   ├── models.py              # Pydantic and SQLAlchemy models
+│   │   └── utils.py               # Core utility functions
+│   └── services/                  # Business logic services
+│       ├── link_service.py        # Link management business logic
+│       └── import_export_service.py # Import/export operations
+├── pyproject.toml                 # Project configuration
+└── README.md                      # This file
 ```
 
 ## 🧪 Development
@@ -140,9 +206,9 @@ git clone https://github.com/arian24b/linkcovery.git
 cd linkcovery
 
 # Install with development dependencies
-uv sync --group dev --group test --group lint
+uv sync --group dev --group test
 
-# Install pre-commit hooks
+# Install pre-commit hooks (if available)
 uv run pre-commit install
 ```
 
@@ -158,7 +224,10 @@ uv run pytest --cov=linkcovery --cov-report=html
 ### Code Quality
 ```bash
 # Run linting
-uv run pre-commit run --all-files
+uv run ruff check
+
+# Format code
+uv run ruff format
 
 # Type checking
 uv run mypy linkcovery
@@ -170,48 +239,51 @@ uv run mypy linkcovery
 uv run python build_binary.py
 ```
 
-## 🗄️ Database
+## � Examples
 
-LinKCovery uses SQLite as its database backend. The database file is automatically created in your system's data directory:
-
-- **macOS**: `~/Library/Application Support/linkcovery/app.db`
-- **Linux**: `~/.local/share/linkcovery/app.db`
-- **Windows**: `%APPDATA%\linkcovery\app.db`
-
-### Database Schema
-
-The main `links` table contains:
-- `id` - Unique identifier
-- `url` - The link URL (required)
-- `domain` - Domain name (required)
-- `description` - Optional description
-- `tag` - Associated tag (required)
-- `is_read` - Read status (boolean)
-- `created_at` - Creation timestamp
-- `updated_at` - Last update timestamp
-
-## 🔧 Configuration
-
-Configuration is stored in JSON format in your system's config directory. You can manage it using the `config` commands:
-
+### Managing Links
 ```bash
-# View current configuration
-uv run linkcovery config list
+# Add a link with description and tags
+uv run python main.py links add "https://docs.python.org" \
+  --desc "Official Python Documentation" \
+  --tag "python,docs,reference"
 
-# Set maximum search results
-uv run linkcovery config set max_search_results 20
+# List only unread links
+uv run python main.py links list --unread-only --limit 10
 
-# Enable debug mode
-uv run linkcovery config set debug true
+# Search for Python-related links
+uv run python main.py links search python
+
+# Mark a link as read
+uv run python main.py links mark-read 5
+
+# Edit a link's description
+uv run python main.py links edit 5 --desc "Updated description"
 ```
 
-Default configuration values:
-- `database_path`: Auto-detected system data directory
-- `debug`: `false`
-- `allowed_extensions`: `[".json"]`
-- `default_export_format`: `"json"`
-- `max_search_results`: `10`
-- `app_name`: `"LinkCovery"`
+### Data Management
+```bash
+# Export all links
+uv run python main.py data export my-bookmarks-$(date +%Y%m%d).json
+
+# Import from another file
+uv run python main.py data import bookmarks-backup.json
+
+# View statistics
+uv run python main.py stats
+```
+
+### Configuration
+```bash
+# Increase search result limit
+uv run python main.py config set max_search_results 100
+
+# View current configuration
+uv run python main.py config show
+
+# Reset to defaults
+uv run python main.py config reset
+```
 
 ## 🤝 Contributing
 
@@ -219,8 +291,8 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests and linting (`uv run pytest && uv run pre-commit run --all-files`)
+3. Make your changes following the project's coding standards
+4. Run tests and linting (`uv run pytest && uv run ruff check`)
 5. Commit your changes (`git commit -m 'Add some amazing feature'`)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
@@ -231,7 +303,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built with [Typer](https://typer.tiangolo.com/) for the CLI interface
-- Uses [SQLAlchemy](https://www.sqlalchemy.org/) for database operations
+- Built with [Typer](https://typer.tiangolo.com/) for the CLI framework
 - [Rich](https://rich.readthedocs.io/) for beautiful terminal output
-- [Pydantic](https://pydantic.dev/) for data validation
+- [SQLAlchemy](https://www.sqlalchemy.org/) for database operations
+- [Pydantic](https://pydantic.dev/) for data validation and settings
+- [platformdirs](https://github.com/platformdirs/platformdirs) for cross-platform paths
+
+---
+
+**LinKCovery** - Because your bookmarks deserve better organization! 🔗✨

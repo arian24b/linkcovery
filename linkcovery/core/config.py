@@ -1,29 +1,38 @@
-"""Simple configuration for LinKCovery."""
+"""Configuration management for LinKCovery."""
 
+import json
 import os
 from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel
+
+from linkcovery.core.exceptions import ConfigurationError
 
 
-class Config:
-    """Simple configuration class."""
+class AppConfig(BaseModel):
+    """Application configuration model."""
 
-    def __init__(self) -> None:
-        # Application info
-        self.APP_NAME = "LinkCovery"
-        self.VERSION = "0.3.1"
+    # Application info
+    app_name: str = "LinKCovery"
+    version: str = "1.0.0"
 
-        # Database configuration
-        self.DATABASE_PATH = self._get_database_path()
+    # Database configuration
+    database_path: str | None = None
 
-        # Export/Import settings
-        self.DEFAULT_EXPORT_FORMAT = "json"
-        self.MAX_SEARCH_RESULTS = 50
+    # Export/Import settings
+    default_export_format: str = "json"
+    max_search_results: int = 50
+    allowed_extensions: list[str] = [".json"]
 
-        # Debug mode
-        self.DEBUG = os.getenv("LINKCOVERY_DEBUG", "false").lower() == "true"
+    # Debug and development
+    debug: bool = False
 
-    def _get_database_path(self) -> str:
+    def get_database_path(self) -> str:
         """Get the database path with fallback options."""
+        if self.database_path:
+            return self.database_path
+
         # Try environment variable first
         db_path = os.getenv("LINKCOVERY_DB")
         if db_path:
@@ -42,6 +51,109 @@ class Config:
             data_dir.mkdir(parents=True, exist_ok=True)
             return str(data_dir / "links.db")
 
+    def get_config_dir(self) -> Path:
+        """Get the configuration directory."""
+        try:
+            from platformdirs import user_config_dir
 
-# Global configuration instance
-config = Config()
+            config_dir = Path(user_config_dir("linkcovery"))
+        except ImportError:
+            config_dir = Path.home() / ".config" / "linkcovery"
+
+        config_dir.mkdir(parents=True, exist_ok=True)
+        return config_dir
+
+    def get_config_file(self) -> Path:
+        """Get the configuration file path."""
+        return self.get_config_dir() / "config.json"
+
+
+class ConfigManager:
+    """Configuration manager for loading and saving settings."""
+
+    def __init__(self) -> None:
+        self._config: AppConfig = AppConfig()
+        self._config_file: Path = self._config.get_config_file()
+        self.load()
+
+    @property
+    def config(self) -> AppConfig:
+        """Get the current configuration."""
+        return self._config
+
+    def load(self) -> None:
+        """Load configuration from file."""
+        if not self._config_file.exists():
+            self.save()  # Create default config
+            return
+
+        try:
+            with open(self._config_file, encoding="utf-8") as f:
+                config_data = json.load(f)
+            self._config = AppConfig(**config_data)
+        except Exception as e:
+            msg = f"Failed to load configuration: {e}"
+            raise ConfigurationError(msg)
+
+    def save(self) -> None:
+        """Save current configuration to file."""
+        try:
+            self._config_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._config_file, "w", encoding="utf-8") as f:
+                json.dump(self._config.model_dump(), f, indent=2)
+        except Exception as e:
+            msg = f"Failed to save configuration: {e}"
+            raise ConfigurationError(msg)
+
+    def get(self, key: str) -> Any:
+        """Get a configuration value."""
+        try:
+            return getattr(self._config, key)
+        except AttributeError:
+            msg = f"Unknown configuration key: {key}"
+            raise ConfigurationError(msg)
+
+    def set(self, key: str, value: Any) -> None:
+        """Set a configuration value."""
+        if not hasattr(self._config, key):
+            msg = f"Unknown configuration key: {key}"
+            raise ConfigurationError(msg)
+
+        try:
+            # Create a new config with the updated value
+            config_dict = self._config.model_dump()
+            config_dict[key] = value
+            self._config = AppConfig(**config_dict)
+            self.save()
+        except Exception as e:
+            msg = f"Failed to set configuration: {e}"
+            raise ConfigurationError(msg)
+
+    def reset(self) -> None:
+        """Reset configuration to defaults."""
+        self._config = AppConfig()
+        self.save()
+
+    def list_all(self) -> dict[str, Any]:
+        """Get all configuration values."""
+        return self._config.model_dump()
+
+
+# Global configuration manager
+_config_manager: ConfigManager | None = None
+
+
+def get_config() -> AppConfig:
+    """Get the global configuration instance."""
+    global _config_manager
+    if _config_manager is None:
+        _config_manager = ConfigManager()
+    return _config_manager.config
+
+
+def get_config_manager() -> ConfigManager:
+    """Get the global configuration manager instance."""
+    global _config_manager
+    if _config_manager is None:
+        _config_manager = ConfigManager()
+    return _config_manager

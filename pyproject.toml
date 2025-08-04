@@ -1,14 +1,15 @@
 [project]
 name = "linkcovery"
-version = "0.3.1"
-description = "Bookmark and Link discovery tool for people with love and Python :)"
+version = "1.0.0"
+description = "A modern, fast, and intuitive bookmark management CLI tool"
 readme = "README.md"
 license = "MIT"
-keywords = ["bookmark", "link", "discovery", "tool", "python"]
+keywords = ["bookmark", "link", "management", "cli", "python"]
 authors = [{name = "Arian Omrani"}]
 requires-python = ">=3.13"
 dependencies = [
     "platformdirs>=4.3.8",
+    "pydantic>=2.10.0",
     "rich>=14.1.0",
     "sqlalchemy>=2.0.38",
     "typer>=0.15.1",
@@ -57,5 +58,5 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["app*"]
-exclude = ["alembic*", "tests*"]
+include = ["linkcovery*"]
+exclude = ["tests*", "build*", "dist*"]

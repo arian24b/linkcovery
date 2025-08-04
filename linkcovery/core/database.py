@@ -1,185 +1,258 @@
-"""Simple and clean database operations for LinKCovery."""
+"""Modern database service for LinKCovery."""
 
+from collections.abc import Generator
+from contextlib import contextmanager
 from datetime import datetime
-from pathlib import Path
-from urllib.parse import urlparse
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, or_
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session, sessionmaker
 
-from linkcovery.core.models import Base, Link
+from linkcovery.core.config import get_config
+from linkcovery.core.exceptions import DatabaseError, LinkAlreadyExistsError, LinkNotFoundError
+from linkcovery.core.models import Base, Link, LinkCreate, LinkFilter, LinkUpdate
 
 
-class LinkDatabase:
-    """Simple database service for link management."""
+class DatabaseService:
+    """Modern database service with proper error handling and context management."""
 
     def __init__(self, database_path: str | None = None) -> None:
+        """Initialize database service."""
         if database_path is None:
-            # Use platformdirs for cross-platform data directory
-            try:
-                from platformdirs import user_data_dir
+            database_path = get_config().get_database_path()
 
-                data_dir = Path(user_data_dir("linkcovery"))
-                data_dir.mkdir(parents=True, exist_ok=True)
-                database_path = str(data_dir / "links.db")
-            except ImportError:
-                # Fallback if platformdirs not available
-                database_path = str(Path.home() / ".linkcovery" / "links.db")
-                Path(database_path).parent.mkdir(parents=True, exist_ok=True)
-
-        self.engine = create_engine(f"sqlite:///{database_path}")
-        Base.metadata.create_all(bind=self.engine)
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
-        self.session = SessionLocal()
-
-    def _validate_url(self, url: str) -> str:
-        """Validate URL format."""
-        if not url or not isinstance(url, str):
-            msg = "URL is required and must be a string"
-            raise ValueError(msg)
-
-        url = url.strip()
-        if not url.startswith(("http://", "https://")):
-            msg = "URL must start with http:// or https://"
-            raise ValueError(msg)
-
-        return url
-
-    def _extract_domain(self, url: str) -> str:
-        """Extract domain from URL."""
         try:
-            parsed = urlparse(url)
-            domain = parsed.netloc.lower()
-            if not domain:
-                msg = "Could not extract domain from URL"
-                raise ValueError(msg)
-            return domain
+            self.engine = create_engine(f"sqlite:///{database_path}")
+            Base.metadata.create_all(bind=self.engine)
+            self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         except Exception as e:
-            msg = f"Invalid URL format: {e}"
-            raise ValueError(msg)
+            msg = f"Failed to initialize database: {e}"
+            raise DatabaseError(msg)
 
-    def add_link(self, url: str, description: str = "", tag: str = "", is_read: bool = False) -> Link:
-        """Add a new link to the database."""
+    @contextmanager
+    def get_session(self) -> Generator[Session]:
+        """Get a database session with proper cleanup."""
+        session = self.SessionLocal()
         try:
-            # Validate and clean URL
-            url = self._validate_url(url)
-            domain = self._extract_domain(url)
-
-            # Check if link already exists
-            existing = self.session.query(Link).filter(Link.url == url).first()
-            if existing:
-                msg = f"Link already exists: {url}"
-                raise ValueError(msg)
-
-            # Create timestamps
-            now = datetime.utcnow().isoformat()
-
-            # Create and save link
-            link = Link(
-                url=url,
-                domain=domain,
-                description=description.strip(),
-                tag=tag.strip(),
-                is_read=is_read,
-                created_at=now,
-                updated_at=now,
-            )
-
-            self.session.add(link)
-            self.session.commit()
-            return link
-
+            yield session
+            session.commit()
         except Exception:
-            self.session.rollback()
+            session.rollback()
             raise
+        finally:
+            session.close()
 
-    def get_link(self, link_id: int) -> Link | None:
+    def create_link(self, link_data: LinkCreate) -> Link:
+        """Create a new link."""
+        try:
+            with self.get_session() as session:
+                # Check if link already exists
+                existing = session.query(Link).filter(Link.url == link_data.url).first()
+                if existing:
+                    raise LinkAlreadyExistsError(link_data.url)
+
+                # Create new link
+                now = datetime.utcnow().isoformat()
+                link = Link(
+                    url=link_data.url,
+                    domain=link_data.extract_domain(),
+                    description=link_data.description,
+                    tag=link_data.tag,
+                    is_read=link_data.is_read,
+                    created_at=now,
+                    updated_at=now,
+                )
+
+                session.add(link)
+                session.flush()  # Get the ID before committing
+                session.expunge(link)  # Detach from session
+                return link
+
+        except LinkAlreadyExistsError:
+            raise
+        except IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                raise LinkAlreadyExistsError(link_data.url)
+            msg = f"Database constraint error: {e}"
+            raise DatabaseError(msg)
+        except SQLAlchemyError as e:
+            msg = f"Database error while creating link: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while creating link: {e}"
+            raise DatabaseError(msg)
+
+    def get_link(self, link_id: int) -> Link:
         """Get a link by ID."""
-        return self.session.query(Link).filter(Link.id == link_id).first()
+        try:
+            with self.get_session() as session:
+                link = session.query(Link).filter(Link.id == link_id).first()
+                if not link:
+                    raise LinkNotFoundError(link_id)
+                session.expunge(link)  # Detach from session
+                return link
+        except LinkNotFoundError:
+            raise
+        except SQLAlchemyError as e:
+            msg = f"Database error while retrieving link: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while retrieving link: {e}"
+            raise DatabaseError(msg)
 
     def get_all_links(self) -> list[Link]:
-        """Get all links."""
-        return self.session.query(Link).order_by(Link.created_at.desc()).all()
+        """Get all links ordered by creation date."""
+        try:
+            with self.get_session() as session:
+                links = session.query(Link).order_by(Link.created_at.desc()).all()
+                for link in links:
+                    session.expunge(link)  # Detach from session
+                return links
+        except SQLAlchemyError as e:
+            msg = f"Database error while retrieving links: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while retrieving links: {e}"
+            raise DatabaseError(msg)
 
-    def search_links(
-        self,
-        query: str = "",
-        domain: str = "",
-        tag: str = "",
-        is_read: bool | None = None,
-        limit: int = 50,
-    ) -> list[Link]:
+    def search_links(self, filters: LinkFilter) -> list[Link]:
         """Search links with filters."""
-        q = self.session.query(Link)
-
-        if query:
-            q = q.filter((Link.url.contains(query)) | (Link.description.contains(query)) | (Link.tag.contains(query)))
-
-        if domain:
-            q = q.filter(Link.domain.contains(domain))
-
-        if tag:
-            q = q.filter(Link.tag.contains(tag))
-
-        if is_read is not None:
-            q = q.filter(Link.is_read == is_read)
-
-        return q.order_by(Link.created_at.desc()).limit(limit).all()
-
-    def update_link(self, link_id: int, **updates) -> bool:
-        """Update a link."""
-        link = self.get_link(link_id)
-        if not link:
-            msg = f"Link with ID {link_id} not found"
-            raise ValueError(msg)
-
-        # Validate URL if being updated
-        if "url" in updates:
-            updates["url"] = self._validate_url(updates["url"])
-            updates["domain"] = self._extract_domain(updates["url"])
-
-        # Update fields
-        for key, value in updates.items():
-            if hasattr(link, key):
-                setattr(link, key, value)
-
-        # Update timestamp
-        link.updated_at = datetime.utcnow().isoformat()
-
         try:
-            self.session.commit()
-            return True
-        except Exception:
-            self.session.rollback()
-            raise
+            with self.get_session() as session:
+                query = session.query(Link)
 
-    def delete_link(self, link_id: int) -> bool:
+                # Apply filters
+                if filters.query:
+                    query = query.filter(
+                        or_(
+                            Link.url.contains(filters.query),
+                            Link.description.contains(filters.query),
+                            Link.tag.contains(filters.query),
+                        ),
+                    )
+
+                if filters.domain:
+                    query = query.filter(Link.domain.contains(filters.domain))
+
+                if filters.tag:
+                    query = query.filter(Link.tag.contains(filters.tag))
+
+                if filters.is_read is not None:
+                    query = query.filter(Link.is_read == filters.is_read)
+
+                links = query.order_by(Link.created_at.desc()).limit(filters.limit).all()
+                for link in links:
+                    session.expunge(link)  # Detach from session
+                return links
+
+        except SQLAlchemyError as e:
+            msg = f"Database error while searching links: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while searching links: {e}"
+            raise DatabaseError(msg)
+
+    def update_link(self, link_id: int, updates: LinkUpdate) -> Link:
+        """Update an existing link."""
+        try:
+            with self.get_session() as session:
+                link = session.query(Link).filter(Link.id == link_id).first()
+                if not link:
+                    raise LinkNotFoundError(link_id)
+
+                # Apply updates only for fields that were actually set
+                update_data = updates.model_dump(exclude_unset=True, exclude_none=True)
+
+                if "url" in update_data:
+                    # Update domain if URL changed
+                    from urllib.parse import urlparse
+
+                    link.domain = urlparse(update_data["url"]).netloc.lower()
+                    link.url = update_data["url"]
+
+                for key, value in update_data.items():
+                    if key != "url":  # URL already handled above
+                        setattr(link, key, value)
+
+                # Update timestamp
+                link.updated_at = datetime.utcnow().isoformat()
+
+                session.flush()
+                session.expunge(link)  # Detach from session
+                return link
+
+        except LinkNotFoundError:
+            raise
+        except IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                raise LinkAlreadyExistsError(updates.url or "")
+            msg = f"Database constraint error: {e}"
+            raise DatabaseError(msg)
+        except SQLAlchemyError as e:
+            msg = f"Database error while updating link: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while updating link: {e}"
+            raise DatabaseError(msg)
+
+    def delete_link(self, link_id: int) -> None:
         """Delete a link."""
-        link = self.get_link(link_id)
-        if not link:
-            msg = f"Link with ID {link_id} not found"
-            raise ValueError(msg)
-
         try:
-            self.session.delete(link)
-            self.session.commit()
-            return True
-        except Exception:
-            self.session.rollback()
+            with self.get_session() as session:
+                link = session.query(Link).filter(Link.id == link_id).first()
+                if not link:
+                    raise LinkNotFoundError(link_id)
+
+                session.delete(link)
+
+        except LinkNotFoundError:
             raise
+        except SQLAlchemyError as e:
+            msg = f"Database error while deleting link: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while deleting link: {e}"
+            raise DatabaseError(msg)
 
-    def close(self) -> None:
-        """Close the database session."""
-        self.session.close()
+    def get_statistics(self) -> dict:
+        """Get database statistics."""
+        try:
+            with self.get_session() as session:
+                total_links = session.query(Link).count()
+                read_links = session.query(Link).filter(Link.is_read == True).count()  # noqa: E712
+                unread_links = total_links - read_links
+
+                # Get top domains
+                domains = {}
+                for link in session.query(Link).all():
+                    # Access the actual value, not the column
+                    domain_value = getattr(link, "domain", "unknown")
+                    domains[domain_value] = domains.get(domain_value, 0) + 1
+
+                top_domains = sorted(domains.items(), key=lambda x: x[1], reverse=True)[:10]
+
+                return {
+                    "total_links": total_links,
+                    "read_links": read_links,
+                    "unread_links": unread_links,
+                    "top_domains": top_domains,
+                }
+
+        except SQLAlchemyError as e:
+            msg = f"Database error while getting statistics: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while getting statistics: {e}"
+            raise DatabaseError(msg)
 
 
-# Global database instance
-_db = None
+# Global database service instance
+_db_service: DatabaseService | None = None
 
 
-def get_database() -> LinkDatabase:
-    """Get the global database instance."""
-    global _db
-    if _db is None:
-        _db = LinkDatabase()
-    return _db
+def get_database() -> DatabaseService:
+    """Get the global database service instance."""
+    global _db_service
+    if _db_service is None:
+        _db_service = DatabaseService()
+    return _db_service
