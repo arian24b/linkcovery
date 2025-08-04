@@ -1,10 +1,21 @@
+<div align="center">
+  <img src="linkcovery.png" alt="LinKCovery Logo" width="200"/>
+</div>
+
 # LinKCovery - Modern Bookmark Management CLI
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![GitHub stars](https://img.shields.io/github/stars/arian24b/linkcovery.svg?style=social&label=Star)](https://github.com/arian24b/linkcovery)
+[![GitHub forks](https://img.shields.io/github/forks/arian24b/linkcovery.svg?style=social&label=Fork)](https://github.com/arian24b/linkcovery)
+[![GitHub issues](https://img.shields.io/github/issues/arian24b/linkcovery.svg)](https://github.com/arian24b/linkcovery/issues)
 
 LinKCovery is a modern, fast, and intuitive bookmark management tool built with Python. It provides a beautiful command-line interface that makes managing, searching, and organizing your links effortless.
+
+## 🤔 Why LinKCovery?
+
+Browser bookmarks quickly become cluttered and inefficient. LinKCovery helps you intelligently manage and organize your links from the terminal—the place where you, as a developer, spend most of your time. With powerful search capabilities, tagging systems, and data portability, LinKCovery transforms how you interact with your saved links, making them truly useful rather than just saved.
 
 ## ✨ Features
 
