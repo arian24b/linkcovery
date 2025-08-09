@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/arian24b/linkcovery/compare/v1.0.1...v1.0.2) (2025-08-09)
+
+
+### Bug Fixes
+
+* Remove conditional checks for new release publication in publish and build-binaries jobs ([ee31f83](https://github.com/arian24b/linkcovery/commit/ee31f83b77e4a0f131e02d3eea0c550d24f0c0e0))
+
 ## [1.0.1](https://github.com/arian24b/linkcovery/compare/v1.0.0...v1.0.1) (2025-08-09)
 
 
