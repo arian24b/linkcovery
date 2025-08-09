@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install semantic-release
+        run: |
+          npm install -g semantic-release
+          npm install -g @semantic-release/changelog
+          npm install -g @semantic-release/git
+          npm install -g @semantic-release/github
+          npm install -g @semantic-release/exec
+
+      - name: Run semantic-release
+        run: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+  build-binaries:
+    needs: release
+    runs-on: ${{ matrix.os }}
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            asset_name: linkcovery-linux-x86_64
+          - os: macos-latest
+            asset_name: linkcovery-macos-x86_64
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies with build tools
+        run: uv sync --group build
+
+      - name: Build binary
+        run: uv run python build_binary.py
+
+      - name: Get latest release tag
+        id: get_release
+        run: |
+          TAG=$(git describe --tags --abbrev=0)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Rename binary
+        run: mv dist/linkcovery dist/${{ matrix.asset_name }}
+
+      - name: Upload binary to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/${{ matrix.asset_name }}
+          asset_name: ${{ matrix.asset_name }}
+          tag: ${{ steps.get_release.outputs.tag }}
+          overwrite: true

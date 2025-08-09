@@ -1,6 +1,6 @@
 [project]
 name = "linkcovery"
-version = "1.0.0"
+version = "0.3.1"
 description = "A modern, fast, and intuitive bookmark management CLI tool"
 readme = "README.md"
 license = "MIT"
@@ -18,11 +18,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pre-commit>=4.2.0",
-    "pytest>=8.3.4",
-]
-test = [
-    "pytest>=8.3.4",
-    "pytest-cov>=6.0.0",
 ]
 build = [
     "pyinstaller>=6.14.2",
@@ -54,9 +49,8 @@ disallow_untyped_decorators = true
 package = true
 
 [build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.setuptools.packages.find]
-include = ["linkcovery*"]
-exclude = ["tests*", "build*", "dist*"]
+[tool.hatch.build.targets.wheel]
+packages = ["linkcovery"]

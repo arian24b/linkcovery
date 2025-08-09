@@ -1,8 +1,8 @@
 <div align="center">
-  <img src="linkcovery.png" alt="LinKCovery Logo" width="200"/>
+  <img src="linkcovery.png" alt="LinkCovery Logo" width="200"/>
 </div>
 
-# LinKCovery - Modern Bookmark Management CLI
+# LinkCovery - Modern Bookmark Management CLI
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
@@ -11,13 +11,13 @@
 [![GitHub forks](https://img.shields.io/github/forks/arian24b/linkcovery.svg?style=social&label=Fork)](https://github.com/arian24b/linkcovery)
 [![GitHub issues](https://img.shields.io/github/issues/arian24b/linkcovery.svg)](https://github.com/arian24b/linkcovery/issues)
 
-<a href="https://www.producthunt.com/products/linkcovery?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-linkcovery" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1001540&theme=light&t=1754328725689" alt="LinKCovery - The&#0032;command&#0045;line&#0032;bookmark&#0032;manager&#0032;for&#0032;developers&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+<a href="https://www.producthunt.com/products/linkcovery?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-linkcovery" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1001540&theme=light&t=1754328725689" alt="LinkCovery - The&#0032;command&#0045;line&#0032;bookmark&#0032;manager&#0032;for&#0032;developers&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 
-LinKCovery is a modern, fast, and intuitive bookmark management tool built with Python. It provides a beautiful command-line interface that makes managing, searching, and organizing your links effortless.
+LinkCovery is a modern, fast, and intuitive bookmark management tool built with Python. It provides a beautiful command-line interface that makes managing, searching, and organizing your links effortless.
 
-## 🤔 Why LinKCovery?
+## 🤔 Why LinkCovery?
 
-Browser bookmarks quickly become cluttered and inefficient. LinKCovery helps you intelligently manage and organize your links from the terminal—the place where you, as a developer, spend most of your time. With powerful search capabilities, tagging systems, and data portability, LinKCovery transforms how you interact with your saved links, making them truly useful rather than just saved.
+Browser bookmarks quickly become cluttered and inefficient. LinkCovery helps you intelligently manage and organize your links from the terminal—the place where you, as a developer, spend most of your time. With powerful search capabilities, tagging systems, and data portability, LinkCovery transforms how you interact with your saved links, making them truly useful rather than just saved.
 
 ## ✨ Features
 
@@ -59,7 +59,7 @@ uv add linkcovery
 ### Add Your First Link
 ```bash
 uv run python main.py links add "https://github.com/arian24b/linkcovery" \
-  --desc "LinKCovery GitHub Repository" \
+  --desc "LinkCovery GitHub Repository" \
   --tag "github,project"
 ```
 
@@ -136,16 +136,16 @@ uv run python main.py data import my-bookmarks.json
 
 ## ⚙️ Configuration
 
-LinKCovery stores its configuration in your system's config directory:
+LinkCovery stores its configuration in your system's config directory:
 - **macOS**: `~/Library/Application Support/linkcovery/config.json`
-- **Linux**: `~/.config/linkcovery/config.json` 
+- **Linux**: `~/.config/linkcovery/config.json`
 - **Windows**: `%APPDATA%/linkcovery/config.json`
 
 ### Available Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `app_name` | "LinKCovery" | Application name |
+| `app_name` | "LinkCovery" | Application name |
 | `version` | "1.0.0" | Application version |
 | `database_path` | (auto-detected) | Custom database path |
 | `default_export_format` | "json" | Default export format |
@@ -167,7 +167,7 @@ uv run python main.py config show
 
 ## 🗄️ Database
 
-LinKCovery uses SQLite for data storage. The database is automatically created in your system's data directory:
+LinkCovery uses SQLite for data storage. The database is automatically created in your system's data directory:
 
 - **macOS**: `~/Library/Application Support/linkcovery/links.db`
 - **Linux**: `~/.local/share/linkcovery/links.db`
@@ -324,4 +324,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**LinKCovery** - Because your bookmarks deserve better organization! 🔗✨
+**LinkCovery** - Because your bookmarks deserve better organization! 🔗✨
