@@ -1,3 +1,11 @@
+# 1.0.0 (2025-08-09)
+
+
+### Features
+
+* Implement automated release process with GitHub Actions and semantic versioning ([b0f6c16](https://github.com/arian24b/linkcovery/commit/b0f6c168dab457097ade38d3bcb4ed9342007c87))
+* Introduce a comprehensive service layer for link management and import/export functionality ([a53b5f0](https://github.com/arian24b/linkcovery/commit/a53b5f0db764af7cf979c9faea5636992a33d18d))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
