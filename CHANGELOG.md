@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/arian24b/linkcovery/compare/v1.0.0...v1.0.1) (2025-08-09)
+
+
+### Bug Fixes
+
+* Update release workflow to use semantic-release outputs for versioning and conditional binary builds ([85a1c75](https://github.com/arian24b/linkcovery/commit/85a1c75c68757a15e83dd52c0f83eb2afd8b55cb))
+
 # 1.0.0 (2025-08-09)
 
 
