@@ -15,6 +15,9 @@ jobs:
       issues: write
       pull-requests: write
       id-token: write
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +52,7 @@ jobs:
           npm install -g @semantic-release/exec
 
       - name: Run semantic-release
+        id: semantic
         run: semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,7 +61,7 @@ jobs:
   build-binaries:
     needs: release
     runs-on: ${{ matrix.os }}
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: needs.release.outputs.new_release_published == 'true'
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -88,12 +92,6 @@ jobs:
       - name: Build binary
         run: uv run python build_binary.py
 
-      - name: Get latest release tag
-        id: get_release
-        run: |
-          TAG=$(git describe --tags --abbrev=0)
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
       - name: Rename binary
         run: mv dist/linkcovery dist/${{ matrix.asset_name }}
 
@@ -103,5 +101,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: dist/${{ matrix.asset_name }}
           asset_name: ${{ matrix.asset_name }}
-          tag: ${{ steps.get_release.outputs.tag }}
+          tag: v${{ needs.release.outputs.new_release_version }}
           overwrite: true
