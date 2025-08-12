@@ -1,10 +1,13 @@
 """Link management commands for LinKCovery CLI."""
 
+import asyncio
+
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from linkcovery.cli.utils import confirm_action, handle_errors
+from linkcovery.core.utils import fetch_description_and_tags
 from linkcovery.services.link_service import get_link_service
 
 console = Console()
@@ -21,7 +24,17 @@ def add(
 ) -> None:
     """Add a new link to your bookmarks."""
     link_service = get_link_service()
-    link = link_service.add_link(url=url, description=description, tag=tag, is_read=read)
+
+    if tag and description:
+        link = link_service.add_link(url=url, description=description, tag=tag, is_read=read)
+    else:
+        fetch = asyncio.run(fetch_description_and_tags(url=url))
+        link = link_service.add_link(
+            url=url,
+            description=description if description else fetch["description"],
+            tag=tag if tag else fetch["tags"],
+            is_read=read,
+        )
 
     console.print(f"✅ Added link #{link.id}", style="green")
     console.print(f"   URL: {url}")
