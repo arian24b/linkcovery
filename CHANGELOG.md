@@ -1,3 +1,11 @@
+# [1.1.0](https://github.com/arian24b/linkcovery/compare/v1.0.2...v1.1.0) (2025-08-14)
+
+
+### Features
+
+* Add script to automate link addition from JSON file ([6d2cf99](https://github.com/arian24b/linkcovery/commit/6d2cf99a6220d90db3bcef0fbe8358a3f895ccc9))
+* Enhance link addition with automatic description and tags fetching ([4f954fb](https://github.com/arian24b/linkcovery/commit/4f954fbea330b2d52083322abc5c0b4f46aca53a))
+
 ## [1.0.2](https://github.com/arian24b/linkcovery/compare/v1.0.1...v1.0.2) (2025-08-09)
 
 
