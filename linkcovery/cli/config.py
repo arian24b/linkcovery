@@ -1,15 +1,11 @@
 """Configuration management commands for LinKCovery CLI."""
 
-from typing import Any
-
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from linkcovery.cli.utils import handle_errors
 from linkcovery.core.config import get_config_manager
+from linkcovery.core.utils import console, handle_errors
 
-console = Console()
 app = typer.Typer(help="Manage LinKCovery configuration", no_args_is_help=True)
 
 
@@ -58,7 +54,7 @@ def set(
     config_manager = get_config_manager()
 
     # Try to parse the value as the appropriate type
-    parsed_value: Any = value
+    parsed_value = value
 
     # Handle boolean values
     if value.lower() in ("true", "yes", "1", "on"):
@@ -80,7 +76,7 @@ def set(
 @handle_errors
 def reset() -> None:
     """Reset configuration to defaults."""
-    from linkcovery.cli.utils import confirm_action
+    from linkcovery.core.utils import confirm_action
 
     if not confirm_action("Reset all configuration to defaults?"):
         console.print("🛑 Reset cancelled", style="yellow")

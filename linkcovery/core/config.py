@@ -3,7 +3,6 @@
 import json
 import os
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel
 
@@ -120,7 +119,7 @@ class ConfigManager:
             msg = f"Failed to save configuration: {e}"
             raise ConfigurationError(msg)
 
-    def get(self, key: str) -> Any:
+    def get(self, key: str):
         """Get a configuration value."""
         try:
             return getattr(self._config, key)
@@ -128,7 +127,7 @@ class ConfigManager:
             msg = f"Unknown configuration key: {key}"
             raise ConfigurationError(msg)
 
-    def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value) -> None:
         """Set a configuration value."""
         if not hasattr(self._config, key):
             msg = f"Unknown configuration key: {key}"
@@ -149,7 +148,7 @@ class ConfigManager:
         self._config = AppConfig()
         self.save()
 
-    def list_all(self) -> dict[str, Any]:
+    def list_all(self) -> dict:
         """Get all configuration values."""
         return self._config.model_dump()
 

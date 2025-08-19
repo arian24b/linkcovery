@@ -1,14 +1,11 @@
 """Modern CLI application for LinKCovery."""
 
 import typer
-from rich.console import Console
 
 from linkcovery.cli import config, data, links
-from linkcovery.cli.utils import handle_errors
 from linkcovery.core.config import get_config
+from linkcovery.core.utils import console, handle_errors
 from linkcovery.services.link_service import get_link_service
-
-console = Console()
 
 # Main app
 cli_app = typer.Typer(
@@ -50,15 +47,10 @@ def version() -> None:
     console.print("   Modern bookmark and link management tool")
 
 
-@cli_app.callback()
+@cli_app.callback(no_args_is_help=True)
 def main() -> None:
     """LinKCovery - Modern bookmark management tool.
 
     Efficiently manage, search, and organize your bookmarks with a clean CLI interface.
     """
     return
-
-
-def run_main() -> None:
-    """Run the main application."""
-    cli_app()

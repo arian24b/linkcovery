@@ -3,12 +3,10 @@
 from pathlib import Path
 
 import typer
-from rich.console import Console
 
-from linkcovery.cli.utils import confirm_action, handle_errors
-from linkcovery.services.import_export_service import get_import_export_service
+from linkcovery.core.utils import confirm_action, console, handle_errors
+from linkcovery.services.data_service import get_data_service
 
-console = Console()
 app = typer.Typer(help="Import and export your bookmark data", no_args_is_help=True)
 
 
@@ -26,8 +24,8 @@ def export(
         console.print("🛑 Export cancelled", style="yellow")
         return
 
-    import_export_service = get_import_export_service()
-    import_export_service.export_to_json(output_path)
+    data_service = get_data_service()
+    data_service.export_to_json(output_path)
 
 
 @app.command(name="import")
@@ -53,5 +51,5 @@ def import_data(
         console.print("🛑 Import cancelled", style="yellow")
         return
 
-    import_export_service = get_import_export_service()
-    import_export_service.import_from_json(input_path)
+    data_service = get_data_service()
+    data_service.import_from_json(input_path)

@@ -26,7 +26,7 @@ build = [
 ]
 
 [project.scripts]
-linkcovery = "linkcovery.cli:run_main"
+linkcovery = "main:run"
 
 [project.urls]
 Homepage = "https://github.com/arian24b/linkcovery"

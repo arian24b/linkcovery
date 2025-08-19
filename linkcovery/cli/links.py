@@ -3,14 +3,11 @@
 import asyncio
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from linkcovery.cli.utils import confirm_action, handle_errors
-from linkcovery.core.utils import fetch_description_and_tags
+from linkcovery.core.utils import confirm_action, console, fetch_description_and_tags, handle_errors
 from linkcovery.services.link_service import get_link_service
 
-console = Console()
 app = typer.Typer(help="Manage your bookmarked links", no_args_is_help=True)
 
 

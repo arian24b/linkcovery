@@ -3,18 +3,16 @@
 import json
 from pathlib import Path
 
-from rich.console import Console
 from rich.progress import Progress, TaskID
 
 from linkcovery.core.exceptions import ImportExportError
 from linkcovery.core.models import LinkExport
+from linkcovery.core.utils import console
 from linkcovery.services.link_service import LinkService, get_link_service
 
-console = Console()
 
-
-class ImportExportService:
-    """Service for handling import and export operations."""
+class DataService:
+    """Service for handling data operations."""
 
     def __init__(self, link_service: LinkService | None = None) -> None:
         """Initialize with link service dependency."""
@@ -124,12 +122,12 @@ class ImportExportService:
 
 
 # Global service instance
-_import_export_service: ImportExportService | None = None
+_data_service: DataService | None = None
 
 
-def get_import_export_service() -> ImportExportService:
+def get_data_service() -> DataService:
     """Get the global import/export service instance."""
-    global _import_export_service
-    if _import_export_service is None:
-        _import_export_service = ImportExportService()
-    return _import_export_service
+    global _data_service
+    if _data_service is None:
+        _data_service = DataService()
+    return _data_service

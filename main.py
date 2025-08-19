@@ -3,5 +3,10 @@
 
 from linkcovery.cli import cli_app
 
-if __name__ == "__main__":
+
+def run() -> None:
     cli_app()
+
+
+if __name__ == "__main__":
+    run()
