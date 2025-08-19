@@ -1,3 +1,15 @@
+# [1.2.0](https://github.com/arian24b/linkcovery/compare/v1.1.0...v1.2.0) (2025-08-19)
+
+
+### Bug Fixes
+
+* Update entry point for linkcovery CLI script ([4e82c76](https://github.com/arian24b/linkcovery/commit/4e82c766d4f668e37139a1c514f2df96524ab02c))
+
+
+### Features
+
+* Implement database migration script to add performance indexes and optimize queries ([f9ea296](https://github.com/arian24b/linkcovery/commit/f9ea296bc1260801a850e9e1438c18c29a8ad7bd))
+
 # [1.1.0](https://github.com/arian24b/linkcovery/compare/v1.0.2...v1.1.0) (2025-08-14)
 
 
