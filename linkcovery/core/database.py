@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from linkcovery.core.config import get_config
 from linkcovery.core.exceptions import DatabaseError, LinkAlreadyExistsError, LinkNotFoundError
@@ -14,17 +15,44 @@ from linkcovery.core.models import Base, Link, LinkCreate, LinkFilter, LinkUpdat
 
 
 class DatabaseService:
-    """Modern database service with proper error handling and context management."""
+    """Modern database service with connection pooling and optimization."""
 
     def __init__(self, database_path: str | None = None) -> None:
-        """Initialize database service."""
+        """Initialize database service with connection pooling."""
         if database_path is None:
             database_path = get_config().get_database_path()
 
         try:
-            self.engine = create_engine(f"sqlite:///{database_path}")
+            # Enable connection pooling and optimization for SQLite
+            self.engine = create_engine(
+                f"sqlite:///{database_path}",
+                poolclass=StaticPool,
+                pool_pre_ping=True,
+                connect_args={
+                    "check_same_thread": False,
+                    # SQLite optimization pragmas
+                    "timeout": 20,
+                },
+                echo=False,  # Disable SQL logging for performance
+            )
+
+            # Apply SQLite optimization pragmas
+            with self.engine.connect() as conn:
+                # Performance optimizations
+                conn.exec_driver_sql("PRAGMA journal_mode=WAL")
+                conn.exec_driver_sql("PRAGMA synchronous=NORMAL")
+                conn.exec_driver_sql("PRAGMA cache_size=10000")
+                conn.exec_driver_sql("PRAGMA temp_store=MEMORY")
+                conn.exec_driver_sql("PRAGMA mmap_size=268435456")  # 256MB
+                conn.commit()
+
             Base.metadata.create_all(bind=self.engine)
-            self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+            self.SessionLocal = sessionmaker(
+                autocommit=False,
+                autoflush=False,
+                bind=self.engine,
+                expire_on_commit=False,  # Keep objects accessible after commit
+            )
         except Exception as e:
             msg = f"Failed to initialize database: {e}"
             raise DatabaseError(msg)
@@ -116,14 +144,17 @@ class DatabaseService:
             raise DatabaseError(msg)
 
     def search_links(self, filters: LinkFilter) -> list[Link]:
-        """Search links with filters."""
+        """Search links with filters using optimized queries."""
         try:
             with self.get_session() as session:
                 query = session.query(Link)
 
-                # Apply filters
+                # Apply filters with optimized query patterns
+                conditions = []
+
                 if filters.query:
-                    query = query.filter(
+                    # Use LIKE for text search, could be optimized with FTS if needed
+                    conditions.append(
                         or_(
                             Link.url.contains(filters.query),
                             Link.description.contains(filters.query),
@@ -132,15 +163,26 @@ class DatabaseService:
                     )
 
                 if filters.domain:
-                    query = query.filter(Link.domain.contains(filters.domain))
+                    # Use indexed domain column
+                    conditions.append(Link.domain.contains(filters.domain))
 
                 if filters.tag:
-                    query = query.filter(Link.tag.contains(filters.tag))
+                    # Use indexed tag column
+                    conditions.append(Link.tag.contains(filters.tag))
 
                 if filters.is_read is not None:
-                    query = query.filter(Link.is_read == filters.is_read)
+                    # Use indexed is_read column
+                    conditions.append(Link.is_read == filters.is_read)
 
+                # Apply all conditions at once
+                if conditions:
+                    from sqlalchemy import and_
+
+                    query = query.filter(and_(*conditions))
+
+                # Order by indexed created_at column and limit
                 links = query.order_by(Link.created_at.desc()).limit(filters.limit).all()
+
                 for link in links:
                     session.expunge(link)  # Detach from session
                 return links
@@ -215,21 +257,26 @@ class DatabaseService:
             raise DatabaseError(msg)
 
     def get_statistics(self) -> dict:
-        """Get database statistics."""
+        """Get database statistics with optimized queries."""
         try:
             with self.get_session() as session:
+                # Get counts efficiently with single query
                 total_links = session.query(Link).count()
                 read_links = session.query(Link).filter(Link.is_read == True).count()  # noqa: E712
                 unread_links = total_links - read_links
 
-                # Get top domains
-                domains = {}
-                for link in session.query(Link).all():
-                    # Access the actual value, not the column
-                    domain_value = getattr(link, "domain", "unknown")
-                    domains[domain_value] = domains.get(domain_value, 0) + 1
+                # Get top domains efficiently with group by
+                from sqlalchemy import func
 
-                top_domains = sorted(domains.items(), key=lambda x: x[1], reverse=True)[:10]
+                domain_counts = (
+                    session.query(Link.domain, func.count(Link.domain).label("count"))
+                    .group_by(Link.domain)
+                    .order_by(func.count(Link.domain).desc())
+                    .limit(10)
+                    .all()
+                )
+
+                top_domains = [(domain, count) for domain, count in domain_counts]
 
                 return {
                     "total_links": total_links,

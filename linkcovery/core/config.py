@@ -28,15 +28,24 @@ class AppConfig(BaseModel):
     # Debug and development
     debug: bool = False
 
+    # Cache for expensive operations
+    _cached_db_path: str | None = None
+    _cached_config_dir: Path | None = None
+
     def get_database_path(self) -> str:
-        """Get the database path with fallback options."""
+        """Get the database path with fallback options (cached)."""
+        if self._cached_db_path:
+            return self._cached_db_path
+
         if self.database_path:
-            return self.database_path
+            self._cached_db_path = self.database_path
+            return self._cached_db_path
 
         # Try environment variable first
         db_path = os.getenv("LINKCOVERY_DB")
         if db_path:
-            return db_path
+            self._cached_db_path = db_path
+            return self._cached_db_path
 
         # Try platformdirs if available
         try:
@@ -44,15 +53,20 @@ class AppConfig(BaseModel):
 
             data_dir = Path(user_data_dir("linkcovery"))
             data_dir.mkdir(parents=True, exist_ok=True)
-            return str(data_dir / "links.db")
+            self._cached_db_path = str(data_dir / "links.db")
         except ImportError:
             # Fallback to home directory
             data_dir = Path.home() / ".linkcovery"
             data_dir.mkdir(parents=True, exist_ok=True)
-            return str(data_dir / "links.db")
+            self._cached_db_path = str(data_dir / "links.db")
+
+        return self._cached_db_path
 
     def get_config_dir(self) -> Path:
-        """Get the configuration directory."""
+        """Get the configuration directory (cached)."""
+        if self._cached_config_dir:
+            return self._cached_config_dir
+
         try:
             from platformdirs import user_config_dir
 
@@ -61,6 +75,7 @@ class AppConfig(BaseModel):
             config_dir = Path.home() / ".config" / "linkcovery"
 
         config_dir.mkdir(parents=True, exist_ok=True)
+        self._cached_config_dir = config_dir
         return config_dir
 
     def get_config_file(self) -> Path:

@@ -2,9 +2,6 @@
 
 from urllib.parse import urlparse
 
-import httpx
-from bs4 import BeautifulSoup
-
 
 def validate_url(url: str) -> bool:
     """Simple URL validation."""
@@ -29,25 +26,34 @@ def extract_domain(url: str) -> str:
 
 
 async def fetch_description_and_tags(url: str) -> dict[str, str]:
-    async with httpx.AsyncClient(
-        timeout=60,
-        follow_redirects=True,
-        verify=False,
-        http2=True,
-    ) as client:
-        resp = await client.get(url)
-        resp.raise_for_status()
+    """Fetch metadata from URL. Imports are lazy-loaded for performance."""
+    try:
+        # Lazy imports to avoid loading HTTP libraries unless needed
+        import httpx
+        from bs4 import BeautifulSoup
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+        async with httpx.AsyncClient(
+            timeout=10,  # Reduced timeout for better performance
+            follow_redirects=True,
+            verify=False,
+            http2=True,
+        ) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
 
-    description_tag = soup.find("meta", attrs={"name": "description"})
-    description = description_tag.get("content", "").strip() if description_tag else ""
+        soup = BeautifulSoup(resp.text, "html.parser")
 
-    keywords_tag = soup.find("meta", attrs={"name": "keywords"})
-    if keywords_tag and "content" in keywords_tag.attrs:
-        # Format like: tag1,tag2,tag3,
-        tags = ",".join(kw.strip() for kw in keywords_tag["content"].split(",")) + ","
-    else:
-        tags = ""
+        description_tag = soup.find("meta", attrs={"name": "description"})
+        description = description_tag.get("content", "").strip() if description_tag else ""
 
-    return {"description": description, "tags": tags}
+        keywords_tag = soup.find("meta", attrs={"name": "keywords"})
+        if keywords_tag and "content" in keywords_tag.attrs:
+            # Format like: tag1,tag2,tag3,
+            tags = ",".join(kw.strip() for kw in keywords_tag["content"].split(",")) + ","
+        else:
+            tags = ""
+
+        return {"description": description, "tags": tags}
+    except Exception:
+        # Return empty values if fetching fails
+        return {"description": "", "tags": ""}

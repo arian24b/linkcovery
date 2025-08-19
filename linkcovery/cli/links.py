@@ -21,27 +21,38 @@ def add(
     description: str = typer.Option("", "--desc", "-d", help="Description for the link"),
     tag: str = typer.Option("", "--tag", "-t", help="Tag to categorize the link"),
     read: bool = typer.Option(False, "--read", "-r", help="Mark as already read"),
+    no_fetch: bool = typer.Option(False, "--no-fetch", help="Skip fetching metadata from URL"),
 ) -> None:
     """Add a new link to your bookmarks."""
     link_service = get_link_service()
 
-    if tag and description:
-        link = link_service.add_link(url=url, description=description, tag=tag, is_read=read)
+    # Only fetch metadata if not provided and not explicitly disabled
+    if not no_fetch and not (description and tag):
+        try:
+            fetch = asyncio.run(fetch_description_and_tags(url=url))
+            final_description = description or fetch["description"]
+            final_tag = tag or fetch["tags"]
+        except Exception:
+            # If fetching fails, continue with provided or empty values
+            final_description = description
+            final_tag = tag
     else:
-        fetch = asyncio.run(fetch_description_and_tags(url=url))
-        link = link_service.add_link(
-            url=url,
-            description=description if description else fetch["description"],
-            tag=tag if tag else fetch["tags"],
-            is_read=read,
-        )
+        final_description = description
+        final_tag = tag
+
+    link = link_service.add_link(
+        url=url,
+        description=final_description,
+        tag=final_tag,
+        is_read=read,
+    )
 
     console.print(f"✅ Added link #{link.id}", style="green")
     console.print(f"   URL: {url}")
-    if description:
-        console.print(f"   Description: {description}")
-    if tag:
-        console.print(f"   Tag: {tag}")
+    if final_description:
+        console.print(f"   Description: {final_description}")
+    if final_tag:
+        console.print(f"   Tag: {final_tag}")
     if read:
         console.print("   Status: Read")
 

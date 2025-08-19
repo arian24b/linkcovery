@@ -29,16 +29,16 @@ cli_app.add_typer(data.app, name="data")
 def stats() -> None:
     """Show bookmark statistics."""
     link_service = get_link_service()
-    stats = link_service.get_statistics()
+    stats_data = link_service.get_statistics()
 
     console.print("📊 [bold blue]LinKCovery Statistics[/bold blue]")
-    console.print(f"   Total links: [bold]{stats['total_links']}[/bold]")
-    console.print(f"   Read: [green]{stats['read_links']}[/green]")
-    console.print(f"   Unread: [yellow]{stats['unread_links']}[/yellow]")
+    console.print(f"   Total links: [bold]{stats_data['total_links']}[/bold]")
+    console.print(f"   Read: [green]{stats_data['read_links']}[/green]")
+    console.print(f"   Unread: [yellow]{stats_data['unread_links']}[/yellow]")
 
-    if stats["top_domains"]:
+    if stats_data["top_domains"]:
         console.print("\n   Top domains:")
-        for domain, count in stats["top_domains"][:5]:
+        for domain, count in stats_data["top_domains"][:5]:
             console.print(f"     [cyan]{domain}[/cyan]: {count}")
 
 
@@ -57,3 +57,8 @@ def main() -> None:
     Efficiently manage, search, and organize your bookmarks with a clean CLI interface.
     """
     return
+
+
+def run_main() -> None:
+    """Run the main application."""
+    cli_app()
