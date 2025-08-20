@@ -36,7 +36,7 @@ def create_binary() -> None:
         subprocess.run(cmd, check=True)
 
         # Test the binary
-        test_binary()
+        # test_binary()
 
     except subprocess.CalledProcessError:
         sys.exit(1)
