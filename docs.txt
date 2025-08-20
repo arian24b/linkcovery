@@ -1,0 +1,377 @@
+# `linkcovery-docs`
+
+🔗 Modern bookmark and link management tool
+
+**Usage**:
+
+```console
+$ linkcovery-docs [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--install-completion`: Install completion for the current shell.
+* `--show-completion`: Show completion for the current shell, to copy it or customize the installation.
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `stats`: Show bookmark statistics.
+* `version`: Show version information.
+* `links`: Manage your bookmarked links
+* `config`: Manage LinKCovery configuration
+* `data`: Import and export your bookmark data
+
+## `linkcovery-docs stats`
+
+Show bookmark statistics.
+
+**Usage**:
+
+```console
+$ linkcovery-docs stats [OPTIONS]
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+## `linkcovery-docs version`
+
+Show version information.
+
+**Usage**:
+
+```console
+$ linkcovery-docs version [OPTIONS]
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+## `linkcovery-docs links`
+
+Manage your bookmarked links
+
+**Usage**:
+
+```console
+$ linkcovery-docs links [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `add`: Add a new link to your bookmarks.
+* `list`: List your bookmarked links.
+* `search`: Search your bookmarks.
+* `show`: Show detailed information about a specific...
+* `edit`: Edit an existing link.
+* `delete`: Delete a link from your bookmarks.
+* `mark-read`: Mark a link as read.
+* `mark-unread`: Mark a link as unread.
+
+### `linkcovery-docs links add`
+
+Add a new link to your bookmarks.
+
+**Usage**:
+
+```console
+$ linkcovery-docs links add [OPTIONS] URL
+```
+
+**Arguments**:
+
+* `URL`: URL to bookmark  [required]
+
+**Options**:
+
+* `-d, --desc TEXT`: Description for the link
+* `-t, --tag TEXT`: Tag to categorize the link
+* `-r, --read`: Mark as already read
+* `--no-fetch`: Skip fetching metadata from URL
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs links list`
+
+List your bookmarked links.
+
+**Usage**:
+
+```console
+$ linkcovery-docs links list [OPTIONS]
+```
+
+**Options**:
+
+* `-l, --limit INTEGER`: Maximum number of links to show  [default: 20]
+* `--read-only`: Show only read links
+* `--unread-only`: Show only unread links
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs links search`
+
+Search your bookmarks.
+
+**Usage**:
+
+```console
+$ linkcovery-docs links search [OPTIONS] [QUERY]
+```
+
+**Arguments**:
+
+* `[QUERY]`: Search in URLs, descriptions, and tags
+
+**Options**:
+
+* `--domain TEXT`: Filter by domain
+* `-t, --tag TEXT`: Filter by tag
+* `--read-only`: Show only read links
+* `--unread-only`: Show only unread links
+* `-l, --limit INTEGER`: Maximum results  [default: 20]
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs links show`
+
+Show detailed information about a specific link.
+
+**Usage**:
+
+```console
+$ linkcovery-docs links show [OPTIONS] LINK_ID
+```
+
+**Arguments**:
+
+* `LINK_ID`: Link ID to display  [required]
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs links edit`
+
+Edit an existing link.
+
+**Usage**:
+
+```console
+$ linkcovery-docs links edit [OPTIONS] LINK_ID
+```
+
+**Arguments**:
+
+* `LINK_ID`: Link ID to edit  [required]
+
+**Options**:
+
+* `--url TEXT`: New URL
+* `-d, --desc TEXT`: New description
+* `-t, --tag TEXT`: New tag
+* `--read`: Mark as read
+* `--unread`: Mark as unread
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs links delete`
+
+Delete a link from your bookmarks.
+
+**Usage**:
+
+```console
+$ linkcovery-docs links delete [OPTIONS] LINK_ID
+```
+
+**Arguments**:
+
+* `LINK_ID`: Link ID to delete  [required]
+
+**Options**:
+
+* `-f, --force`: Skip confirmation
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs links mark-read`
+
+Mark a link as read.
+
+**Usage**:
+
+```console
+$ linkcovery-docs links mark-read [OPTIONS] LINK_ID
+```
+
+**Arguments**:
+
+* `LINK_ID`: Link ID to mark as read  [required]
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs links mark-unread`
+
+Mark a link as unread.
+
+**Usage**:
+
+```console
+$ linkcovery-docs links mark-unread [OPTIONS] LINK_ID
+```
+
+**Arguments**:
+
+* `LINK_ID`: Link ID to mark as unread  [required]
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+## `linkcovery-docs config`
+
+Manage LinKCovery configuration
+
+**Usage**:
+
+```console
+$ linkcovery-docs config [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `show`: Show current configuration.
+* `get`: Get a specific configuration value.
+* `set`: Set a configuration value.
+* `reset`: Reset configuration to defaults.
+
+### `linkcovery-docs config show`
+
+Show current configuration.
+
+**Usage**:
+
+```console
+$ linkcovery-docs config show [OPTIONS]
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs config get`
+
+Get a specific configuration value.
+
+**Usage**:
+
+```console
+$ linkcovery-docs config get [OPTIONS] KEY
+```
+
+**Arguments**:
+
+* `KEY`: Configuration key to retrieve  [required]
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs config set`
+
+Set a configuration value.
+
+**Usage**:
+
+```console
+$ linkcovery-docs config set [OPTIONS] KEY VALUE
+```
+
+**Arguments**:
+
+* `KEY`: Configuration key to set  [required]
+* `VALUE`: New value for the configuration key  [required]
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs config reset`
+
+Reset configuration to defaults.
+
+**Usage**:
+
+```console
+$ linkcovery-docs config reset [OPTIONS]
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+## `linkcovery-docs data`
+
+Import and export your bookmark data
+
+**Usage**:
+
+```console
+$ linkcovery-docs data [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `export`: Export all your links to a JSON file.
+* `import`: Import links from a JSON file.
+
+### `linkcovery-docs data export`
+
+Export all your links to a JSON file.
+
+**Usage**:
+
+```console
+$ linkcovery-docs data export [OPTIONS] [OUTPUT]
+```
+
+**Arguments**:
+
+* `[OUTPUT]`: Output file path  [default: links.json]
+
+**Options**:
+
+* `-f, --force`: Overwrite existing file
+* `--help`: Show this message and exit.
+
+### `linkcovery-docs data import`
+
+Import links from a JSON file.
+
+**Usage**:
+
+```console
+$ linkcovery-docs data import [OPTIONS] INPUT_FILE
+```
+
+**Arguments**:
+
+* `INPUT_FILE`: JSON file to import  [required]
+
+**Options**:
+
+* `--dry-run`: Show what would be imported without actually importing
+* `--help`: Show this message and exit.
