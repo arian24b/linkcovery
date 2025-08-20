@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/arian24b/linkcovery/compare/v1.3.0...v1.4.0) (2025-08-20)
+
+
+### Features
+
+* Enhance import functionality to support HTML files and validate input format ([d0ccab8](https://github.com/arian24b/linkcovery/commit/d0ccab85c1ad144a36f4b889cb70b0f788566396))
+
 # [1.3.0](https://github.com/arian24b/linkcovery/compare/v1.2.0...v1.3.0) (2025-08-20)
 
 
