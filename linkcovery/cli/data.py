@@ -52,4 +52,11 @@ def import_data(
         return
 
     data_service = get_data_service()
-    data_service.import_from_json(input_path)
+
+    if input_file.endswith(".json"):
+        data_service.import_from_json(input_path)
+    elif input_file.endswith(".html"):
+        data_service.import_from_html(input_path)
+    else:
+        console.print(f"❌ Unsupported file format: {input_file}", style="red")
+        raise typer.Exit(1)

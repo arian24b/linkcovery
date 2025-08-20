@@ -104,6 +104,60 @@ class DataService:
                 for failure in failed_links[:5]:
                     console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
+    def import_from_html(self, input_path: str | Path) -> None:
+        """Import links from HTML file."""
+        from bs4 import BeautifulSoup
+
+        try:
+            with open(input_path, encoding="utf-8") as f:
+                soup = BeautifulSoup(f, "html.parser")
+                links_data = []
+                for a in soup.find_all("a"):
+                    url = a.get("href", "")
+                    links_data.append({"url": url, "description": ""})
+
+        except Exception as e:
+            msg = f"Failed to read file: {e}"
+            raise ImportExportError(msg)
+
+        if not links_data:
+            console.print("ℹ️ No links found in the HTML file", style="blue")
+            return
+
+        # Import with progress tracking
+        added_count = 0
+        failed_count = 0
+        failed_links = []
+
+        console.print(f"📥 Importing {len(links_data)} links...")
+
+        with Progress() as progress:
+            task: TaskID = progress.add_task("Importing links...", total=len(links_data))
+
+            for i, link_data in enumerate(links_data, 1):
+                try:
+                    url = link_data.get("url", "")
+                    description = link_data.get("description", "")
+                    tag = link_data.get("tag", "")
+                    is_read = link_data.get("is_read", False)
+
+                    self.link_service.add_link(
+                        url=url,
+                        description=description,
+                        tag=tag,
+                        is_read=is_read,
+                    )
+                    added_count += 1
+
+                except Exception as e:
+                    failed_count += 1
+                    failed_links.append({"index": i, "url": url, "error": str(e)})
+
+                progress.update(task, advance=1)
+
+        # Show results
+        console.print(f"✅ Import completed: {added_count} links added", style="green")
+
     def export_links(self, links: list, output_path: str | Path) -> None:
         """Export a specific list of links."""
         try:
