@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/arian24b/linkcovery/compare/v1.2.0...v1.3.0) (2025-08-20)
+
+
+### Features
+
+* Add main.py to initialize the linkcovery CLI application ([16ab6ba](https://github.com/arian24b/linkcovery/commit/16ab6ba2bce335b8bf7a632096a71de771fa925c))
+
 # [1.2.0](https://github.com/arian24b/linkcovery/compare/v1.1.0...v1.2.0) (2025-08-19)
 
 
