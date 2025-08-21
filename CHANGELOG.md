@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/arian24b/linkcovery/compare/v1.4.0...v1.4.1) (2025-08-21)
+
+
+### Bug Fixes
+
+* Refactor configuration and database services; improve link handling and domain extraction ([b932a18](https://github.com/arian24b/linkcovery/commit/b932a185a8afa798d9bd49d4a7cf8d8c2cf8322f))
+
 # [1.4.0](https://github.com/arian24b/linkcovery/compare/v1.3.0...v1.4.0) (2025-08-20)
 
 
