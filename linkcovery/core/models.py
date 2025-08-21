@@ -75,8 +75,49 @@ class LinkCreate(BaseModel):
         return v.strip() if v else None
 
 
-class LinkUpdate(LinkCreate):
+class LinkUpdate(BaseModel):
     """Pydantic model for updating existing links."""
+
+    url: str | None = Field(None, description="The URL to bookmark")
+    description: str | None = Field(None, description="Optional description for the link")
+    tag: str | None = Field(None, description="Tag to categorize the link")
+    is_read: bool | None = Field(None, description="Whether the link has been read")
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str | None) -> str | None:
+        """Validate URL format when provided."""
+        if v is None:
+            return v
+
+        if not v or not isinstance(v, str):
+            msg = "URL is required and must be a string"
+            raise ValueError(msg)
+
+        v = v.strip()
+        if not v.startswith(("http://", "https://")):
+            msg = "URL must start with http:// or https://"
+            raise ValueError(msg)
+
+        try:
+            result = urlparse(v)
+            if not result.netloc:
+                msg = "URL must have a valid domain"
+                raise ValueError(msg)
+        except Exception as e:
+            msg = f"Invalid URL format: {e}"
+            raise ValueError(msg)
+
+        return v
+
+    @field_validator("description", "tag")
+    @classmethod
+    def validate_description(cls, v: str | None) -> str | None:
+        """Validate and clean description and tag when provided."""
+        if v is None:
+            return v
+        # Return empty string as-is to allow clearing fields
+        return v.strip()
 
 
 class LinkFilter(BaseModel):

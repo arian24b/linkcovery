@@ -54,9 +54,9 @@ def add(
         console.print("   Status: Read")
 
 
-@app.command()
+@app.command(name="list")
 @handle_errors
-def list(
+def list_links(
     limit: int = typer.Option(20, "--limit", "-l", help="Maximum number of links to show"),
     read_only: bool = typer.Option(False, "--read-only", help="Show only read links"),
     unread_only: bool = typer.Option(False, "--unread-only", help="Show only unread links"),
@@ -177,8 +177,8 @@ def edit(
     url: str | None = typer.Option(None, "--url", help="New URL"),
     description: str | None = typer.Option(None, "--desc", "-d", help="New description"),
     tag: str | None = typer.Option(None, "--tag", "-t", help="New tag"),
-    read: bool = typer.Option(False, "--read", help="Mark as read"),
-    unread: bool = typer.Option(False, "--unread", help="Mark as unread"),
+    read: bool = typer.Option(False, "--read", "-r", help="Mark as read"),
+    unread: bool = typer.Option(False, "--unread", "-u", help="Mark as unread"),
 ) -> None:
     """Edit an existing link."""
     link_service = get_link_service()
@@ -209,36 +209,74 @@ def edit(
 @app.command()
 @handle_errors
 def delete(
-    link_id: int = typer.Argument(..., help="Link ID to delete"),
+    link_id: list[int] = typer.Argument(..., help="Link ID to delete"),
     force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation"),
 ) -> None:
     """Delete a link from your bookmarks."""
     link_service = get_link_service()
 
     # Get link details for confirmation
-    link = link_service.get_link(link_id)
+    links = [link_service.get_link(id) for id in link_id]
 
-    if not force and not confirm_action(f"Delete link #{link_id}: {link.url}?"):
+    if not force and not confirm_action(f"Delete links: {', '.join(str(link.id) for link in links)}?"):
         console.print("🛑 Deletion cancelled", style="yellow")
         return
 
-    link_service.delete_link(link_id)
-    console.print(f"✅ Deleted link #{link_id}", style="green")
+    for link in links:
+        link_service.delete_link(link.id)
+    console.print(f"✅ Deleted links: {', '.join(str(link.id) for link in links)}", style="green")
 
 
 @app.command("mark-read")
 @handle_errors
-def mark_read(link_id: int = typer.Argument(..., help="Link ID to mark as read")) -> None:
+def mark_read(link_id: list[int] = typer.Argument(..., help="Link ID to mark as read")) -> None:
     """Mark a link as read."""
     link_service = get_link_service()
-    link = link_service.mark_as_read(link_id)
-    console.print(f"✅ Marked link #{link.id} as read", style="green")
+    for id in link_id:
+        link = link_service.mark_as_read(id)
+        console.print(f"✅ Marked link #{link.id} as read", style="green")
 
 
 @app.command("mark-unread")
 @handle_errors
-def mark_unread(link_id: int = typer.Argument(..., help="Link ID to mark as unread")) -> None:
+def mark_unread(link_id: list[int] = typer.Argument(..., help="Link ID to mark as unread")) -> None:
     """Mark a link as unread."""
     link_service = get_link_service()
-    link = link_service.mark_as_unread(link_id)
-    console.print(f"✅ Marked link #{link.id} as unread", style="green")
+    for id in link_id:
+        link = link_service.mark_as_unread(id)
+        console.print(f"✅ Marked link #{link.id} as unread", style="green")
+
+
+@app.command()
+@handle_errors
+def normalize(
+    link_id: list[int] = typer.Argument(None, help="Link IDs to normalize"),
+    all_links: bool = typer.Option(False, "--all", "-a", help="Normalize all links"),
+) -> None:
+    """Normalize link URLs by removing trailing slashes, converting http to https, and removing www."""
+    link_service = get_link_service()
+
+    if all_links:
+        # Normalize all links
+        if link_id:
+            console.print("⚠️ Ignoring specific link IDs when --all is used", style="yellow")
+
+        console.print("🔄 Normalizing all links...", style="blue")
+        normalized_links = link_service.normalize_all_links()
+
+        if normalized_links:
+            console.print(f"✅ Normalized {len(normalized_links)} links", style="green")
+            for link in normalized_links:
+                console.print(f"   • Link #{link.id}: {link.url}", style="dim")
+        else:
+            console.print("📭 No links found to normalize", style="yellow")
+    elif link_id:
+        # Normalize specific links
+        for id in link_id:
+            try:
+                link = link_service.normalize_link(id)
+                console.print(f"✅ Normalized link #{link.id}: {link.url}", style="green")
+            except Exception as e:
+                console.print(f"❌ Failed to normalize link #{id}: {e}", style="red")
+    else:
+        console.print("⚠️ Please specify link IDs or use --all to normalize all links", style="yellow")

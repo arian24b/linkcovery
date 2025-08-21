@@ -248,7 +248,6 @@ class DatabaseService:
                     session.query(Link.domain, func.count(Link.domain).label("count"))
                     .group_by(Link.domain)
                     .order_by(func.count(Link.domain).desc())
-                    .limit(10)
                     .all()
                 )
 

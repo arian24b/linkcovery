@@ -53,10 +53,48 @@ def confirm_action(message: str, default: bool = False) -> bool:
 def extract_domain(url: str) -> str:
     """Extract domain from the URL."""
     try:
-        return urlparse(url).netloc.lower()
+        domain = urlparse(url).netloc.lower()
+        return normalize_domain(domain)
     except Exception:
         msg = "Could not extract domain from URL"
         raise ValueError(msg)
+
+
+def normalize_url(url: str) -> str:
+    """Normalize URL by removing trailing slash, converting http to https, and removing www from domain."""
+    try:
+        parsed = urlparse(url)
+
+        # Convert http to https
+        scheme = "https"
+
+        # Remove www from domain
+        netloc = parsed.netloc.lower()
+        if netloc.startswith("www."):
+            netloc = netloc[4:]
+
+        # Remove trailing slash from path
+        path = parsed.path.rstrip("/") if parsed.path != "/" else ""
+
+        # Reconstruct the URL
+        normalized = f"{scheme}://{netloc}{path}"
+        if parsed.query:
+            normalized += f"?{parsed.query}"
+        if parsed.fragment:
+            normalized += f"#{parsed.fragment}"
+
+        return normalized
+    except Exception:
+        msg = "Could not normalize URL"
+        raise ValueError(msg)
+
+
+def normalize_domain(domain: str) -> str:
+    """Normalize domain by removing www prefix."""
+    domain = domain.lower().strip()
+    if domain.startswith("www."):
+        domain = domain[4:]
+    return domain
 
 
 async def fetch_description_and_tags(url: str) -> dict[str, str]:

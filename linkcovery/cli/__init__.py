@@ -16,9 +16,9 @@ cli_app = typer.Typer(
 )
 
 # Add command groups
-cli_app.add_typer(links.app, name="links")
+cli_app.add_typer(links.app)
+cli_app.add_typer(data.app)
 cli_app.add_typer(config.app, name="config")
-cli_app.add_typer(data.app, name="data")
 
 
 @cli_app.command()
@@ -35,7 +35,7 @@ def stats() -> None:
 
     if stats_data["top_domains"]:
         console.print("\n   Top domains:")
-        for domain, count in stats_data["top_domains"][:5]:
+        for domain, count in stats_data["top_domains"]:
             console.print(f"     [cyan]{domain}[/cyan]: {count}")
 
 
