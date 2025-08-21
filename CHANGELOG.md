@@ -1,3 +1,15 @@
+# [1.5.0](https://github.com/arian24b/linkcovery/compare/v1.4.1...v1.5.0) (2025-08-21)
+
+
+### Bug Fixes
+
+* Simplify link normalization logic and improve domain extraction ([4da386a](https://github.com/arian24b/linkcovery/commit/4da386a7c4072514756de401a05e416392f1d847))
+
+
+### Features
+
+* Enhance link management with normalization features and improve command structure ([278cfed](https://github.com/arian24b/linkcovery/commit/278cfed8d9adf05e2378a40ddd1fc2e05b960ef6))
+
 ## [1.4.1](https://github.com/arian24b/linkcovery/compare/v1.4.0...v1.4.1) (2025-08-21)
 
 
