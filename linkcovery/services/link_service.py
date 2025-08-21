@@ -79,26 +79,16 @@ class LinkService:
 
     def normalize_link(self, link_id: int) -> Link:
         """Normalize a link's URL and domain."""
-        # Get the current link
-        current_link = self.get_link(link_id)
-
-        # Normalize the URL
-        normalized_url = normalize_url(current_link.url)
-
-        # Update the link with normalized URL (domain will be auto-updated)
-        return self.update_link(link_id, url=normalized_url)
+        return self.update_link(link_id, url=normalize_url(str(self.get_link(link_id).url)))
 
     def normalize_all_links(self) -> list[Link]:
         """Normalize all links' URLs and domains."""
-        all_links = self.list_all_links()
         normalized_links = []
 
-        for link in all_links:
+        for link in self.list_all_links():
             try:
-                normalized_link = self.normalize_link(link.id)
-                normalized_links.append(normalized_link)
+                normalized_links.append(self.normalize_link(link.id))
             except Exception:
-                # Skip links that fail to normalize and continue with the rest
                 continue
 
         return normalized_links

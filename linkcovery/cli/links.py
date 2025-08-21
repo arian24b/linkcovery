@@ -262,9 +262,8 @@ def normalize(
             console.print("⚠️ Ignoring specific link IDs when --all is used", style="yellow")
 
         console.print("🔄 Normalizing all links...", style="blue")
-        normalized_links = link_service.normalize_all_links()
 
-        if normalized_links:
+        if normalized_links := link_service.normalize_all_links():
             console.print(f"✅ Normalized {len(normalized_links)} links", style="green")
             for link in normalized_links:
                 console.print(f"   • Link #{link.id}: {link.url}", style="dim")
