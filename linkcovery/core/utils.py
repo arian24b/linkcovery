@@ -50,26 +50,13 @@ def confirm_action(message: str, default: bool = False) -> bool:
         return False
 
 
-def validate_url(url: str) -> bool:
-    """Simple URL validation."""
-    try:
-        if not url or not isinstance(url, str):
-            return False
-        url = url.strip()
-        if not url.startswith(("http://", "https://")):
-            return False
-        result = urlparse(url)
-        return bool(result.scheme and result.netloc)
-    except Exception:
-        return False
-
-
 def extract_domain(url: str) -> str:
-    """Extract domain from URL."""
+    """Extract domain from the URL."""
     try:
         return urlparse(url).netloc.lower()
     except Exception:
-        return ""
+        msg = "Could not extract domain from URL"
+        raise ValueError(msg)
 
 
 async def fetch_description_and_tags(url: str) -> dict[str, str]:

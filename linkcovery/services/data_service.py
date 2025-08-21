@@ -1,5 +1,6 @@
 """Import and export service for LinKCovery."""
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from rich.progress import Progress, TaskID
 
 from linkcovery.core.exceptions import ImportExportError
 from linkcovery.core.models import LinkExport
-from linkcovery.core.utils import console
+from linkcovery.core.utils import console, fetch_description_and_tags
 from linkcovery.services.link_service import LinkService, get_link_service
 
 
@@ -137,14 +138,19 @@ class DataService:
             for i, link_data in enumerate(links_data, 1):
                 try:
                     url = link_data.get("url", "")
-                    description = link_data.get("description", "")
-                    tag = link_data.get("tag", "")
+                    description = link_data.get("description")
+                    tag = link_data.get("tag")
                     is_read = link_data.get("is_read", False)
+
+                    if not (tag and description):
+                        fetch = asyncio.run(fetch_description_and_tags(url=url))
+                        final_description = description or fetch["description"]
+                        final_tag = tag or fetch["tags"]
 
                     self.link_service.add_link(
                         url=url,
-                        description=description,
-                        tag=tag,
+                        description=final_description,
+                        tag=final_tag,
                         is_read=is_read,
                     )
                     added_count += 1

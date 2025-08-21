@@ -1,8 +1,8 @@
-"""Modern database service for LinKCovery."""
+"""Database service for LinKCovery."""
 
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import create_engine, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -12,10 +12,11 @@ from sqlalchemy.pool import StaticPool
 from linkcovery.core.config import get_config
 from linkcovery.core.exceptions import DatabaseError, LinkAlreadyExistsError, LinkNotFoundError
 from linkcovery.core.models import Base, Link, LinkCreate, LinkFilter, LinkUpdate
+from linkcovery.core.utils import extract_domain
 
 
 class DatabaseService:
-    """Modern database service with connection pooling and optimization."""
+    """Database service with connection pooling and optimization."""
 
     def __init__(self, database_path: str | None = None) -> None:
         """Initialize database service with connection pooling."""
@@ -75,15 +76,14 @@ class DatabaseService:
         try:
             with self.get_session() as session:
                 # Check if link already exists
-                existing = session.query(Link).filter(Link.url == link_data.url).first()
-                if existing:
+                if session.query(Link).filter(Link.url == link_data.url).first():
                     raise LinkAlreadyExistsError(link_data.url)
 
                 # Create new link
-                now = datetime.utcnow().isoformat()
+                now = datetime.now(UTC).isoformat()
                 link = Link(
                     url=link_data.url,
-                    domain=link_data.extract_domain(),
+                    domain=extract_domain(url=link_data.url),
                     description=link_data.description,
                     tag=link_data.tag,
                     is_read=link_data.is_read,
@@ -96,13 +96,6 @@ class DatabaseService:
                 session.expunge(link)  # Detach from session
                 return link
 
-        except LinkAlreadyExistsError:
-            raise
-        except IntegrityError as e:
-            if "UNIQUE constraint failed" in str(e):
-                raise LinkAlreadyExistsError(link_data.url)
-            msg = f"Database constraint error: {e}"
-            raise DatabaseError(msg)
         except SQLAlchemyError as e:
             msg = f"Database error while creating link: {e}"
             raise DatabaseError(msg)
@@ -114,13 +107,10 @@ class DatabaseService:
         """Get a link by ID."""
         try:
             with self.get_session() as session:
-                link = session.query(Link).filter(Link.id == link_id).first()
-                if not link:
+                if not (link := session.query(Link).filter(Link.id == link_id).first()):
                     raise LinkNotFoundError(link_id)
                 session.expunge(link)  # Detach from session
                 return link
-        except LinkNotFoundError:
-            raise
         except SQLAlchemyError as e:
             msg = f"Database error while retrieving link: {e}"
             raise DatabaseError(msg)
@@ -132,8 +122,7 @@ class DatabaseService:
         """Get all links ordered by creation date."""
         try:
             with self.get_session() as session:
-                links = session.query(Link).order_by(Link.created_at.desc()).all()
-                for link in links:
+                for link in (links := session.query(Link).order_by(Link.created_at.desc()).all()):
                     session.expunge(link)  # Detach from session
                 return links
         except SQLAlchemyError as e:
@@ -181,9 +170,7 @@ class DatabaseService:
                     query = query.filter(and_(*conditions))
 
                 # Order by indexed created_at column and limit
-                links = query.order_by(Link.created_at.desc()).limit(filters.limit).all()
-
-                for link in links:
+                for link in (links := query.order_by(Link.created_at.desc()).limit(filters.limit).all()):
                     session.expunge(link)  # Detach from session
                 return links
 
@@ -198,18 +185,13 @@ class DatabaseService:
         """Update an existing link."""
         try:
             with self.get_session() as session:
-                link = session.query(Link).filter(Link.id == link_id).first()
-                if not link:
+                if not (link := session.query(Link).filter(Link.id == link_id).first()):
                     raise LinkNotFoundError(link_id)
 
                 # Apply updates only for fields that were actually set
-                update_data = updates.model_dump(exclude_unset=True, exclude_none=True)
-
-                if "url" in update_data:
+                if "url" in (update_data := updates.model_dump(exclude_unset=True, exclude_none=True)):
                     # Update domain if URL changed
-                    from urllib.parse import urlparse
-
-                    link.domain = urlparse(update_data["url"]).netloc.lower()
+                    link.domain = extract_domain(url=update_data["url"])
                     link.url = update_data["url"]
 
                 for key, value in update_data.items():
@@ -217,14 +199,12 @@ class DatabaseService:
                         setattr(link, key, value)
 
                 # Update timestamp
-                link.updated_at = datetime.utcnow().isoformat()
+                link.updated_at = datetime.now(UTC).isoformat()
 
                 session.flush()
                 session.expunge(link)  # Detach from session
                 return link
 
-        except LinkNotFoundError:
-            raise
         except IntegrityError as e:
             if "UNIQUE constraint failed" in str(e):
                 raise LinkAlreadyExistsError(updates.url or "")
@@ -241,14 +221,11 @@ class DatabaseService:
         """Delete a link."""
         try:
             with self.get_session() as session:
-                link = session.query(Link).filter(Link.id == link_id).first()
-                if not link:
+                if not (link := session.query(Link).filter(Link.id == link_id).first()):
                     raise LinkNotFoundError(link_id)
 
                 session.delete(link)
 
-        except LinkNotFoundError:
-            raise
         except SQLAlchemyError as e:
             msg = f"Database error while deleting link: {e}"
             raise DatabaseError(msg)
@@ -263,7 +240,6 @@ class DatabaseService:
                 # Get counts efficiently with single query
                 total_links = session.query(Link).count()
                 read_links = session.query(Link).filter(Link.is_read == True).count()  # noqa: E712
-                unread_links = total_links - read_links
 
                 # Get top domains efficiently with group by
                 from sqlalchemy import func
@@ -276,13 +252,11 @@ class DatabaseService:
                     .all()
                 )
 
-                top_domains = [(domain, count) for domain, count in domain_counts]
-
                 return {
                     "total_links": total_links,
                     "read_links": read_links,
-                    "unread_links": unread_links,
-                    "top_domains": top_domains,
+                    "unread_links": total_links - read_links,
+                    "top_domains": [(domain, count) for domain, count in domain_counts],
                 }
 
         except SQLAlchemyError as e:

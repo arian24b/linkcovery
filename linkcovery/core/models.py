@@ -9,6 +9,7 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
+# Database model for storing bookmark information
 class Link(Base):
     """SQLAlchemy model for storing bookmark information."""
 
@@ -34,6 +35,7 @@ class Link(Base):
         return f"<Link(id={self.id}, url='{self.url}', domain='{self.domain}')>"
 
 
+# Schema for link services
 class LinkCreate(BaseModel):
     """Pydantic model for creating new links."""
 
@@ -66,67 +68,15 @@ class LinkCreate(BaseModel):
 
         return v
 
-    @field_validator("description")
-    @classmethod
-    def validate_description(cls, v: str) -> str:
-        """Validate and clean description."""
-        return v.strip() if v else ""
-
-    @field_validator("tag")
-    @classmethod
-    def validate_tag(cls, v: str) -> str:
-        """Validate and clean tag."""
-        return v.strip() if v else ""
-
-    def extract_domain(self) -> str:
-        """Extract domain from the URL."""
-        try:
-            return urlparse(self.url).netloc.lower()
-        except Exception:
-            msg = "Could not extract domain from URL"
-            raise ValueError(msg)
-
-
-class LinkUpdate(BaseModel):
-    """Pydantic model for updating existing links."""
-
-    url: str | None = Field(None, description="New URL")
-    description: str | None = Field(None, description="New description")
-    tag: str | None = Field(None, description="New tag")
-    is_read: bool | None = Field(None, description="New read status")
-
-    @field_validator("url")
-    @classmethod
-    def validate_url(cls, v: str | None) -> str | None:
-        """Validate URL format if provided."""
-        if v is None:
-            return v
-
-        if not v or not isinstance(v, str):
-            msg = "URL must be a string"
-            raise ValueError(msg)
-
-        v = v.strip()
-        if not v.startswith(("http://", "https://")):
-            msg = "URL must start with http:// or https://"
-            raise ValueError(msg)
-
-        try:
-            result = urlparse(v)
-            if not result.netloc:
-                msg = "URL must have a valid domain"
-                raise ValueError(msg)
-        except Exception as e:
-            msg = f"Invalid URL format: {e}"
-            raise ValueError(msg)
-
-        return v
-
     @field_validator("description", "tag")
     @classmethod
-    def validate_strings(cls, v: str | None) -> str | None:
-        """Validate and clean string fields."""
-        return v.strip() if v else v
+    def validate_description(cls, v: str) -> str | None:
+        """Validate and clean description and tag."""
+        return v.strip() if v else None
+
+
+class LinkUpdate(LinkCreate):
+    """Pydantic model for updating existing links."""
 
 
 class LinkFilter(BaseModel):

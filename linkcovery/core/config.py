@@ -1,11 +1,13 @@
 """Configuration management for LinKCovery."""
 
-import json
-import os
+from json import dump
+from json import load as jload
+from os import getenv
 from pathlib import Path
 
 from pydantic import BaseModel
 
+from linkcovery import __version__ as linkcovery_version
 from linkcovery.core.exceptions import ConfigurationError
 
 
@@ -14,7 +16,7 @@ class AppConfig(BaseModel):
 
     # Application info
     app_name: str = "LinKCovery"
-    version: str = "1.0.0"
+    version: str = linkcovery_version
 
     # Database configuration
     database_path: str | None = None
@@ -41,8 +43,7 @@ class AppConfig(BaseModel):
             return self._cached_db_path
 
         # Try environment variable first
-        db_path = os.getenv("LINKCOVERY_DB")
-        if db_path:
+        if db_path := getenv("LINKCOVERY_DB"):
             self._cached_db_path = db_path
             return self._cached_db_path
 
@@ -77,17 +78,13 @@ class AppConfig(BaseModel):
         self._cached_config_dir = config_dir
         return config_dir
 
-    def get_config_file(self) -> Path:
-        """Get the configuration file path."""
-        return self.get_config_dir() / "config.json"
-
 
 class ConfigManager:
     """Configuration manager for loading and saving settings."""
 
     def __init__(self) -> None:
         self._config: AppConfig = AppConfig()
-        self._config_file: Path = self._config.get_config_file()
+        self._config_file: Path = self._config.get_config_dir() / "config.json"
         self.load()
 
     @property
@@ -103,8 +100,7 @@ class ConfigManager:
 
         try:
             with open(self._config_file, encoding="utf-8") as f:
-                config_data = json.load(f)
-            self._config = AppConfig(**config_data)
+                self._config = AppConfig(**jload(f))
         except Exception as e:
             msg = f"Failed to load configuration: {e}"
             raise ConfigurationError(msg)
@@ -114,7 +110,7 @@ class ConfigManager:
         try:
             self._config_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self._config_file, "w", encoding="utf-8") as f:
-                json.dump(self._config.model_dump(), f, indent=2)
+                dump(self._config.model_dump(), f, indent=2)
         except Exception as e:
             msg = f"Failed to save configuration: {e}"
             raise ConfigurationError(msg)
