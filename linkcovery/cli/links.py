@@ -279,3 +279,39 @@ def normalize(
                 console.print(f"❌ Failed to normalize link #{id}: {e}", style="red")
     else:
         console.print("⚠️ Please specify link IDs or use --all to normalize all links", style="yellow")
+
+
+@app.command()
+@handle_errors
+def read_random(
+    number: int = typer.Option(5, "--number", "-n", help="Number of random links to read"),
+    include_read: bool = typer.Option(False, "--include-read", help="Include already read links"),
+) -> None:
+    """Read random links from your bookmarks and mark them as read."""
+    link_service = get_link_service()
+
+    if number < 1:
+        console.print("⚠️ Number must be at least 1", style="yellow")
+        return
+
+    links = link_service.get_random_links(number=number, unread_only=not include_read)
+
+    if not links:
+        filter_msg = "unread " if not include_read else ""
+        console.print(f"📭 No {filter_msg}links available to read", style="yellow")
+        return
+
+    console.print(f"📚 Reading {len(links)} random link{'s' if len(links) > 1 else ''}:", style="bold blue")
+
+    for link in links:
+        console.print(f"🔗 Reading link #{link.id}: {link.url}", style="blue")
+        if link.description:
+            console.print(f"   📝 {link.description}", style="dim")
+
+        # Only mark as read if it wasn't already read
+        if not link.is_read:
+            link_service.mark_as_read(link.id)
+            console.print("   ✅ Marked as read", style="green")
+        else:
+            console.print("   📖 Already read", style="dim")
+        console.print()  # Add empty line for readability

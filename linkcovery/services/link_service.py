@@ -93,6 +93,10 @@ class LinkService:
 
         return normalized_links
 
+    def get_random_links(self, number: int = 5, unread_only: bool = True) -> list[Link]:
+        """Get random links, optionally filtering for unread links only."""
+        return self.db.get_random_links(limit=number, unread_only=unread_only)
+
     def get_statistics(self) -> dict:
         """Get link statistics."""
         return self.db.get_statistics()

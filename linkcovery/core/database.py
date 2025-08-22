@@ -233,6 +233,30 @@ class DatabaseService:
             msg = f"Unexpected error while deleting link: {e}"
             raise DatabaseError(msg)
 
+    def get_random_links(self, limit: int = 5, unread_only: bool = True) -> list[Link]:
+        """Get random links from the database."""
+        try:
+            with self.get_session() as session:
+                from sqlalchemy import func
+
+                query = session.query(Link)
+
+                # Filter for unread links by default
+                if unread_only:
+                    query = query.filter(Link.is_read == False)  # noqa: E712
+
+                # Order randomly and limit
+                for link in (links := query.order_by(func.random()).limit(limit).all()):
+                    session.expunge(link)  # Detach from session
+                return links
+
+        except SQLAlchemyError as e:
+            msg = f"Database error while getting random links: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while getting random links: {e}"
+            raise DatabaseError(msg)
+
     def get_statistics(self) -> dict:
         """Get database statistics with optimized queries."""
         try:
