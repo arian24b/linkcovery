@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/arian24b/linkcovery/compare/v1.5.0...v1.6.0) (2025-08-22)
+
+
+### Features
+
+* Add command to read random links and implement random link retrieval in the service ([97e10f8](https://github.com/arian24b/linkcovery/commit/97e10f836153cf39715e9ffe4073c22bbac7469b))
+
 # [1.5.0](https://github.com/arian24b/linkcovery/compare/v1.4.1...v1.5.0) (2025-08-21)
 
 
