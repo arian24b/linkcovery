@@ -28,7 +28,6 @@ linkcovery = "linkcovery.cli:cli_app"
 [project.urls]
 Homepage = "https://github.com/arian24b/linkcovery"
 Issues = "https://github.com/arian24b/linkcovery/issues"
-Issues = "https://github.com/arian24b/linkcovery/issues"
 Changelog = "https://github.com/arian24b/linkcovery/blob/main/CHANGELOG.md"
 Documentation = "https://github.com/arian24b/linkcovery#readme"
 
