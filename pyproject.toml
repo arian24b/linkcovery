@@ -5,7 +5,8 @@ description = "A modern, fast, and intuitive bookmark management CLI tool"
 readme = "README.md"
 license = "MIT"
 keywords = ["bookmark", "link", "management", "cli", "python"]
-authors = [{name = "Arian Omrani"}]
+authors = [{name = "Arian Omrani", email = "arian24b@gmail.com"}]
+maintainers = [{name = "Arian Omrani", email = "arian24b@gmail.com"}]
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.13.4",
@@ -20,9 +21,6 @@ dependencies = [
 dev = [
     "pre-commit>=4.2.0",
 ]
-build = [
-    "pyinstaller>=6.14.2",
-]
 
 [project.scripts]
 linkcovery = "linkcovery.cli:cli_app"
@@ -30,12 +28,39 @@ linkcovery = "linkcovery.cli:cli_app"
 [project.urls]
 Homepage = "https://github.com/arian24b/linkcovery"
 Issues = "https://github.com/arian24b/linkcovery/issues"
+Issues = "https://github.com/arian24b/linkcovery/issues"
+Changelog = "https://github.com/arian24b/linkcovery/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/arian24b/linkcovery#readme"
 
 [tool.ruff]
 line-length = 120
+target-version = "py313"
+fix = true
+show-fixes = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"] # Standard checks + isort
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "S",      # bandit
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "T20",    # flake8-print
+    "SIM",    # flake8-simplify
+    "LOG",    # flake8-logging
+    "RUF",    # Ruff-specific rules
+]
+ignore = [
+    "S101",   # Use of assert detected (needed for tests)
+    "T20",    # print statements (CLI tool)
+    "A003",   # Class attribute shadows builtin
+]
 
 [tool.mypy]
 python_version = "1.7.4"
