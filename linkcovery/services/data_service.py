@@ -1,7 +1,8 @@
 """Import and export service for LinKCovery."""
 
-import asyncio
-import json
+from asyncio import run as asyncio_run
+from json import JSONDecodeError, dump
+from json import load as j_load
 from pathlib import Path
 
 from rich.progress import Progress, TaskID
@@ -9,7 +10,8 @@ from rich.progress import Progress, TaskID
 from linkcovery.core.exceptions import ImportExportError
 from linkcovery.core.models import LinkExport
 from linkcovery.core.utils import console, fetch_description_and_tags
-from linkcovery.services.link_service import LinkService, get_link_service
+from linkcovery.services import get_link_service
+from linkcovery.services.link_service import LinkService
 
 
 class DataService:
@@ -35,7 +37,7 @@ class DataService:
             # Write to file
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(export_data, f, indent=2, ensure_ascii=False)
+                dump(export_data, f, indent=2, ensure_ascii=False)
 
             console.print(f"✅ Successfully exported {len(links)} links to {output_path}", style="green")
 
@@ -53,8 +55,8 @@ class DataService:
 
         try:
             with open(input_path, encoding="utf-8") as f:
-                links_data = json.load(f)
-        except json.JSONDecodeError as e:
+                links_data = j_load(f)
+        except JSONDecodeError as e:
             msg = f"Invalid JSON format: {e}"
             raise ImportExportError(msg)
         except Exception as e:
@@ -143,7 +145,7 @@ class DataService:
                     is_read = link_data.get("is_read", False)
 
                     if not (tag and description):
-                        fetch = asyncio.run(fetch_description_and_tags(url=url))
+                        fetch = asyncio_run(fetch_description_and_tags(url=url))
                         final_description = description or fetch["description"]
                         final_tag = tag or fetch["tags"]
 
@@ -172,22 +174,10 @@ class DataService:
 
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(export_data, f, indent=2, ensure_ascii=False)
+                dump(export_data, f, indent=2, ensure_ascii=False)
 
             console.print(f"✅ Successfully exported {len(links)} links to {output_path}", style="green")
 
         except Exception as e:
             msg = f"Failed to export links: {e}"
             raise ImportExportError(msg)
-
-
-# Global service instance
-_data_service: DataService | None = None
-
-
-def get_data_service() -> DataService:
-    """Get the global import/export service instance."""
-    global _data_service
-    if _data_service is None:
-        _data_service = DataService()
-    return _data_service

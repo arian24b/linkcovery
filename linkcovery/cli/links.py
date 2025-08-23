@@ -6,7 +6,7 @@ import typer
 from rich.table import Table
 
 from linkcovery.core.utils import confirm_action, console, fetch_description_and_tags, handle_errors
-from linkcovery.services.link_service import get_link_service
+from linkcovery.services import get_link_service
 
 app = typer.Typer(help="Manage your bookmarked links", no_args_is_help=True)
 
