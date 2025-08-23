@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/arian24b/linkcovery/compare/v1.7.1...v1.7.2) (2025-08-23)
+
+
+### Bug Fixes
+
+* use UV_PUBLISH_TOKEN environment variable for PyPI publishing ([3ae63d5](https://github.com/arian24b/linkcovery/commit/3ae63d518509c449a9fe39853335b347ceced93d))
+
 ## [1.7.1](https://github.com/arian24b/linkcovery/compare/v1.7.0...v1.7.1) (2025-08-23)
 
 
