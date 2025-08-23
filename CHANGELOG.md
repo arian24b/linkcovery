@@ -1,3 +1,10 @@
+## [1.7.3](https://github.com/arian24b/linkcovery/compare/v1.7.2...v1.7.3) (2025-08-23)
+
+
+### Bug Fixes
+
+* add workflow debugging documentation ([e9d811a](https://github.com/arian24b/linkcovery/commit/e9d811ab427b3058afddea46feb9ddf2736441e7))
+
 ## [1.7.2](https://github.com/arian24b/linkcovery/compare/v1.7.1...v1.7.2) (2025-08-23)
 
 
