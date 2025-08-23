@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/arian24b/linkcovery/compare/v1.6.0...v1.7.0) (2025-08-23)
+
+
+### Features
+
+* Enhance release workflow with version debugging and verification steps ([794c9be](https://github.com/arian24b/linkcovery/commit/794c9be0d7adaded02b2dc73f188f4e2e8f0f778))
+
 # [1.6.0](https://github.com/arian24b/linkcovery/compare/v1.5.0...v1.6.0) (2025-08-22)
 
 
