@@ -1,3 +1,10 @@
+## [1.7.4](https://github.com/arian24b/linkcovery/compare/v1.7.3...v1.7.4) (2025-08-23)
+
+
+### Bug Fixes
+
+* add workflow debugging and improve build condition syntax ([298f5d7](https://github.com/arian24b/linkcovery/commit/298f5d71756f2f0c093a20eaf8ec1b6707ff225c))
+
 ## [1.7.3](https://github.com/arian24b/linkcovery/compare/v1.7.2...v1.7.3) (2025-08-23)
 
 
