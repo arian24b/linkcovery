@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/arian24b/linkcovery/compare/v1.7.0...v1.7.1) (2025-08-23)
+
+
+### Bug Fixes
+
+* configure semantic-release to trigger releases for refactor commits ([e6786c6](https://github.com/arian24b/linkcovery/commit/e6786c67877025d2fb31a3808a3d4d52aad92bc0))
+
 # [1.7.0](https://github.com/arian24b/linkcovery/compare/v1.6.0...v1.7.0) (2025-08-23)
 
 
