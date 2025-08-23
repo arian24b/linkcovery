@@ -1,3 +1,10 @@
+## [1.7.5](https://github.com/arian24b/linkcovery/compare/v1.7.4...v1.7.5) (2025-08-23)
+
+
+### Bug Fixes
+
+* remove duplicate Issues URL in pyproject.toml ([a43028d](https://github.com/arian24b/linkcovery/commit/a43028d0764987e90bdfe455196505cfe9a11426))
+
 ## [1.7.4](https://github.com/arian24b/linkcovery/compare/v1.7.3...v1.7.4) (2025-08-23)
 
 

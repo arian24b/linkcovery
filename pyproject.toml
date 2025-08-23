@@ -1,6 +1,6 @@
 [project]
 name = "linkcovery"
-version = "1.7.4"
+version = "1.7.5"
 description = "A modern, fast, and intuitive bookmark management CLI tool"
 readme = "README.md"
 license = "MIT"
@@ -33,7 +33,7 @@ Documentation = "https://github.com/arian24b/linkcovery#readme"
 
 [tool.ruff]
 line-length = 120
-target-version = "py313"
+target-version = "1.7.5"
 fix = true
 show-fixes = true
 
@@ -62,7 +62,7 @@ ignore = [
 ]
 
 [tool.mypy]
-python_version = "1.7.4"
+python_version = "1.7.5"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
