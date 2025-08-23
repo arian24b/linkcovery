@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="linkcovery.png" alt="LinkCovery Logo" width="200"/>
+  <img src="linkcovery.png" alt="LinkCovery Logo" width="400"/>
 </div>
 
 # LinkCovery - Modern Bookmark Management CLI
@@ -219,7 +219,7 @@ git clone https://github.com/arian24b/linkcovery.git
 cd linkcovery
 
 # Install with development dependencies
-uv sync --group dev --group test
+uv sync --all-groups
 
 # Install pre-commit hooks (if available)
 uv run pre-commit install
