@@ -50,12 +50,9 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
-      - name: Get release version
-        id: version
-        run: echo "version=$(npx semantic-release --dry-run | grep -oP '(?<=The next release version is ).*')" >> $GITHUB_OUTPUT
-
   build-binaries:
     needs: release
+    if: needs.release.outputs.new_release_published == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -71,6 +68,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug release info
+        run: |
+          echo "New release published: ${{ needs.release.outputs.new_release_published }}"
+          echo "New release version: ${{ needs.release.outputs.new_release_version }}"
+          echo "Tag will be: v${{ needs.release.outputs.new_release_version }}"
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
@@ -84,6 +87,13 @@ jobs:
 
       - name: Rename binary
         run: mv dist/linkcovery dist/${{ matrix.asset_name }}
+
+      - name: Verify release version
+        run: |
+          if [ -z "${{ needs.release.outputs.new_release_version }}" ]; then
+            echo "Error: No release version found"
+            exit 1
+          fi
 
       - name: Upload binary to release
         uses: svenstaro/upload-release-action@v2
