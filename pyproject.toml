@@ -1,6 +1,6 @@
 [project]
 name = "linkcovery"
-version = "1.7.6"
+version = "1.7.7"
 description = "A modern, fast, and intuitive bookmark management CLI tool"
 readme = "README.md"
 license = "MIT"
@@ -61,7 +61,7 @@ ignore = [
 ]
 
 [tool.mypy]
-python_version = "1.7.6"
+python_version = "1.7.7"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

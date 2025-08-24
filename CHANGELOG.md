@@ -1,3 +1,10 @@
+## [1.7.7](https://github.com/arian24b/linkcovery/compare/v1.7.6...v1.7.7) (2025-08-24)
+
+
+### Bug Fixes
+
+* update image source URL in README for correct display ([f5b048a](https://github.com/arian24b/linkcovery/commit/f5b048a449a688d841c9dcaf0305c86699e34c00))
+
 ## [1.7.6](https://github.com/arian24b/linkcovery/compare/v1.7.5...v1.7.6) (2025-08-24)
 
 
