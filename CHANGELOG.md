@@ -1,3 +1,10 @@
+## [1.7.6](https://github.com/arian24b/linkcovery/compare/v1.7.5...v1.7.6) (2025-08-24)
+
+
+### Bug Fixes
+
+* update import statements for clarity and consistency ([c219bd7](https://github.com/arian24b/linkcovery/commit/c219bd71e99efb3820fd54cba4a5540d83df4d5f))
+
 ## [1.7.5](https://github.com/arian24b/linkcovery/compare/v1.7.4...v1.7.5) (2025-08-23)
 
 
