@@ -10,8 +10,7 @@ from rich.progress import Progress, TaskID
 from linkcovery.core.exceptions import ImportExportError
 from linkcovery.core.models import LinkExport
 from linkcovery.core.utils import console, fetch_description_and_tags
-from linkcovery.services import get_link_service
-from linkcovery.services.link_service import LinkService
+from linkcovery.services.link_service import LinkService, get_link_service
 
 
 class DataService:
@@ -181,3 +180,15 @@ class DataService:
         except Exception as e:
             msg = f"Failed to export links: {e}"
             raise ImportExportError(msg)
+
+
+# Global service instance
+_data_service: DataService | None = None
+
+
+def get_data_service() -> DataService:
+    """Get the global import/export service instance."""
+    global _data_service
+    if _data_service is None:
+        _data_service = DataService()
+    return _data_service

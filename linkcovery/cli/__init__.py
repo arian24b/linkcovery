@@ -5,7 +5,7 @@ import typer
 from linkcovery.cli import config, data, links
 from linkcovery.core.config import get_config
 from linkcovery.core.utils import console, handle_errors
-from linkcovery.services import get_link_service
+from linkcovery.services.link_service import get_link_service
 
 # Main app
 cli_app = typer.Typer(

@@ -33,7 +33,6 @@ Documentation = "https://github.com/arian24b/linkcovery#readme"
 
 [tool.ruff]
 line-length = 120
-target-version = "1.7.5"
 fix = true
 show-fixes = true
 

@@ -100,3 +100,15 @@ class LinkService:
     def get_statistics(self) -> dict:
         """Get link statistics."""
         return self.db.get_statistics()
+
+
+# Global service instance
+_link_service: LinkService | None = None
+
+
+def get_link_service() -> LinkService:
+    """Get the global link service instance."""
+    global _link_service
+    if _link_service is None:
+        _link_service = LinkService()
+    return _link_service

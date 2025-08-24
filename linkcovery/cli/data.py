@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 
 from linkcovery.core.utils import confirm_action, console, handle_errors
-from linkcovery.services import get_data_service
+from linkcovery.services.data_service import get_data_service
 
 app = typer.Typer(help="Import and export your bookmark data", no_args_is_help=True)
 
