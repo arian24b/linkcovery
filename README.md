@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="linkcovery.png" alt="LinkCovery Logo" width="400"/>
+  <img src="https://raw.githubusercontent.com/arian24b/linkcovery/refs/heads/main/linkcovery.png" alt="LinkCovery Logo" width="400"/>
 </div>
 
 # LinkCovery - Modern Bookmark Management CLI
