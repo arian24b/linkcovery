@@ -1,3 +1,10 @@
+## [1.7.8](https://github.com/arian24b/linkcovery/compare/v1.7.7...v1.7.8) (2025-08-24)
+
+
+### Bug Fixes
+
+* remove deprecated mypy configuration from pyproject.toml ([8ff648c](https://github.com/arian24b/linkcovery/commit/8ff648cf3ac6e15f9234c553edff100cde75a917))
+
 ## [1.7.7](https://github.com/arian24b/linkcovery/compare/v1.7.6...v1.7.7) (2025-08-24)
 
 
