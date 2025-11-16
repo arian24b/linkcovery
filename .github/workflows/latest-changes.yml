@@ -1,0 +1,34 @@
+name: Latest Changes
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - closed
+  workflow_dispatch:
+    inputs:
+      number:
+        description: PR number
+        required: true
+      debug_enabled:
+        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
+        required: false
+        default: "false"
+
+jobs:
+  latest-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: tiangolo/latest-changes@0.4.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          latest_changes_file: ./release-notes.md
+          latest_changes_header: "## Latest Changes"
+          end_regex: "^## "
+          debug_logs: true
+          label_header_prefix: "### "
