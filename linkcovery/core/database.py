@@ -71,6 +71,18 @@ class DatabaseService:
         finally:
             session.close()
 
+    def exists(self, link_url: str) -> bool:
+        """Check if a link with the given URL exists."""
+        try:
+            with self.get_session() as session:
+                return session.query(Link).filter(Link.url == link_url).first() is not None
+        except SQLAlchemyError as e:
+            msg = f"Database error while checking link existence: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while checking link existence: {e}"
+            raise DatabaseError(msg)
+
     def create_link(self, link_data: LinkCreate) -> Link:
         """Create a new link."""
         try:

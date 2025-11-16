@@ -1,8 +1,7 @@
 """Import and export service for LinKCovery."""
 
 from asyncio import run as asyncio_run
-from json import JSONDecodeError, dump
-from json import load as j_load
+from json import JSONDecodeError, dump, load
 from pathlib import Path
 
 from rich.progress import Progress, TaskID
@@ -45,17 +44,14 @@ class DataService:
             msg = f"Failed to export links: {e}"
             raise ImportExportError(msg)
 
-    def import_from_json(self, input_path: str | Path) -> None:
+    def import_from_json(self, file_path: Path) -> None:
         """Import links from JSON file."""
-        input_path = Path(input_path)
-
-        if not input_path.exists():
-            msg = f"File not found: {input_path}"
-            raise ImportExportError(msg)
-
         try:
-            with open(input_path, encoding="utf-8") as f:
-                links_data = j_load(f)
+            with open(file_path, encoding="utf-8") as f:
+                links_data = load(f)
+            if not links_data:
+                console.print("ℹ️ No links found in the JSON file", style="blue")
+                return
         except JSONDecodeError as e:
             msg = f"Invalid JSON format: {e}"
             raise ImportExportError(msg)
@@ -63,11 +59,6 @@ class DataService:
             msg = f"Failed to read file: {e}"
             raise ImportExportError(msg)
 
-        if not links_data:
-            console.print("ℹ️ No links found in the JSON file", style="blue")
-            return
-
-        # Import with progress tracking
         added_count = 0
         failed_count = 0
         failed_links = []
@@ -78,34 +69,33 @@ class DataService:
             task: TaskID = progress.add_task("Importing links...", total=len(links_data))
 
             for i, link_data in enumerate(links_data, 1):
-                try:
-                    url = link_data.get("url", "")
-                    description = link_data.get("description", "")
-                    tag = link_data.get("tag", "")
-                    is_read = link_data.get("is_read", False)
+                url = link_data.get("url")
 
+                if not url or self.link_service.exists(url):
+                    failed_count += 1
+                    failed_links.append({"index": i, "url": url or "", "error": "URL missing or already exists"})
+                    progress.update(task, advance=1)
+                    continue
+
+                try:
                     self.link_service.add_link(
                         url=url,
-                        description=description,
-                        tag=tag,
-                        is_read=is_read,
+                        description=link_data.get("description", asyncio_run(fetch_description(url=url))),
+                        tag=link_data.get("tag", ""),
+                        is_read=link_data.get("is_read", False),
                     )
                     added_count += 1
-
                 except Exception as e:
                     failed_count += 1
-                    failed_links.append({"index": i, "url": url, "error": str(e)})
+                    failed_links.append({"index": i, "url": link_data.get("url", ""), "error": str(e)})
 
                 progress.update(task, advance=1)
 
-        # Show results
         console.print(f"✅ Import completed: {added_count} links added", style="green")
         if failed_count > 0:
             console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
-            if failed_links[:5]:  # Show first 5 failures
-                console.print("First few failures:")
-                for failure in failed_links[:5]:
-                    console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
+            for failure in failed_links[:5]:
+                console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def import_from_html(self, file_path: Path) -> None:
         """Import links from HTML file."""
@@ -125,14 +115,18 @@ class DataService:
             task: TaskID = progress.add_task("Importing links...", total=len(links))
 
             for i, link in enumerate(links, 1):
+                if not link or self.link_service.exists(link):
+                    failed_count += 1
+                    failed_links.append({"index": i, "url": link or "", "error": "URL missing or already exists"})
+                    progress.update(task, advance=1)
+                    continue
+
                 try:
                     self.link_service.add_link(
                         url=link,
                         description=asyncio_run(fetch_description(url=link)),
                     )
-
                     added_count += 1
-
                 except Exception as e:
                     failed_count += 1
                     failed_links.append({"index": i, "url": link, "error": str(e)})

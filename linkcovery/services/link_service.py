@@ -12,6 +12,10 @@ class LinkService:
         """Initialize link service with database dependency."""
         self.db = db or get_database()
 
+    def exists(self, url: str) -> bool:
+        """Check if a link with the given URL exists."""
+        return self.db.exists(url)
+
     def add_link(self, url: str, description: str = "", tag: str = "", is_read: bool = False) -> Link:
         """Add a new link with validation."""
         link_data = LinkCreate(
