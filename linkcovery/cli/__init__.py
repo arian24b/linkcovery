@@ -35,7 +35,7 @@ def stats() -> None:
 
     if stats_data["top_domains"]:
         console.print("\n   Top domains:")
-        for domain, count in stats_data["top_domains"]:
+        for domain, count in stats_data["top_domains"][:5]:
             console.print(f"     [cyan]{domain}[/cyan]: {count}")
 
 
