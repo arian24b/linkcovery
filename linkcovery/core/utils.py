@@ -2,9 +2,11 @@
 
 import functools
 from collections.abc import Callable
+from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
 
+from httpx import AsyncClient
 from rich.console import Console
 from typer import Exit
 
@@ -83,35 +85,31 @@ def normalize_url(url: str) -> str:
         raise ValueError(msg)
 
 
-async def fetch_description_and_tags(url: str) -> dict[str, str]:
-    """Fetch metadata from URL. Imports are lazy-loaded for performance."""
-    try:
-        # Lazy imports to avoid loading HTTP libraries unless needed
-        import httpx
-        from bs4 import BeautifulSoup
+class DescriptionParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.description = ""
 
-        async with httpx.AsyncClient(
-            timeout=10,  # Reduced timeout for better performance
-            follow_redirects=True,
-            verify=False,
-            http2=True,
-        ) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
+    def handle_starttag(self, tag, attrs) -> None:
+        if tag.lower() == "meta":
+            attrs = dict(attrs)
 
-        soup = BeautifulSoup(resp.text, "html.parser")
+            # match: <meta name="description" content="...">
+            if attrs.get("name", "").lower() == "description":
+                self.description = attrs.get("content", "").strip()
 
-        description_tag = soup.find("meta", attrs={"name": "description"})
-        description = description_tag.get("content", "").strip() if description_tag else ""
 
-        keywords_tag = soup.find("meta", attrs={"name": "keywords"})
-        if keywords_tag and "content" in keywords_tag.attrs:
-            # Format like: tag1,tag2,tag3,
-            tags = ",".join(kw.strip() for kw in keywords_tag["content"].split(",")) + ","
-        else:
-            tags = ""
+async def fetch_description(url: str) -> str:
+    async with AsyncClient(
+        timeout=10,
+        follow_redirects=True,
+        verify=False,
+        http2=True,
+    ) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
 
-        return {"description": description, "tags": tags}
-    except Exception:
-        # Return empty values if fetching fails
-        return {"description": "", "tags": ""}
+    parser = DescriptionParser()
+    parser.feed(resp.text)
+
+    return parser.description

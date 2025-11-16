@@ -7,9 +7,10 @@ from pathlib import Path
 
 from rich.progress import Progress, TaskID
 
+from linkcovery.core.chrome_bookmark import extractor
 from linkcovery.core.exceptions import ImportExportError
 from linkcovery.core.models import LinkExport
-from linkcovery.core.utils import console, fetch_description_and_tags
+from linkcovery.core.utils import console, fetch_description
 from linkcovery.services.link_service import LinkService, get_link_service
 
 
@@ -106,64 +107,43 @@ class DataService:
                 for failure in failed_links[:5]:
                     console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
-    def import_from_html(self, input_path: str | Path) -> None:
+    def import_from_html(self, file_path: Path) -> None:
         """Import links from HTML file."""
-        from bs4 import BeautifulSoup
+        links = extractor(file_path)
 
-        try:
-            with open(input_path, encoding="utf-8") as f:
-                soup = BeautifulSoup(f, "html.parser")
-                links_data = []
-                for a in soup.find_all("a"):
-                    url = a.get("href", "")
-                    links_data.append({"url": url, "description": ""})
-
-        except Exception as e:
-            msg = f"Failed to read file: {e}"
-            raise ImportExportError(msg)
-
-        if not links_data:
+        if not links:
             console.print("ℹ️ No links found in the HTML file", style="blue")
             return
 
-        # Import with progress tracking
         added_count = 0
         failed_count = 0
         failed_links = []
 
-        console.print(f"📥 Importing {len(links_data)} links...")
+        console.print(f"📥 Importing {len(links)} links...")
 
         with Progress() as progress:
-            task: TaskID = progress.add_task("Importing links...", total=len(links_data))
+            task: TaskID = progress.add_task("Importing links...", total=len(links))
 
-            for i, link_data in enumerate(links_data, 1):
+            for i, link in enumerate(links, 1):
                 try:
-                    url = link_data.get("url", "")
-                    description = link_data.get("description")
-                    tag = link_data.get("tag")
-                    is_read = link_data.get("is_read", False)
-
-                    if not (tag and description):
-                        fetch = asyncio_run(fetch_description_and_tags(url=url))
-                        final_description = description or fetch["description"]
-                        final_tag = tag or fetch["tags"]
-
                     self.link_service.add_link(
-                        url=url,
-                        description=final_description,
-                        tag=final_tag,
-                        is_read=is_read,
+                        url=link,
+                        description=asyncio_run(fetch_description(url=link)),
                     )
+
                     added_count += 1
 
                 except Exception as e:
                     failed_count += 1
-                    failed_links.append({"index": i, "url": url, "error": str(e)})
+                    failed_links.append({"index": i, "url": link, "error": str(e)})
 
                 progress.update(task, advance=1)
 
-        # Show results
         console.print(f"✅ Import completed: {added_count} links added", style="green")
+        if failed_count > 0:
+            console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
+            for failure in failed_links:
+                console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def export_links(self, links: list, output_path: str | Path) -> None:
         """Export a specific list of links."""

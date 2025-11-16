@@ -31,32 +31,24 @@ def export(
 @app.command(name="import")
 @handle_errors
 def import_data(
-    input_file: str = typer.Argument(..., help="JSON file to import"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be imported without actually importing"),
+    file_path: Path = typer.Argument(..., help="JSON file to import"),
 ) -> None:
     """Import links from a JSON file."""
-    input_path = Path(input_file)
-
-    if not input_path.exists():
-        console.print(f"❌ File not found: {input_path}", style="red")
+    if not file_path.exists():
+        console.print(f"❌ File not found: {file_path}", style="red")
         raise typer.Exit(1)
 
-    if dry_run:
-        # TODO: Implement dry run functionality
-        console.print("🔍 Dry run mode not yet implemented", style="yellow")
-        return
-
     # Confirm import
-    if not confirm_action(f"Import links from {input_path}?"):
+    if not confirm_action(f"Import links from {file_path}?"):
         console.print("🛑 Import cancelled", style="yellow")
         return
 
     data_service = get_data_service()
 
-    if input_file.endswith(".json"):
-        data_service.import_from_json(input_path)
-    elif input_file.endswith(".html"):
-        data_service.import_from_html(input_path)
+    if file_path.name.endswith(".json"):
+        data_service.import_from_json(file_path)
+    elif file_path.name.endswith(".html"):
+        data_service.import_from_html(file_path)
     else:
-        console.print(f"❌ Unsupported file format: {input_file}", style="red")
+        console.print(f"❌ Unsupported file format: {file_path}", style="red")
         raise typer.Exit(1)

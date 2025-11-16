@@ -9,7 +9,6 @@ authors = [{name = "Arian Omrani", email = "arian24b@gmail.com"}]
 maintainers = [{name = "Arian Omrani", email = "arian24b@gmail.com"}]
 requires-python = ">=3.13"
 dependencies = [
-    "beautifulsoup4>=4.13.4",
     "httpx[http2]>=0.28.1",
     "platformdirs>=4.3.8",
     "pydantic>=2.10.0",
