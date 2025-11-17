@@ -94,7 +94,7 @@ class DataService:
         console.print(f"✅ Import completed: {added_count} links added", style="green")
         if failed_count > 0:
             console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
-            for failure in failed_links[:5]:
+            for failure in failed_links:
                 console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def import_from_html(self, file_path: Path) -> None:

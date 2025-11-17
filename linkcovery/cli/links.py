@@ -25,7 +25,7 @@ def add(
 
     link = link_service.add_link(
         url=url,
-        description=description or asyncio_run(fetch_description(url=url)) if no_fetch else "",
+        description=description or "" if no_fetch else asyncio_run(fetch_description(url=url)),
         tag=tag or "",
         is_read=read,
     )

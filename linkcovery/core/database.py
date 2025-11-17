@@ -4,7 +4,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-from sqlalchemy import create_engine, or_
+from sqlalchemy import create_engine, or_, exists as sqlal_exists
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -75,7 +75,7 @@ class DatabaseService:
         """Check if a link with the given URL exists."""
         try:
             with self.get_session() as session:
-                return session.query(Link).filter(Link.url == link_url).first() is not None
+                return session.query(sqlal_exists().where(Link.url == link_url)).scalar()
         except SQLAlchemyError as e:
             msg = f"Database error while checking link existence: {e}"
             raise DatabaseError(msg)
