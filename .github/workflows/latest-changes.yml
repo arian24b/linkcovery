@@ -24,7 +24,7 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@v5
-      - uses: tiangolo/latest-changes@0.4.0
+      - uses: tiangolo/latest-changes@0.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           latest_changes_file: ./release-notes.md
