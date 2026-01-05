@@ -1,4 +1,4 @@
-"""Database service for LinKCovery."""
+"""Database service for LinkCovery."""
 
 from collections.abc import Generator
 from contextlib import contextmanager

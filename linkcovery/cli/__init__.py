@@ -1,4 +1,4 @@
-"""Modern CLI application for LinKCovery."""
+"""Modern CLI application for LinkCovery."""
 
 import typer
 
@@ -21,14 +21,14 @@ cli_app.add_typer(data.app)
 cli_app.add_typer(config.app, name="config")
 
 
-@cli_app.command()
+@cli_app.command(rich_help_panel="Other")
 @handle_errors
 def stats() -> None:
     """Show bookmark statistics."""
     link_service = get_link_service()
     stats_data = link_service.get_statistics()
 
-    console.print("📊 [bold blue]LinKCovery Statistics[/bold blue]")
+    console.print("📊 [bold blue]LinkCovery Statistics[/bold blue]")
     console.print(f"   Total links: [bold]{stats_data['total_links']}[/bold]")
     console.print(f"   Read: [green]{stats_data['read_links']}[/green]")
     console.print(f"   Unread: [yellow]{stats_data['unread_links']}[/yellow]")
@@ -49,7 +49,7 @@ def version() -> None:
 
 @cli_app.callback(no_args_is_help=True)
 def main() -> None:
-    """LinKCovery - Modern bookmark management tool.
+    """LinkCovery - Modern bookmark management tool.
 
     Efficiently manage, search, and organize your bookmarks with a clean CLI interface.
     """

@@ -1,4 +1,4 @@
-"""Configuration management commands for LinKCovery CLI."""
+"""Configuration management commands for LinkCovery CLI."""
 
 import typer
 from rich.table import Table
@@ -6,7 +6,7 @@ from rich.table import Table
 from linkcovery.core.config import get_config_manager
 from linkcovery.core.utils import console, handle_errors
 
-app = typer.Typer(help="Manage LinKCovery configuration", no_args_is_help=True)
+app = typer.Typer(help="Manage LinkCovery configuration", no_args_is_help=True)
 
 
 @app.command()
@@ -16,7 +16,7 @@ def show() -> None:
     config_manager = get_config_manager()
     config_data = config_manager.list_all()
 
-    table = Table(title="⚙️ LinKCovery Configuration")
+    table = Table(title="⚙️ LinkCovery Configuration")
     table.add_column("Setting", style="cyan")
     table.add_column("Value", style="green")
 

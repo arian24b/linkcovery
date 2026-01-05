@@ -1,4 +1,4 @@
-"""Import and export service for LinKCovery."""
+"""Import and export service for LinkCovery."""
 
 from asyncio import run as asyncio_run
 from json import JSONDecodeError, dump, load

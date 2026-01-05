@@ -1,4 +1,4 @@
-"""Configuration management for LinKCovery."""
+"""Configuration management for LinkCovery."""
 
 from json import dump
 from json import load as jload
@@ -15,7 +15,7 @@ class AppConfig(BaseModel):
     """Application configuration model."""
 
     # Application info
-    app_name: str = "LinKCovery"
+    app_name: str = "LinkCovery"
     version: str = linkcovery_version
 
     # Database configuration

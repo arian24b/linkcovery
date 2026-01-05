@@ -1,4 +1,4 @@
-"""Link management commands for LinKCovery CLI."""
+"""Link management commands for LinkCovery CLI."""
 
 from asyncio import run as asyncio_run
 

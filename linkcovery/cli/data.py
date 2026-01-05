@@ -1,4 +1,4 @@
-"""Data import and export commands for LinKCovery CLI."""
+"""Data import and export commands for LinkCovery CLI."""
 
 from pathlib import Path
 
