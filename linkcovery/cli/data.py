@@ -7,7 +7,7 @@ import typer
 from linkcovery.core.utils import confirm_action, console, handle_errors
 from linkcovery.services.data_service import get_data_service
 
-app = typer.Typer(help="Import and export your bookmark data", no_args_is_help=True)
+app = typer.Typer(help="Import and export your bookmark data", rich_help_panel="Data Management", no_args_is_help=True)
 
 
 @app.command()
@@ -16,7 +16,13 @@ def export(
     output: str = typer.Argument("links.json", help="Output file path"),
     force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing file"),
 ) -> None:
-    """Export all your links to a JSON file."""
+    """Export all your links to a JSON file.
+
+    Examples:
+        linkcovery export my-bookmarks.json
+        linkcovery export backup.json --force
+
+    """
     output_path = Path(output)
 
     # Check if file exists and ask for confirmation
@@ -33,7 +39,13 @@ def export(
 def import_data(
     file_path: Path = typer.Argument(..., help="File to import (JSON or HTML)"),
 ) -> None:
-    """Import links from a JSON file."""
+    """Import links from a JSON or HTML file.
+
+    Examples:
+        linkcovery import bookmarks.json
+        linkcovery import chrome-bookmarks.html
+
+    """
     if not file_path.exists():
         console.print(f"❌ File not found: {file_path}", style="red")
         raise typer.Exit(1)

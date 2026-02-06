@@ -4,7 +4,8 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-from sqlalchemy import create_engine, or_, exists as sqlal_exists
+from sqlalchemy import create_engine, or_
+from sqlalchemy import exists as sqlal_exists
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool

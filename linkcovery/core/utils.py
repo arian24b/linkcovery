@@ -26,6 +26,8 @@ def handle_errors(func: Callable) -> Callable:
             console.print(f"❌ {e.message}", style="red")
             if e.details:
                 console.print(f"   {e.details}", style="dim red")
+            if e.hint:
+                console.print(f"💡 Hint: {e.hint}", style="yellow")
             raise Exit(1)
         except KeyboardInterrupt:
             console.print("\n🛑 Operation cancelled by user", style="yellow")
@@ -99,17 +101,47 @@ class DescriptionParser(HTMLParser):
                 self.description = attrs.get("content", "").strip()
 
 
-async def fetch_description(url: str) -> str:
-    async with AsyncClient(
-        timeout=10,
-        follow_redirects=True,
-        verify=False,
-        http2=True,
-    ) as client:
-        resp = await client.get(url)
-        resp.raise_for_status()
+async def fetch_description(url: str, timeout: int = 10, show_spinner: bool = True) -> str:
+    """Fetch page description from URL.
 
+    Args:
+        url: URL to fetch description from
+        timeout: Timeout in seconds (default: 10)
+        show_spinner: Whether to show loading spinner (default: True)
+
+    Returns:
+        Fetched description or empty string on failure
+
+    """
+    if show_spinner:
+        from rich.status import Status
+
+        with Status("📥 Fetching metadata...", console=console):
+            try:
+                async with AsyncClient(
+                    timeout=timeout,
+                    follow_redirects=True,
+                    verify=False,
+                    http2=True,
+                ) as client:
+                    resp = await client.get(url)
+                    resp.raise_for_status()
+            except Exception:
+                return ""
+        parser = DescriptionParser()
+        parser.feed(resp.text)
+        return parser.description
+    try:
+        async with AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            verify=False,
+            http2=True,
+        ) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+    except Exception:
+        return ""
     parser = DescriptionParser()
     parser.feed(resp.text)
-
     return parser.description

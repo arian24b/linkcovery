@@ -105,6 +105,18 @@ class LinkService:
         """Get link statistics."""
         return self.db.get_statistics()
 
+    def open_link(self, link_id: int) -> None:
+        """Open a link in default web browser."""
+        import webbrowser
+
+        link = self.get_link(link_id)
+
+        try:
+            webbrowser.open(link.url)
+        except Exception as e:
+            msg = f"Failed to open link in browser: {e}"
+            raise LinkCoveryError(msg)
+
 
 # Global service instance
 _link_service: LinkService | None = None
