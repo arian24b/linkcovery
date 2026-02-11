@@ -1,6 +1,7 @@
 """Link management service for handling business logic."""
 
 from linkcovery.core.database import DatabaseService, get_database
+from linkcovery.core.exceptions import LinKCoveryError
 from linkcovery.core.models import Link, LinkCreate, LinkFilter, LinkUpdate
 from linkcovery.core.utils import normalize_url
 
@@ -34,6 +35,10 @@ class LinkService:
         """Get all links."""
         return self.db.get_all_links()
 
+    def list_links_paginated(self, offset: int = 0, limit: int = 50) -> list[Link]:
+        """Get links with pagination."""
+        return self.db.get_links_paginated(offset=offset, limit=limit)
+
     def search_links(
         self,
         query: str = "",
@@ -59,6 +64,7 @@ class LinkService:
         description: str | None = None,
         tag: str | None = None,
         is_read: bool | None = None,
+        preview_url: str | None = None,
     ) -> Link:
         """Update an existing link."""
         updates = LinkUpdate(
@@ -66,6 +72,7 @@ class LinkService:
             description=description,
             tag=tag,
             is_read=is_read,
+            preview_url=preview_url,
         )
         return self.db.update_link(link_id, updates)
 
@@ -115,7 +122,7 @@ class LinkService:
             webbrowser.open(link.url)
         except Exception as e:
             msg = f"Failed to open link in browser: {e}"
-            raise LinkCoveryError(msg)
+            raise LinKCoveryError(msg)
 
 
 # Global service instance

@@ -39,11 +39,12 @@ def export(
 def import_data(
     file_path: Path = typer.Argument(..., help="File to import (JSON or HTML)"),
 ) -> None:
-    """Import links from a JSON or HTML file.
+    """Import links from a JSON, HTML, or TXT file.
 
     Examples:
         linkcovery import bookmarks.json
         linkcovery import chrome-bookmarks.html
+        linkcovery import links.txt
 
     """
     if not file_path.exists():
@@ -61,6 +62,8 @@ def import_data(
         data_service.import_from_json(file_path)
     elif file_path.name.endswith(".html"):
         data_service.import_from_html(file_path)
+    elif file_path.name.endswith(".txt"):
+        data_service.import_from_txt(file_path)
     else:
         console.print(f"❌ Unsupported file format: {file_path}", style="red")
         raise typer.Exit(1)

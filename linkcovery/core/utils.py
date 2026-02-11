@@ -4,7 +4,7 @@ import functools
 from collections.abc import Callable
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from httpx import AsyncClient
 from rich.console import Console
@@ -64,24 +64,24 @@ def extract_domain(url: str) -> str:
 
 
 def normalize_url(url: str) -> str:
-    """Normalize URL by removing trailing slash, converting http to https, and removing www from domain."""
+    """Normalize URL by removing trailing slash and removing www from domain."""
     try:
         parsed = urlparse(url)
+        scheme = parsed.scheme or "https"
+        hostname = (parsed.hostname or "").lower().removeprefix("www.")
 
-        # Remove www from domain
-        netloc = parsed.netloc.lower().removeprefix("www.")
+        netloc = hostname
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}"
+        if parsed.username:
+            userinfo = parsed.username
+            if parsed.password:
+                userinfo = f"{userinfo}:{parsed.password}"
+            netloc = f"{userinfo}@{netloc}"
 
-        # Remove trailing slash from path
         path = parsed.path.rstrip("/") if parsed.path != "/" else ""
 
-        # Reconstruct the URL
-        normalized = f"https://{netloc}{path}"
-        if parsed.query:
-            normalized += f"?{parsed.query}"
-        if parsed.fragment:
-            normalized += f"#{parsed.fragment}"
-
-        return normalized
+        return urlunparse((scheme, netloc, path, parsed.params, parsed.query, parsed.fragment))
     except Exception:
         msg = "Could not normalize URL"
         raise ValueError(msg)
@@ -97,8 +97,22 @@ class DescriptionParser(HTMLParser):
             attrs = dict(attrs)
 
             # match: <meta name="description" content="...">
-            if attrs.get("name", "").lower() == "description":
-                self.description = attrs.get("content", "").strip()
+            if (attrs.get("name") or "").lower() == "description":
+                self.description = (attrs.get("content") or "").strip()
+
+
+class PreviewParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.og_image = ""
+        self.first_img = ""
+
+    def handle_starttag(self, tag, attrs) -> None:
+        attrs = dict(attrs)
+        if tag.lower() == "meta" and (attrs.get("property") or "").lower() == "og:image":
+            self.og_image = (attrs.get("content") or "").strip()
+        if tag.lower() == "img" and not self.first_img:
+            self.first_img = (attrs.get("src") or "").strip()
 
 
 async def fetch_description(url: str, timeout: int = 10, show_spinner: bool = True) -> str:
@@ -145,3 +159,26 @@ async def fetch_description(url: str, timeout: int = 10, show_spinner: bool = Tr
     parser = DescriptionParser()
     parser.feed(resp.text)
     return parser.description
+
+
+async def fetch_preview_image(url: str, timeout: int = 10) -> str:
+    """Fetch og:image or first image URL from a page."""
+    try:
+        async with AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            verify=False,
+            http2=True,
+        ) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+    except Exception:
+        return ""
+
+    parser = PreviewParser()
+    parser.feed(resp.text)
+    if parser.og_image:
+        return urljoin(str(resp.url), parser.og_image)
+    if parser.first_img:
+        return urljoin(str(resp.url), parser.first_img)
+    return ""

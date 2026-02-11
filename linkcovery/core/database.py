@@ -49,6 +49,7 @@ class DatabaseService:
                 conn.commit()
 
             Base.metadata.create_all(bind=self.engine)
+            self._ensure_preview_column()
             self.SessionLocal = sessionmaker(
                 autocommit=False,
                 autoflush=False,
@@ -58,6 +59,15 @@ class DatabaseService:
         except Exception as e:
             msg = f"Failed to initialize database: {e}"
             raise DatabaseError(msg)
+
+    def _ensure_preview_column(self) -> None:
+        """Ensure preview_url column exists for links table."""
+        with self.engine.connect() as conn:
+            result = conn.exec_driver_sql("PRAGMA table_info(links)")
+            columns = {row[1] for row in result}
+            if "preview_url" not in columns:
+                conn.exec_driver_sql("ALTER TABLE links ADD COLUMN preview_url TEXT DEFAULT ''")
+                conn.commit()
 
     @contextmanager
     def get_session(self) -> Generator[Session]:
@@ -100,6 +110,7 @@ class DatabaseService:
                     description=link_data.description,
                     tag=link_data.tag,
                     is_read=link_data.is_read,
+                    preview_url="",
                     created_at=now,
                     updated_at=now,
                 )
@@ -137,6 +148,21 @@ class DatabaseService:
             with self.get_session() as session:
                 for link in (links := session.query(Link).order_by(Link.created_at.desc()).all()):
                     session.expunge(link)  # Detach from session
+                return links
+        except SQLAlchemyError as e:
+            msg = f"Database error while retrieving links: {e}"
+            raise DatabaseError(msg)
+        except Exception as e:
+            msg = f"Unexpected error while retrieving links: {e}"
+            raise DatabaseError(msg)
+
+    def get_links_paginated(self, offset: int = 0, limit: int = 50) -> list[Link]:
+        """Get links with pagination."""
+        try:
+            with self.get_session() as session:
+                query = session.query(Link).order_by(Link.created_at.desc()).offset(offset).limit(limit)
+                for link in (links := query.all()):
+                    session.expunge(link)
                 return links
         except SQLAlchemyError as e:
             msg = f"Database error while retrieving links: {e}"

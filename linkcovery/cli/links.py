@@ -97,10 +97,8 @@ def list_links(
 
     for link in links:
         status = "✅ Read" if link.is_read else "⏳ New"
-        if full:
-            desc = link.description or ""
-        else:
-            desc = link.description[:50] + "..." if len(link.description) > 50 else link.description
+        description = link.description or ""
+        desc = description if full else description[:50] + "..." if len(description) > 50 else description
         tag = link.tag or ""
         date = link.created_at[:10] if link.created_at else ""
 
@@ -178,7 +176,8 @@ def search(
 
     for link in results:
         status = "✅" if link.is_read else "⏳"
-        desc = link.description[:50] + "..." if len(link.description) > 50 else link.description
+        description = link.description or ""
+        desc = description[:50] + "..." if len(description) > 50 else description
         tag = link.tag or ""
 
         table.add_row(str(link.id), status, link.url, desc, tag)

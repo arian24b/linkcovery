@@ -24,9 +24,10 @@ Browser bookmarks quickly become cluttered and inefficient. LinkCovery helps you
 ### 🚀 Core Functionality
 - **Smart Link Management**: Add, edit, delete, and organize links with ease
 - **Powerful Search**: Search by URL, description, tags, domain, or read status
-- **Data Portability**: Import and export your bookmarks in JSON format
+- **Data Portability**: Import and export your bookmarks in JSON, HTML, or TXT format
 - **Read Tracking**: Keep track of which links you've read
 - **Rich Statistics**: Get insights into your bookmark collection
+- **Web UI**: Lightweight FastAPI interface for CRUD and previews
 
 ### 🏗️ Technical Excellence
 - **Modern Architecture**: Clean separation of concerns with service layers
@@ -68,6 +69,16 @@ uv run linkcovery add "https://github.com/arian24b/linkcovery" \
 ### List Your Links
 ```bash
 uv run linkcovery list
+```
+
+### Run the Web UI
+```bash
+uv run linkcovery webui
+```
+
+### Run Web UI in Background
+```bash
+uv run linkcovery webui --background
 ```
 
 ### Search Your Bookmarks
@@ -140,7 +151,7 @@ uv run linkcovery import my-bookmarks.json
 ### Data Management
 - `export <file>` - Export links to JSON
   - `--force, -f` - Overwrite existing file
-- `import <file>` - Import links from JSON or HTML
+- `import <file>` - Import links from JSON, HTML, or TXT
 
 ### Configuration
 - `config show` - Show current configuration
@@ -306,9 +317,34 @@ uv run linkcovery export my-bookmarks-$(date +%Y%m%d).json
 # Import from another file
 uv run linkcovery import bookmarks-backup.json
 
+# Import from text (one link per line)
+uv run linkcovery import links.txt
+
 # View statistics
 uv run linkcovery stats
 ```
+
+## 🌐 Web UI
+
+The web UI is a lightweight FastAPI interface for CRUD, previews, and file import/export.
+
+### Web UI Commands
+```bash
+uv run linkcovery webui --host 0.0.0.0 --port 8080
+uv run linkcovery webui --background
+```
+
+### Web UI Features
+- CRUD for links with quick edit and delete
+- Import (JSON/HTML/TXT) and export (JSON)
+- Lazy loading + infinite scroll
+- Layout toggle (square vs. standard cards)
+- Preview images cached locally for speed
+
+### Cache and Logs
+LinkCovery uses platformdirs for cache and log storage:
+- Cache (preview images): `user_cache_dir("linkcovery")/previews`
+- Logs (web UI): `user_log_dir("linkcovery")/webui.log`
 
 ### Configuration
 ```bash

@@ -27,6 +27,48 @@ cli_app.add_typer(config.app, name="config")
 
 @cli_app.command(rich_help_panel="Other")
 @handle_errors
+def webui(
+    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind"),
+    port: int = typer.Option(8000, "--port", help="Port to listen on"),
+    reload: bool = typer.Option(False, "--reload", help="Auto-reload on code changes"),
+    background: bool = typer.Option(False, "--background", help="Run web UI in background"),
+) -> None:
+    """Run the LinkCovery web UI."""
+    try:
+        import uvicorn
+    except ImportError:
+        console.print("❌ Missing web UI dependencies", style="red")
+        console.print("💡 Hint: install with fastapi, uvicorn, jinja2, python-multipart", style="yellow")
+        raise typer.Exit(1)
+
+    from linkcovery.webui.app import app
+
+    url = f"http://{host}:{port}"
+
+    if background:
+        import subprocess
+        import sys
+        import webbrowser
+
+        log_dir = get_config().get_log_dir()
+        log_file = log_dir / "webui.log"
+        command = [sys.executable, "-m", "uvicorn", "linkcovery.webui.app:app", "--host", host, "--port", str(port)]
+        if reload:
+            command.append("--reload")
+        with open(log_file, "ab") as log_handle:
+            process = subprocess.Popen(command, stdout=log_handle, stderr=log_handle)
+        console.print(f"🌐 Web UI running at {url}", style="green")
+        console.print(f"🧾 Logs: {log_file}", style="dim")
+        console.print(f"🧩 PID: {process.pid}", style="dim")
+        webbrowser.open(url)
+        return
+
+    console.print(f"🌐 Web UI running at {url}", style="green")
+    uvicorn.run(app, host=host, port=port, reload=reload)
+
+
+@cli_app.command(rich_help_panel="Other")
+@handle_errors
 def stats() -> None:
     """Show bookmark statistics."""
     link_service = get_link_service()
