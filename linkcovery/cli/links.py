@@ -1,4 +1,4 @@
-"""Link management commands for LinKCovery CLI."""
+"""Link management commands for LinkCovery CLI."""
 
 from asyncio import run as asyncio_run
 
@@ -11,21 +11,32 @@ from linkcovery.services.link_service import get_link_service
 app = typer.Typer(help="Manage your bookmarked links", no_args_is_help=True)
 
 
-@app.command()
+@app.command(rich_help_panel="Link Management")
 @handle_errors
 def add(
     url: str = typer.Argument(..., help="URL to bookmark"),
-    description: str = typer.Option("", "--desc", "-d", help="Description for the link"),
-    tag: str | None = typer.Option(None, "--tag", "-t", help="Tag to categorize the link"),
+    description: str = typer.Option("", "--desc", "-d", help="Description for link"),
+    tag: str | None = typer.Option(None, "--tag", "-t", help="Tag to categorize link"),
     read: bool = typer.Option(False, "--read", "-r", help="Mark as already read"),
     no_fetch: bool = typer.Option(False, "--no-fetch", help="Skip fetching metadata from URL"),
+    timeout: int = typer.Option(10, "--timeout", help="Timeout for fetching metadata (seconds)"),
 ) -> None:
-    """Add a new link to your bookmarks."""
+    """Add a new link to your bookmarks.
+
+    Examples:
+        linkCOVERY add "https://github.com/arian24b/linkcovery"
+        linkCOVERY add "url.com" --tag "python,cli" --desc "Great tool"
+        linkCOVERY add "url.com" --read --no-fetch
+        linkCOVERY add "url.com" --timeout 30
+
+    """
     link_service = get_link_service()
 
     link = link_service.add_link(
         url=url,
-        description=description or "" if no_fetch else asyncio_run(fetch_description(url=url)),
+        description=description or ""
+        if no_fetch
+        else asyncio_run(fetch_description(url=url, timeout=timeout, show_spinner=not no_fetch)),
         tag=tag or "",
         is_read=read,
     )
@@ -34,14 +45,23 @@ def add(
     console.print(f"   URL: {url}")
 
 
-@app.command(name="list")
+@app.command(name="list", rich_help_panel="Link Management")
 @handle_errors
 def list_links(
     limit: int = typer.Option(20, "--limit", "-l", help="Maximum number of links to show"),
     read_only: bool = typer.Option(False, "--read-only", help="Show only read links"),
     unread_only: bool = typer.Option(False, "--unread-only", help="Show only unread links"),
+    full: bool = typer.Option(False, "--full", help="Show full descriptions without truncation"),
 ) -> None:
-    """List your bookmarked links."""
+    """List your bookmarked links.
+
+    Examples:
+        linkcovery list
+        linkcovery list --limit 10
+        linkCOVERY list --unread-only
+        linkCOVERY list --full
+
+    """
     link_service = get_link_service()
 
     # Determine read status filter
@@ -64,7 +84,10 @@ def list_links(
         return
 
     # Create table
-    table = Table(title=f"📚 Your Links ({len(links)} shown)")
+    table = Table(
+        title=f"📚 Your Links ({len(links)} shown)",
+        show_lines=bool(full),
+    )
     table.add_column("ID", style="cyan", width=4)
     table.add_column("Status", width=6)
     table.add_column("URL", style="blue")
@@ -74,7 +97,8 @@ def list_links(
 
     for link in links:
         status = "✅ Read" if link.is_read else "⏳ New"
-        desc = link.description[:50] + "..." if len(link.description) > 50 else link.description
+        description = link.description or ""
+        desc = description if full else description[:50] + "..." if len(description) > 50 else description
         tag = link.tag or ""
         date = link.created_at[:10] if link.created_at else ""
 
@@ -83,18 +107,45 @@ def list_links(
     console.print(table)
 
 
-@app.command()
+@app.command(rich_help_panel="Link Management")
 @handle_errors
 def search(
-    query: str = typer.Argument("", help="Search in URLs, descriptions, and tags"),
+    query: str = typer.Argument(None, help="Search in URLs, descriptions, and tags"),
     domain: str = typer.Option("", "--domain", help="Filter by domain"),
     tag: str = typer.Option("", "--tag", "-t", help="Filter by tag"),
     read_only: bool = typer.Option(False, "--read-only", help="Show only read links"),
     unread_only: bool = typer.Option(False, "--unread-only", help="Show only unread links"),
     limit: int = typer.Option(20, "--limit", "-l", help="Maximum results"),
 ) -> None:
-    """Search your bookmarks."""
+    """Search your bookmarks with filters.
+
+    All filters use AND logic (intersection).
+
+    Examples:
+        linkcovery search python                  # Search for 'python'
+        linkcovery search --tag python            # Filter by tag only
+        linkcovery search python --tag tools      # Search 'python' AND tag 'tools'
+        linkCOVERY search --domain github.com     # Filter by domain only
+
+    """
     link_service = get_link_service()
+
+    # If no query or filters provided, show help
+    if not query and not domain and not tag:
+        console.print("🔍 [bold blue]Search Help[/bold blue]")
+        console.print()
+        console.print("Please provide a search query or filters:")
+        console.print()
+        console.print("  linkCOVERY search <query>              # Search all fields")
+        console.print("  linkCOVERY search --tag <tag>          # Filter by tag")
+        console.print("  linkCOVERY search --domain <domain>     # Filter by domain")
+        console.print()
+        console.print("Options:")
+        console.print("  --limit, -l           Maximum number of results")
+        console.print("  --read-only            Show only read links")
+        console.print("  --unread-only          Show only unread links")
+        console.print()
+        return
 
     # Determine read status filter
     is_read = None
@@ -104,7 +155,7 @@ def search(
         is_read = False
 
     results = link_service.search_links(
-        query=query,
+        query=query or "",
         domain=domain,
         tag=tag,
         is_read=is_read,
@@ -125,7 +176,8 @@ def search(
 
     for link in results:
         status = "✅" if link.is_read else "⏳"
-        desc = link.description[:50] + "..." if len(link.description) > 50 else link.description
+        description = link.description or ""
+        desc = description[:50] + "..." if len(description) > 50 else description
         tag = link.tag or ""
 
         table.add_row(str(link.id), status, link.url, desc, tag)
@@ -133,10 +185,15 @@ def search(
     console.print(table)
 
 
-@app.command()
+@app.command(rich_help_panel="Link Management")
 @handle_errors
 def show(link_id: int = typer.Argument(..., help="Link ID to display")) -> None:
-    """Show detailed information about a specific link."""
+    """Show detailed information about a specific link.
+
+    Examples:
+        linkcovery show 1
+
+    """
     link_service = get_link_service()
     link = link_service.get_link(link_id)
 
@@ -150,7 +207,7 @@ def show(link_id: int = typer.Argument(..., help="Link ID to display")) -> None:
     console.print(f"   Updated: {link.updated_at}")
 
 
-@app.command()
+@app.command(rich_help_panel="Link Management")
 @handle_errors
 def edit(
     link_id: int = typer.Argument(..., help="Link ID to edit"),
@@ -160,7 +217,13 @@ def edit(
     read: bool = typer.Option(False, "--read", "-r", help="Mark as read"),
     unread: bool = typer.Option(False, "--unread", "-u", help="Mark as unread"),
 ) -> None:
-    """Edit an existing link."""
+    """Edit an existing link.
+
+    Examples:
+        linkcovery edit 1 --desc "New description"
+        linkcovery edit 1 --url "https://newurl.com"
+
+    """
     link_service = get_link_service()
 
     # Determine read status
@@ -186,13 +249,20 @@ def edit(
     console.print(f"✅ Updated link #{link.id}", style="green")
 
 
-@app.command()
+@app.command(rich_help_panel="Link Management")
 @handle_errors
 def delete(
     link_id: list[int] = typer.Argument(..., help="Link ID to delete"),
     force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation"),
 ) -> None:
-    """Delete a link from your bookmarks."""
+    """Delete a link from your bookmarks.
+
+    Examples:
+        linkcovery delete 1
+        linkcovery delete 1 2 3
+        linkcovery delete 1 --force
+
+    """
     link_service = get_link_service()
 
     # Get link details for confirmation
@@ -207,33 +277,20 @@ def delete(
     console.print(f"✅ Deleted links: {', '.join(str(link.id) for link in links)}", style="green")
 
 
-@app.command("mark-read")
-@handle_errors
-def mark_read(link_id: list[int] = typer.Argument(..., help="Link ID to mark as read")) -> None:
-    """Mark a link as read."""
-    link_service = get_link_service()
-    for id in link_id:
-        link = link_service.mark_as_read(id)
-        console.print(f"✅ Marked link #{link.id} as read", style="green")
-
-
-@app.command("mark-unread")
-@handle_errors
-def mark_unread(link_id: list[int] = typer.Argument(..., help="Link ID to mark as unread")) -> None:
-    """Mark a link as unread."""
-    link_service = get_link_service()
-    for id in link_id:
-        link = link_service.mark_as_unread(id)
-        console.print(f"✅ Marked link #{link.id} as unread", style="green")
-
-
-@app.command()
+@app.command(rich_help_panel="Link Management")
 @handle_errors
 def normalize(
     link_id: list[int] = typer.Argument(None, help="Link IDs to normalize"),
     all_links: bool = typer.Option(False, "--all", "-a", help="Normalize all links"),
 ) -> None:
-    """Normalize link URLs by removing trailing slashes, converting http to https, and removing www."""
+    """Normalize link URLs by removing trailing slashes, converting http to https, and removing www.
+
+    Examples:
+        linkcovery normalize 1
+        linkcovery normalize 1 2 3
+        linkcovery normalize --all
+
+    """
     link_service = get_link_service()
 
     if all_links:
@@ -261,13 +318,20 @@ def normalize(
         console.print("⚠️ Please specify link IDs or use --all to normalize all links", style="yellow")
 
 
-@app.command()
+@app.command(rich_help_panel="Link Management")
 @handle_errors
 def read_random(
     number: int = typer.Option(5, "--number", "-n", help="Number of random links to read"),
     include_read: bool = typer.Option(False, "--include-read", help="Include already read links"),
 ) -> None:
-    """Read random links from your bookmarks and mark them as read."""
+    """Read random links from your bookmarks and mark them as read.
+
+    Examples:
+        linkcovery read-random
+        linkcovery read-random --number 10
+        linkcovery read-random --include-read
+
+    """
     link_service = get_link_service()
 
     if number < 1:

@@ -1,4 +1,4 @@
-"""Configuration management for LinKCovery."""
+"""Configuration management for LinkCovery."""
 
 from json import dump
 from json import load as jload
@@ -15,7 +15,7 @@ class AppConfig(BaseModel):
     """Application configuration model."""
 
     # Application info
-    app_name: str = "LinKCovery"
+    app_name: str = "LinkCovery"
     version: str = linkcovery_version
 
     # Database configuration
@@ -32,6 +32,8 @@ class AppConfig(BaseModel):
     # Cache for expensive operations
     _cached_db_path: str | None = None
     _cached_config_dir: Path | None = None
+    _cached_cache_dir: Path | None = None
+    _cached_log_dir: Path | None = None
 
     def get_database_path(self) -> str:
         """Get the database path with fallback options (cached)."""
@@ -77,6 +79,38 @@ class AppConfig(BaseModel):
         config_dir.mkdir(parents=True, exist_ok=True)
         self._cached_config_dir = config_dir
         return config_dir
+
+    def get_cache_dir(self) -> Path:
+        """Get the cache directory (cached)."""
+        if self._cached_cache_dir:
+            return self._cached_cache_dir
+
+        try:
+            from platformdirs import user_cache_dir
+
+            cache_dir = Path(user_cache_dir("linkcovery"))
+        except ImportError:
+            cache_dir = Path.home() / ".cache" / "linkcovery"
+
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        self._cached_cache_dir = cache_dir
+        return cache_dir
+
+    def get_log_dir(self) -> Path:
+        """Get the log directory (cached)."""
+        if self._cached_log_dir:
+            return self._cached_log_dir
+
+        try:
+            from platformdirs import user_log_dir
+
+            log_dir = Path(user_log_dir("linkcovery"))
+        except ImportError:
+            log_dir = Path.home() / ".local" / "state" / "linkcovery" / "logs"
+
+        log_dir.mkdir(parents=True, exist_ok=True)
+        self._cached_log_dir = log_dir
+        return log_dir
 
 
 class ConfigManager:

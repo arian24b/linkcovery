@@ -1,4 +1,4 @@
-"""LinKCovery - Bookmark and Link Management Tool."""
+"""LinkCovery - Bookmark and Link Management Tool."""
 
 __version__ = "1.7.8"
 __author__ = "Arian Omrani"

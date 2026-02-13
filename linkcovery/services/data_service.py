@@ -1,4 +1,4 @@
-"""Import and export service for LinKCovery."""
+"""Import and export service for LinkCovery."""
 
 from asyncio import run as asyncio_run
 from json import JSONDecodeError, dump, load
@@ -88,6 +88,51 @@ class DataService:
                 except Exception as e:
                     failed_count += 1
                     failed_links.append({"index": i, "url": link_data.get("url", ""), "error": str(e)})
+
+                progress.update(task, advance=1)
+
+        console.print(f"✅ Import completed: {added_count} links added", style="green")
+        if failed_count > 0:
+            console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
+            for failure in failed_links:
+                console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
+
+    def import_from_txt(self, file_path: Path) -> None:
+        """Import links from a text file (one URL per line)."""
+        try:
+            lines = file_path.read_text(encoding="utf-8").splitlines()
+        except Exception as e:
+            msg = f"Failed to read file: {e}"
+            raise ImportExportError(msg)
+
+        urls = [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]
+
+        if not urls:
+            console.print("ℹ️ No links found in the text file", style="blue")
+            return
+
+        added_count = 0
+        failed_count = 0
+        failed_links = []
+
+        console.print(f"📥 Importing {len(urls)} links...")
+
+        with Progress() as progress:
+            task: TaskID = progress.add_task("Importing links...", total=len(urls))
+
+            for i, url in enumerate(urls, 1):
+                if not url or self.link_service.exists(url):
+                    failed_count += 1
+                    failed_links.append({"index": i, "url": url or "", "error": "URL missing or already exists"})
+                    progress.update(task, advance=1)
+                    continue
+
+                try:
+                    self.link_service.add_link(url=url, description="", tag="", is_read=False)
+                    added_count += 1
+                except Exception as e:
+                    failed_count += 1
+                    failed_links.append({"index": i, "url": url, "error": str(e)})
 
                 progress.update(task, advance=1)
 

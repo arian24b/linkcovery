@@ -21,6 +21,7 @@ class Link(Base):
     description = Column(String, nullable=True, default="")
     tag = Column(String, nullable=False, default="", index=True)
     is_read = Column(Boolean, default=False, index=True)
+    preview_url = Column(String, nullable=True, default="")
     created_at = Column(String, nullable=False, index=True)
     updated_at = Column(String, nullable=False)
 
@@ -72,7 +73,7 @@ class LinkCreate(BaseModel):
     @classmethod
     def validate_description(cls, v: str) -> str | None:
         """Validate and clean description and tag."""
-        return v.strip() if v else None
+        return v.strip() if v else ""
 
 
 class LinkUpdate(BaseModel):
@@ -82,6 +83,7 @@ class LinkUpdate(BaseModel):
     description: str | None = Field(None, description="Optional description for the link")
     tag: str | None = Field(None, description="Tag to categorize the link")
     is_read: bool | None = Field(None, description="Whether the link has been read")
+    preview_url: str | None = Field(None, description="Preview image URL for the link")
 
     @field_validator("url")
     @classmethod
@@ -139,6 +141,7 @@ class LinkExport(BaseModel):
     description: str
     tag: str
     is_read: bool
+    preview_url: str
     created_at: str
     updated_at: str
 
@@ -152,6 +155,7 @@ class LinkExport(BaseModel):
             description=link.description or "",
             tag=link.tag or "",
             is_read=link.is_read,
+            preview_url=link.preview_url or "",
             created_at=link.created_at,
             updated_at=link.updated_at,
         )
