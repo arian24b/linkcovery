@@ -272,7 +272,7 @@
                   <button class="button ghost" type="submit">Toggle</button>
                 </form>
                 <a class="button ghost" href="/links/{{ link.id }}/edit">Edit</a>
-                <form action="/links/{{ link.id }}/delete" method="post">
+                <form action="/links/{{ link.id }}/delete" method="post" onsubmit="return confirm('Delete this link?')">
                   <button class="button" style="background: var(--warning); color: #fff;" type="submit">Delete</button>
                 </form>
               </div>
