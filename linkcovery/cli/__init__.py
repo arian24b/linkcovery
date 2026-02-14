@@ -5,7 +5,7 @@ from pathlib import Path
 
 import typer
 from rich.table import Table
-
+from time import sleep
 from linkcovery.cli import config, data, links
 from linkcovery.core.config import get_config
 from linkcovery.core.utils import console, handle_errors
@@ -60,11 +60,15 @@ def webui(
         console.print(f"🌐 Web UI running at {url}", style="green")
         console.print(f"🧾 Logs: {log_file}", style="dim")
         console.print(f"🧩 PID: {process.pid}", style="dim")
+        sleep(1.5)
         webbrowser.open(url)
         return
 
     console.print(f"🌐 Web UI running at {url}", style="green")
-    uvicorn.run(app, host=host, port=port, reload=reload)
+    if reload:
+        uvicorn.run("linkcovery.webui.app:app", host=host, port=port, reload=True)
+    else:
+        uvicorn.run(app, host=host, port=port)
 
 
 @cli_app.command(rich_help_panel="Other")
