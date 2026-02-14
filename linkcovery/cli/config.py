@@ -166,7 +166,7 @@ def validate() -> None:
     """Validate current configuration values.
 
     Examples:
-        linkCOVERY config validate
+        linkcovery config validate
 
     """
     from pathlib import Path

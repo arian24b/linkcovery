@@ -23,7 +23,7 @@ class LinkNotFoundError(LinKCoveryError):
     """Raised when a requested link is not found."""
 
     def __init__(self, link_id: int) -> None:
-        super().__init__(f"Link with ID {link_id} not found", hint="Use 'linkCOVERY list' to see all available links")
+        super().__init__(f"Link with ID {link_id} not found", hint="Use 'linkcovery list' to see all available links")
         self.link_id = link_id
 
 
@@ -31,7 +31,7 @@ class LinkAlreadyExistsError(LinKCoveryError):
     """Raised when trying to add a link that already exists."""
 
     def __init__(self, url: str) -> None:
-        super().__init__(f"Link already exists: {url}", hint="Use 'linkCOVERY edit <id>' to update existing link")
+        super().__init__(f"Link already exists: {url}", hint="Use 'linkcovery edit <id>' to update existing link")
         self.url = url
 
 
@@ -39,7 +39,7 @@ class ConfigurationError(LinKCoveryError):
     """Raised when configuration issues occur."""
 
     def __init__(self, message: str, hint: str = "") -> None:
-        super().__init__(message, hint=hint or "Use 'linkCOVERY config show' to see current configuration")
+        super().__init__(message, hint=hint or "Use 'linkcovery config show' to see current configuration")
 
 
 class ImportExportError(LinKCoveryError):

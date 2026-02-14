@@ -24,10 +24,10 @@ def add(
     """Add a new link to your bookmarks.
 
     Examples:
-        linkCOVERY add "https://github.com/arian24b/linkcovery"
-        linkCOVERY add "url.com" --tag "python,cli" --desc "Great tool"
-        linkCOVERY add "url.com" --read --no-fetch
-        linkCOVERY add "url.com" --timeout 30
+        linkcovery add "https://github.com/arian24b/linkcovery"
+        linkcovery add "url.com" --tag "python,cli" --desc "Great tool"
+        linkcovery add "url.com" --read --no-fetch
+        linkcovery add "url.com" --timeout 30
 
     """
     link_service = get_link_service()
@@ -58,8 +58,8 @@ def list_links(
     Examples:
         linkcovery list
         linkcovery list --limit 10
-        linkCOVERY list --unread-only
-        linkCOVERY list --full
+        linkcovery list --unread-only
+        linkcovery list --full
 
     """
     link_service = get_link_service()
@@ -125,7 +125,7 @@ def search(
         linkcovery search python                  # Search for 'python'
         linkcovery search --tag python            # Filter by tag only
         linkcovery search python --tag tools      # Search 'python' AND tag 'tools'
-        linkCOVERY search --domain github.com     # Filter by domain only
+        linkcovery search --domain github.com     # Filter by domain only
 
     """
     link_service = get_link_service()
@@ -136,9 +136,9 @@ def search(
         console.print()
         console.print("Please provide a search query or filters:")
         console.print()
-        console.print("  linkCOVERY search <query>              # Search all fields")
-        console.print("  linkCOVERY search --tag <tag>          # Filter by tag")
-        console.print("  linkCOVERY search --domain <domain>     # Filter by domain")
+        console.print("  linkcovery search <query>              # Search all fields")
+        console.print("  linkcovery search --tag <tag>          # Filter by tag")
+        console.print("  linkcovery search --domain <domain>     # Filter by domain")
         console.print()
         console.print("Options:")
         console.print("  --limit, -l           Maximum number of results")
