@@ -4,13 +4,13 @@ import hashlib
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Annotated
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from httpx import AsyncClient
-from urllib.parse import urlparse
 
 from linkcovery.core.config import get_config
 from linkcovery.core.exceptions import ImportExportError, LinKCoveryError

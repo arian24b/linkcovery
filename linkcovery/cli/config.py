@@ -1,6 +1,5 @@
 """Configuration management commands for LinkCovery CLI."""
 
-import os
 import platform
 
 import typer

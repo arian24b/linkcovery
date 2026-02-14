@@ -2,10 +2,11 @@
 
 from datetime import datetime
 from pathlib import Path
+from time import sleep
 
 import typer
 from rich.table import Table
-from time import sleep
+
 from linkcovery.cli import config, data, links
 from linkcovery.core.config import get_config
 from linkcovery.core.utils import console, handle_errors

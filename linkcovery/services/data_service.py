@@ -121,7 +121,7 @@ class DataService:
             task: TaskID = progress.add_task("Importing links...", total=len(urls))
 
             for i, url in enumerate(urls, 1):
-                if not url or self.link_service.exists(url):
+                if self.link_service.exists(url):
                     failed_count += 1
                     failed_links.append({"index": i, "url": url or "", "error": "URL missing or already exists"})
                     progress.update(task, advance=1)
