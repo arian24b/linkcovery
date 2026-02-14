@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from httpx import AsyncClient
+from urllib.parse import urlparse
 
 from linkcovery.core.config import get_config
 from linkcovery.core.exceptions import ImportExportError, LinKCoveryError
@@ -206,7 +207,8 @@ async def cache_preview_image(image_url: str) -> Path | None:
     """Download image and store in cache directory."""
     try:
         digest = hashlib.sha256(image_url.encode("utf-8")).hexdigest()
-        suffix = Path(image_url).suffix.lower()
+        parsed_path = urlparse(image_url).path
+        suffix = Path(parsed_path).suffix.lower()
         if not suffix or len(suffix) > 5:
             suffix = ".jpg"
         filename = f"{digest}{suffix}"
