@@ -149,11 +149,11 @@ def edit() -> None:
         config_file = str(config_manager._config_file)
 
         if platform.system() == "Windows":
-            os.system(f'start "" "{config_file}"')
+            subprocess.Popen(["cmd", "/c", "start", "", config_file])
         elif platform.system() == "Darwin":  # macOS
-            os.system(f'open "{config_file}"')
+            subprocess.Popen(["open", config_file])
         else:  # Linux
-            os.system(f'xdg-open "{config_file}"')
+            subprocess.Popen(["xdg-open", config_file])
 
         console.print(f"📝 Opening config file: {config_file}", style="green")
     except Exception as e:
