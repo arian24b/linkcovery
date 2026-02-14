@@ -391,15 +391,33 @@
 
         const actions = document.createElement("div");
         actions.className = "actions";
-        actions.innerHTML = `
-          <form action="/links/${link.id}/toggle" method="post">
-            <button class="button ghost" type="submit">Toggle</button>
-          </form>
-          <a class="button ghost" href="/links/${link.id}/edit">Edit</a>
-          <form action="/links/${link.id}/delete" method="post">
-            <button class="button" style="background: var(--warning); color: #fff;" type="submit">Delete</button>
-          </form>
-        `;
+        const toggleForm = document.createElement("form");
+        toggleForm.action = `/links/${encodeURIComponent(link.id)}/toggle`;
+        toggleForm.method = "post";
+        const toggleBtn = document.createElement("button");
+        toggleBtn.className = "button ghost";
+        toggleBtn.type = "submit";
+        toggleBtn.textContent = "Toggle";
+        toggleForm.appendChild(toggleBtn);
+
+        const editLink = document.createElement("a");
+        editLink.className = "button ghost";
+        editLink.href = `/links/${encodeURIComponent(link.id)}/edit`;
+        editLink.textContent = "Edit";
+
+        const deleteForm = document.createElement("form");
+        deleteForm.action = `/links/${encodeURIComponent(link.id)}/delete`;
+        deleteForm.method = "post";
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "button";
+        deleteBtn.style.cssText = "background: var(--warning); color: `#fff`;";
+        deleteBtn.type = "submit";
+        deleteBtn.textContent = "Delete";
+        deleteForm.appendChild(deleteBtn);
+
+        actions.appendChild(toggleForm);
+        actions.appendChild(editLink);
+        actions.appendChild(deleteForm);
 
         card.appendChild(thumb);
         card.appendChild(details);
