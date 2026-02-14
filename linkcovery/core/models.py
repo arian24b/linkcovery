@@ -71,7 +71,7 @@ class LinkCreate(BaseModel):
 
     @field_validator("description", "tag")
     @classmethod
-    def validate_description(cls, v: str) -> str | None:
+    def validate_description(cls, v: str) -> str:
         """Validate and clean description and tag."""
         return v.strip() if v else ""
 

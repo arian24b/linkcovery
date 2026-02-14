@@ -34,9 +34,9 @@ def add(
 
     link = link_service.add_link(
         url=url,
-        description=description or ""
-        if no_fetch
-        else asyncio_run(fetch_description(url=url, timeout=timeout, show_spinner=not no_fetch)),
+        description=description
+        if description or no_fetch
+        else asyncio_run(fetch_description(url=url, timeout=timeout, show_spinner=True)),
         tag=tag or "",
         is_read=read,
     )

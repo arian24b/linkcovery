@@ -37,7 +37,7 @@ def export(
 @app.command(name="import")
 @handle_errors
 def import_data(
-    file_path: Path = typer.Argument(..., help="File to import (JSON or HTML)"),
+    file_path: Path = typer.Argument(..., help="File to import (JSON, HTML or TXT)"),
 ) -> None:
     """Import links from a JSON, HTML, or TXT file.
 
