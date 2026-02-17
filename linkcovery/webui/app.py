@@ -1,12 +1,12 @@
 """FastAPI Web UI for LinkCovery."""
 
-import hashlib
+from hashlib import sha256
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Annotated
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, Depends
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,7 +16,7 @@ from linkcovery.core.config import get_config
 from linkcovery.core.exceptions import ImportExportError, LinKCoveryError
 from linkcovery.core.utils import fetch_preview_image
 from linkcovery.services.data_service import get_data_service
-from linkcovery.services.link_service import get_link_service
+from linkcovery.services.link_service import LinkService, get_link_service
 
 BASE_DIR = Path(__file__).resolve().parent
 config = get_config()
@@ -31,8 +31,7 @@ app.mount("/cache", StaticFiles(directory=str(cache_dir)), name="cache")
 
 
 @app.get("/")
-def index(request: Request, limit: int = 30):
-    link_service = get_link_service()
+def index(request: Request, link_service: Annotated[LinkService, Depends(get_link_service)], limit: int = 30):
     links = link_service.list_links_paginated(offset=0, limit=limit)
 
     return templates.TemplateResponse(
@@ -46,8 +45,9 @@ def index(request: Request, limit: int = 30):
 
 
 @app.get("/api/links")
-def list_links(offset: int = 0, limit: int = 30) -> JSONResponse:
-    link_service = get_link_service()
+def list_links(
+    link_service: Annotated[LinkService, Depends(get_link_service)], offset: int = 0, limit: int = 30
+) -> JSONResponse:
     links = link_service.list_links_paginated(offset=offset, limit=limit)
     payload = [
         {
@@ -65,12 +65,12 @@ def list_links(offset: int = 0, limit: int = 30) -> JSONResponse:
 
 @app.post("/links")
 def create_link(
+    link_service: Annotated[LinkService, Depends(get_link_service)],
     url: Annotated[str, Form()],
     description: Annotated[str, Form()] = "",
     tag: Annotated[str, Form()] = "",
     is_read: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
-    link_service = get_link_service()
     link_service.add_link(url=url, description=description, tag=tag, is_read=bool(is_read))
     return RedirectResponse(url="/", status_code=303)
 
@@ -115,8 +115,7 @@ def export_links() -> FileResponse:
 
 
 @app.get("/links/{link_id}/edit")
-def edit_view(request: Request, link_id: int):
-    link_service = get_link_service()
+def edit_view(request: Request, link_id: int, link_service: Annotated[LinkService, Depends(get_link_service)]):
     link = link_service.get_link(link_id)
     return templates.TemplateResponse(
         "edit.html",
@@ -129,13 +128,13 @@ def edit_view(request: Request, link_id: int):
 
 @app.post("/links/{link_id}/edit")
 def edit_link(
+    link_service: Annotated[LinkService, Depends(get_link_service)],
     link_id: int,
     url: Annotated[str, Form()],
     description: Annotated[str, Form()] = "",
     tag: Annotated[str, Form()] = "",
     is_read: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
-    link_service = get_link_service()
     link_service.update_link(
         link_id=link_id,
         url=url,
@@ -206,7 +205,7 @@ def linkcovery_exception_handler(request: Request, exc: LinKCoveryError):
 async def cache_preview_image(image_url: str) -> Path | None:
     """Download image and store in cache directory."""
     try:
-        digest = hashlib.sha256(image_url.encode("utf-8")).hexdigest()
+        digest = sha256(image_url.encode("utf-8")).hexdigest()
         parsed_path = urlparse(image_url).path
         suffix = Path(parsed_path).suffix.lower()
         if not suffix or len(suffix) > 5:

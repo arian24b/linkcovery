@@ -5,7 +5,12 @@ from pathlib import Path
 from time import sleep
 
 import typer
+import uvicorn
 from rich.table import Table
+from linkcovery.webui.app import app
+import subprocess
+import sys
+import webbrowser
 
 from linkcovery.cli import config, data, links
 from linkcovery.core.config import get_config
@@ -35,22 +40,9 @@ def webui(
     background: bool = typer.Option(False, "--background", help="Run web UI in background"),
 ) -> None:
     """Run the LinkCovery web UI."""
-    try:
-        import uvicorn
-    except ImportError:
-        console.print("❌ Missing web UI dependencies", style="red")
-        console.print("💡 Hint: install with fastapi, uvicorn, jinja2, python-multipart", style="yellow")
-        raise typer.Exit(1)
-
-    from linkcovery.webui.app import app
-
     url = f"http://{host}:{port}"
 
     if background:
-        import subprocess
-        import sys
-        import webbrowser
-
         log_dir = get_config().get_log_dir()
         log_file = log_dir / "webui.log"
         command = [sys.executable, "-m", "uvicorn", "linkcovery.webui.app:app", "--host", host, "--port", str(port)]
@@ -66,6 +58,7 @@ def webui(
         return
 
     console.print(f"🌐 Web UI running at {url}", style="green")
+    webbrowser.open(url)
     if reload:
         uvicorn.run("linkcovery.webui.app:app", host=host, port=port, reload=True)
     else:
