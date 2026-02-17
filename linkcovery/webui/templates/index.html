@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LinkCovery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f7f4;
+        --panel: #ffffff;
+        --ink: #1d1f1f;
+        --muted: #6b6f72;
+        --border: #e3e6e8;
+        --accent: #1f7a5a;
+        --accent-ink: #ffffff;
+        --warning: #e07a5f;
+        --shadow: 0 10px 30px rgba(24, 26, 28, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: var(--ink);
+        background: radial-gradient(1200px 700px at 10% -10%, #e7efe8, transparent), var(--bg);
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 32px 20px 60px;
+      }
+      .header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .title {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        color: var(--muted);
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: var(--shadow);
+      }
+      .panel + .panel {
+        margin-top: 16px;
+      }
+      .form {
+        display: grid;
+        grid-template-columns: 2fr 2fr 1fr auto auto;
+        gap: 12px;
+        align-items: center;
+      }
+      .form.compact {
+        grid-template-columns: 1fr auto;
+      }
+      .input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 14px;
+        background: #fafafa;
+      }
+      .checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .button {
+        border: none;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .button.primary {
+        background: var(--accent);
+        color: var(--accent-ink);
+      }
+      .button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--ink);
+      }
+      .list {
+        display: grid;
+        gap: 14px;
+        margin-top: 22px;
+      }
+      body.square .card {
+        grid-template-columns: 1fr;
+      }
+      body.square .thumb {
+        width: 100%;
+        height: 200px;
+      }
+      .card {
+        display: grid;
+        grid-template-columns: 120px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        padding: 16px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+      }
+      .thumb {
+        width: 120px;
+        height: 80px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #f0f2f1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+      }
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .details {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .url {
+        font-weight: 600;
+        font-size: 15px;
+        word-break: break-all;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .tag {
+        display: inline-flex;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--muted);
+        margin-right: 6px;
+      }
+      .status {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-end;
+      }
+      .actions form {
+        margin: 0;
+      }
+      .actions .button {
+        min-width: 90px;
+      }
+      .empty {
+        text-align: center;
+        color: var(--muted);
+        padding: 32px 0;
+      }
+      .loader {
+        text-align: center;
+        color: var(--muted);
+        padding: 18px 0;
+      }
+      @media (max-width: 900px) {
+        .form {
+          grid-template-columns: 1fr;
+        }
+        .card {
+          grid-template-columns: 1fr;
+          align-items: flex-start;
+        }
+        .actions {
+          flex-direction: row;
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="title">LinkCovery</div>
+        <div class="subtitle">Fast, light link manager with previews and simple CRUD.</div>
+        <div class="toolbar">
+          <button class="button ghost" type="button" id="toggleLayout">Toggle layout</button>
+          <a class="button ghost" href="/export">Export JSON</a>
+        </div>
+      </div>
+
+      <div class="panel">
+        <form class="form" action="/links" method="post">
+          <input class="input" name="url" placeholder="https://example.com" required />
+          <input class="input" name="description" placeholder="Description" />
+          <input class="input" name="tag" placeholder="Tag" />
+          <label class="checkbox">
+            <input type="checkbox" name="is_read" />
+            Read
+          </label>
+          <button class="button primary" type="submit">Add link</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <form class="form compact" action="/import" method="post" enctype="multipart/form-data">
+          <input class="input" type="file" name="file" accept=".json,.html,.txt" required />
+          <button class="button primary" type="submit">Import file</button>
+        </form>
+      </div>
+
+      <div class="list" id="linkList" data-limit="{{ limit }}">
+        {% if links %}
+          {% for link in links %}
+            <div class="card">
+              <div class="thumb" data-preview-id="{{ link.id }}">
+                {% if link.preview_url %}
+                  <img src="{{ link.preview_url }}" alt="Preview" loading="lazy" />
+                {% else %}
+                  <span class="meta">No preview</span>
+                {% endif %}
+              </div>
+              <div class="details">
+                <div class="url"><a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.url }}</a></div>
+                {% if link.description %}
+                  <div class="meta">{{ link.description }}</div>
+                {% endif %}
+                <div class="meta">
+                  {% if link.tag %}
+                    <span class="tag">{{ link.tag }}</span>
+                  {% endif %}
+                  <span class="status">{{ "Read" if link.is_read else "Unread" }}</span>
+                </div>
+              </div>
+              <div class="actions">
+                <form action="/links/{{ link.id }}/toggle" method="post">
+                  <button class="button ghost" type="submit">Toggle</button>
+                </form>
+                <a class="button ghost" href="/links/{{ link.id }}/edit">Edit</a>
+                <form action="/links/{{ link.id }}/delete" method="post" onsubmit="return confirm('Delete this link?')">
+                  <button class="button" style="background: var(--warning); color: #fff;" type="submit">Delete</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty">No links yet. Add your first link above.</div>
+        {% endif %}
+      </div>
+      <div class="loader" id="loader">Loading more...</div>
+    </div>
+
+    <script>
+      const linkList = document.getElementById("linkList");
+      const loader = document.getElementById("loader");
+      const limit = Number(linkList.dataset.limit || 30);
+      let offset = document.querySelectorAll(".card").length;
+      let loading = false;
+      let done = false;
+
+      const applyLayout = (value) => {
+        if (value === "square") {
+          document.body.classList.add("square");
+        } else {
+          document.body.classList.remove("square");
+        }
+      };
+
+      const savedLayout = localStorage.getItem("layout") || "default";
+      applyLayout(savedLayout);
+      document.getElementById("toggleLayout").addEventListener("click", () => {
+        const next = document.body.classList.contains("square") ? "default" : "square";
+        localStorage.setItem("layout", next);
+        applyLayout(next);
+      });
+
+      const hydratePreview = (card) => {
+        if (card.querySelector("img")) {
+          return;
+        }
+        const linkId = card.getAttribute("data-preview-id");
+        fetch(`/links/${linkId}/preview`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (!data.preview_url) {
+              return;
+            }
+            card.innerHTML = "";
+            const img = document.createElement("img");
+            img.src = data.preview_url;
+            img.alt = "Preview";
+            img.loading = "lazy";
+            card.appendChild(img);
+          })
+          .catch(() => {});
+      };
+
+      const hydratePreviewsInView = () => {
+        document.querySelectorAll("[data-preview-id]").forEach(hydratePreview);
+      };
+
+      const renderCard = (link) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const thumb = document.createElement("div");
+        thumb.className = "thumb";
+        thumb.setAttribute("data-preview-id", link.id);
+        if (link.preview_url) {
+          const img = document.createElement("img");
+          img.src = link.preview_url;
+          img.alt = "Preview";
+          img.loading = "lazy";
+          thumb.appendChild(img);
+        } else {
+          const noPreview = document.createElement("span");
+          noPreview.className = "meta";
+          noPreview.textContent = "No preview";
+          thumb.appendChild(noPreview);
+        }
+
+        const details = document.createElement("div");
+        details.className = "details";
+
+        const urlWrap = document.createElement("div");
+        urlWrap.className = "url";
+        const urlLink = document.createElement("a");
+        urlLink.href = link.url;
+        urlLink.target = "_blank";
+        urlLink.rel = "noopener";
+        urlLink.textContent = link.url;
+        urlWrap.appendChild(urlLink);
+
+        details.appendChild(urlWrap);
+
+        if (link.description) {
+          const desc = document.createElement("div");
+          desc.className = "meta";
+          desc.textContent = link.description;
+          details.appendChild(desc);
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        if (link.tag) {
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = link.tag;
+          meta.appendChild(tag);
+        }
+        const status = document.createElement("span");
+        status.className = "status";
+        status.textContent = link.is_read ? "Read" : "Unread";
+        meta.appendChild(status);
+        details.appendChild(meta);
+
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        const toggleForm = document.createElement("form");
+        toggleForm.action = `/links/${encodeURIComponent(link.id)}/toggle`;
+        toggleForm.method = "post";
+        const toggleBtn = document.createElement("button");
+        toggleBtn.className = "button ghost";
+        toggleBtn.type = "submit";
+        toggleBtn.textContent = "Toggle";
+        toggleForm.appendChild(toggleBtn);
+
+        const editLink = document.createElement("a");
+        editLink.className = "button ghost";
+        editLink.href = `/links/${encodeURIComponent(link.id)}/edit`;
+        editLink.textContent = "Edit";
+
+        const deleteForm = document.createElement("form");
+        deleteForm.action = `/links/${encodeURIComponent(link.id)}/delete`;
+        deleteForm.method = "post";
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "button";
+        deleteBtn.style.cssText = "background: var(--warning); color: `#fff`;";
+        deleteBtn.type = "submit";
+        deleteBtn.textContent = "Delete";
+        deleteForm.appendChild(deleteBtn);
+
+        actions.appendChild(toggleForm);
+        actions.appendChild(editLink);
+        actions.appendChild(deleteForm);
+
+        card.appendChild(thumb);
+        card.appendChild(details);
+        card.appendChild(actions);
+        linkList.appendChild(card);
+        hydratePreview(thumb);
+      };
+
+      const loadMore = () => {
+        if (loading || done) {
+          return;
+        }
+        loading = true;
+        fetch(`/api/links?offset=${offset}&limit=${limit}`)
+          .then((res) => res.json())
+          .then((data) => {
+            const links = data.links || [];
+            if (!links.length) {
+              done = true;
+              loader.textContent = "No more links";
+              return;
+            }
+            links.forEach(renderCard);
+            offset += links.length;
+          })
+          .catch(() => {})
+          .finally(() => {
+            loading = false;
+          });
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            loadMore();
+          }
+        });
+      });
+
+      if (offset === 0) {
+        loader.textContent = "No links yet";
+      }
+      observer.observe(loader);
+      hydratePreviewsInView();
+    </script>
+  </body>
+</html>

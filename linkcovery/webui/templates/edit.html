@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edit Link</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f7f4;
+        --panel: #ffffff;
+        --ink: #1d1f1f;
+        --muted: #6b6f72;
+        --border: #e3e6e8;
+        --accent: #1f7a5a;
+        --accent-ink: #ffffff;
+        --shadow: 0 10px 30px rgba(24, 26, 28, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: var(--ink);
+        background: radial-gradient(1200px 700px at 10% -10%, #e7efe8, transparent), var(--bg);
+      }
+      .container {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 32px 20px 60px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 14px;
+        background: #fafafa;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .button {
+        border: none;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .button.primary {
+        background: var(--accent);
+        color: var(--accent-ink);
+      }
+      .button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="panel">
+        <div class="title">Edit link</div>
+        <form action="/links/{{ link.id }}/edit" method="post">
+          <div class="field">
+            <div class="label">URL</div>
+            <input class="input" name="url" value="{{ link.url }}" required />
+          </div>
+          <div class="field">
+            <div class="label">Description</div>
+            <input class="input" name="description" value="{{ link.description }}" />
+          </div>
+          <div class="field">
+            <div class="label">Tag</div>
+            <input class="input" name="tag" value="{{ link.tag }}" />
+          </div>
+          <label style="display: flex; align-items: center; gap: 8px; color: var(--muted);">
+            <input type="checkbox" name="is_read" {% if link.is_read %}checked{% endif %} />
+            Read
+          </label>
+          <div class="actions">
+            <button class="button primary" type="submit">Save</button>
+            <a class="button ghost" href="/">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

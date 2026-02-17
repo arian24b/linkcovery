@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LinkCovery Error</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f7f4;
+        --panel: #ffffff;
+        --ink: #1d1f1f;
+        --muted: #6b6f72;
+        --border: #e3e6e8;
+        --accent: #1f7a5a;
+        --accent-ink: #ffffff;
+        --shadow: 0 10px 30px rgba(24, 26, 28, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: var(--ink);
+        background: radial-gradient(1200px 700px at 10% -10%, #e7efe8, transparent), var(--bg);
+      }
+      .container {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 32px 20px 60px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .title {
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .text {
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .button {
+        border: none;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--accent);
+        color: var(--accent-ink);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="panel">
+        <div class="title">Something went wrong</div>
+        <div class="text">{{ message }}</div>
+        {% if details %}
+          <div class="text">{{ details }}</div>
+        {% endif %}
+        {% if hint %}
+          <div class="text">Hint: {{ hint }}</div>
+        {% endif %}
+        <a class="button" href="/">Back to list</a>
+      </div>
+    </div>
+  </body>
+</html>

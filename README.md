@@ -24,9 +24,10 @@ Browser bookmarks quickly become cluttered and inefficient. LinkCovery helps you
 ### 🚀 Core Functionality
 - **Smart Link Management**: Add, edit, delete, and organize links with ease
 - **Powerful Search**: Search by URL, description, tags, domain, or read status
-- **Data Portability**: Import and export your bookmarks in JSON format
+- **Data Portability**: Import and export your bookmarks in JSON, HTML, or TXT format
 - **Read Tracking**: Keep track of which links you've read
 - **Rich Statistics**: Get insights into your bookmark collection
+- **Web UI**: Lightweight FastAPI interface for CRUD and previews
 
 ### 🏗️ Technical Excellence
 - **Modern Architecture**: Clean separation of concerns with service layers
@@ -56,82 +57,113 @@ uv add linkcovery
 
 ## 🎯 Quick Start
 
+After installation, you can use the `linkcovery` command directly:
+
 ### Add Your First Link
 ```bash
-uv run python main.py links add "https://github.com/arian24b/linkcovery" \
+uv run linkcovery add "https://github.com/arian24b/linkcovery" \
   --desc "LinkCovery GitHub Repository" \
   --tag "github,project"
 ```
 
 ### List Your Links
 ```bash
-uv run python main.py links list
+uv run linkcovery list
+```
+
+### Run the Web UI
+```bash
+uv run linkcovery webui
+```
+
+### Run Web UI in Background
+```bash
+uv run linkcovery webui --background
 ```
 
 ### Search Your Bookmarks
 ```bash
 # Search by keyword
-uv run python main.py links search github
+uv run linkcovery search github
 
 # Search by domain
-uv run python main.py links search --domain github.com
+uv run linkcovery search --domain github.com
 
 # Search by tag
-uv run python main.py links search --tag project
+uv run linkcovery search --tag project
 ```
 
 ### Export Your Data
 ```bash
-uv run python main.py data export my-bookmarks.json
+uv run linkcovery export my-bookmarks.json
 ```
 
 ### Import Bookmarks
 ```bash
-uv run python main.py data import my-bookmarks.json
+uv run linkcovery import my-bookmarks.json
 ```
 
-## � CLI Reference
+## 📋 CLI Reference
 
-### Link Management (`links`)
-- `links add <url>` - Add a new bookmark
+### Link Management
+- `add <url>` - Add a new bookmark
   - `--desc, -d` - Description for the link
-  - `--tag, -t` - Tag to categorize the link
+  - `--tag, -t` - Tag to categorize the link (can be used multiple times)
   - `--read, -r` - Mark as already read
-- `links list` - List all bookmarks
+  - `--interactive, -i` - Interactive mode with prompts
+- `list` - List all bookmarks
   - `--limit, -l` - Maximum number of links to show
+  - `--full` - Show full descriptions
   - `--read-only` - Show only read links
   - `--unread-only` - Show only unread links
-- `links search [query]` - Search bookmarks
+- `search [query]` - Search bookmarks
   - `--domain` - Filter by domain
   - `--tag, -t` - Filter by tag
   - `--read-only` - Show only read links
   - `--unread-only` - Show only unread links
   - `--limit, -l` - Maximum results
-- `links show <id>` - Show detailed link information
-- `links edit <id>` - Edit an existing link
+  - `--interactive, -i` - Interactive selection mode
+- `show <id>` - Show detailed link information
+- `edit <id>` - Edit an existing link
   - `--url` - New URL
   - `--desc, -d` - New description
-  - `--tag, -t` - New tag
+  - `--tag, -t` - New tags
   - `--read` - Mark as read
   - `--unread` - Mark as unread
-- `links delete <id>` - Delete a link
+  - `--interactive, -i` - Interactive mode with prompts
+- `delete <id>` - Delete a link
   - `--force, -f` - Skip confirmation
-- `links mark-read <id>` - Mark a link as read
-- `links mark-unread <id>` - Mark a link as unread
+- `mark <id>` - Mark links as read or unread
+  - `--read` - Force read
+  - `--unread` - Force unread
+  - (If neither specified, toggles current status)
+- `open <id>` - Open links in web browser
+- `normalize <id>` - Normalize link URLs
+  - `--all, -a` - Normalize all links
+- `read-random` - Read random links from bookmarks
 
-### Data Management (`data`)
-- `data export <file>` - Export links to JSON
+### Aliases
+- `ls` - Alias for `list`
+- `find` - Alias for `search`
+- `new` - Alias for `add`
+- `rm` - Alias for `delete`
+
+### Data Management
+- `export <file>` - Export links to JSON
   - `--force, -f` - Overwrite existing file
-- `data import <file>` - Import links from JSON
+- `import <file>` - Import links from JSON, HTML, or TXT
 
-### Configuration (`config`)
+### Configuration
 - `config show` - Show current configuration
 - `config get <key>` - Get a specific configuration value
 - `config set <key> <value>` - Set a configuration value
+- `config edit` - Open config file in default editor
+- `config validate` - Validate configuration
 - `config reset` - Reset to default configuration
 
 ### General Commands
 - `stats` - Show bookmark statistics
+- `paths` - Show all LinkCovery file paths
 - `version` - Show version information
 
 ## ⚙️ Configuration
@@ -156,13 +188,13 @@ LinkCovery stores its configuration in your system's config directory:
 ### Examples
 ```bash
 # Set maximum search results
-uv run python main.py config set max_search_results 100
+uv run linkcovery config set max_search_results 100
 
 # Enable debug mode
-uv run python main.py config set debug true
+uv run linkcovery config set debug true
 
 # View all settings
-uv run python main.py config show
+uv run linkcovery config show
 ```
 
 ## 🗄️ Database
@@ -252,50 +284,84 @@ uv run mypy linkcovery
 uv run python build_binary.py
 ```
 
-## � Examples
+## 📖 Examples
 
 ### Managing Links
 ```bash
 # Add a link with description and tags
-uv run python main.py links add "https://docs.python.org" \
+uv run linkcovery add "https://docs.python.org" \
   --desc "Official Python Documentation" \
   --tag "python,docs,reference"
 
 # List only unread links
-uv run python main.py links list --unread-only --limit 10
+uv run linkcovery list --unread-only --limit 10
 
 # Search for Python-related links
-uv run python main.py links search python
+uv run linkcovery search python
 
 # Mark a link as read
-uv run python main.py links mark-read 5
+uv run linkcovery mark 5
+
+# Mark a link as unread
+uv run linkcovery mark 5 --unread
 
 # Edit a link's description
-uv run python main.py links edit 5 --desc "Updated description"
+uv run linkcovery edit 5 --desc "Updated description"
 ```
 
 ### Data Management
 ```bash
 # Export all links
-uv run python main.py data export my-bookmarks-$(date +%Y%m%d).json
+uv run linkcovery export my-bookmarks-$(date +%Y%m%d).json
 
 # Import from another file
-uv run python main.py data import bookmarks-backup.json
+uv run linkcovery import bookmarks-backup.json
+
+# Import from text (one link per line)
+uv run linkcovery import links.txt
 
 # View statistics
-uv run python main.py stats
+uv run linkcovery stats
 ```
+
+## 🌐 Web UI
+
+The web UI is a lightweight FastAPI interface for CRUD, previews, and file import/export.
+
+### Web UI Commands
+```bash
+uv run linkcovery webui --host 0.0.0.0 --port 8080
+uv run linkcovery webui --background
+```
+
+### Web UI Features
+- CRUD for links with quick edit and delete
+- Import (JSON/HTML/TXT) and export (JSON)
+- Lazy loading + infinite scroll
+- Layout toggle (square vs. standard cards)
+- Preview images cached locally for speed
+
+### Cache and Logs
+LinkCovery uses platformdirs for cache and log storage:
+- Cache (preview images): `user_cache_dir("linkcovery")/previews`
+- Logs (web UI): `user_log_dir("linkcovery")/webui.log`
 
 ### Configuration
 ```bash
 # Increase search result limit
-uv run python main.py config set max_search_results 100
+uv run linkcovery config set max_search_results 100
 
 # View current configuration
-uv run python main.py config show
+uv run linkcovery config show
+
+# Edit configuration file
+uv run linkcovery config edit
+
+# View all paths
+uv run linkcovery paths
 
 # Reset to defaults
-uv run python main.py config reset
+uv run linkcovery config reset
 ```
 
 ## 🤝 Contributing
