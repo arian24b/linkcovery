@@ -7,16 +7,14 @@ license = "MIT"
 keywords = ["bookmark", "link", "management", "cli", "python"]
 authors = [{name = "Arian Omrani", email = "arian24b@gmail.com"}]
 maintainers = [{name = "Arian Omrani", email = "arian24b@gmail.com"}]
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi[standard-no-fastapi-cloud-cli]>=0.129.0",
     "httpx[http2]>=0.28.1",
     "jinja2>=3.1.6",
-    "platformdirs>=4.7.1",
     "pydantic>=2.12.5",
     "python-multipart>=0.0.22",
-    "questionary>=2.1.1",
-    "sqlalchemy>=2.0.46",
+    "rich>=13.0.0",
     "typer>=0.23.1",
     "uvicorn>=0.40.0",
 ]

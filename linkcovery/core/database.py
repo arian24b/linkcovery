@@ -1,331 +1,354 @@
-"""Database service for LinkCovery."""
+"""Database service for LinkCovery using sqlite3."""
 
+import sqlite3
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
-
-from sqlalchemy import create_engine, or_
-from sqlalchemy import exists as sqlal_exists
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from typing import Any
 
 from linkcovery.core.config import get_config
 from linkcovery.core.exceptions import DatabaseError, LinkAlreadyExistsError, LinkNotFoundError
-from linkcovery.core.models import Base, Link, LinkCreate, LinkFilter, LinkUpdate
+from linkcovery.core.models import Link, LinkCreate, LinkFilter, LinkUpdate
 from linkcovery.core.utils import extract_domain
 
 
+def _row_to_link(row: tuple) -> Link:
+    """Convert a database row to a Link object."""
+    return Link(
+        id=row[0],
+        url=row[1],
+        domain=row[2],
+        description=row[3] or "",
+        tag=row[4] or "",
+        is_read=bool(row[5]),
+        preview_url=row[6] or "",
+        created_at=row[7],
+        updated_at=row[8],
+    )
+
+
 class DatabaseService:
-    """Database service with connection pooling and optimization."""
+    """Database service using sqlite3."""
 
     def __init__(self, database_path: str | None = None) -> None:
-        """Initialize database service with connection pooling."""
+        """Initialize database service."""
         if database_path is None:
             database_path = get_config().get_database_path()
 
-        try:
-            # Enable connection pooling and optimization for SQLite
-            self.engine = create_engine(
-                f"sqlite:///{database_path}",
-                poolclass=StaticPool,
-                pool_pre_ping=True,
-                connect_args={
-                    "check_same_thread": False,
-                    # SQLite optimization pragmas
-                    "timeout": 20,
-                },
-                echo=False,  # Disable SQL logging for performance
+        self.database_path = database_path
+        self._connection: sqlite3.Connection | None = None
+        self._init_database()
+
+    def _get_connection(self) -> sqlite3.Connection:
+        """Get a database connection."""
+        if self._connection is None:
+            self._connection = sqlite3.connect(
+                self.database_path,
+                timeout=20,
+                check_same_thread=False,
             )
+            self._connection.row_factory = sqlite3.Row
+            self._apply_pragmas()
+        return self._connection
 
-            # Apply SQLite optimization pragmas
-            with self.engine.connect() as conn:
-                # Performance optimizations
-                conn.exec_driver_sql("PRAGMA journal_mode=WAL")
-                conn.exec_driver_sql("PRAGMA synchronous=NORMAL")
-                conn.exec_driver_sql("PRAGMA cache_size=10000")
-                conn.exec_driver_sql("PRAGMA temp_store=MEMORY")
-                conn.exec_driver_sql("PRAGMA mmap_size=268435456")  # 256MB
-                conn.commit()
+    def _apply_pragmas(self) -> None:
+        """Apply SQLite optimization pragmas."""
+        conn = self._connection
+        if conn is None:
+            return
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA cache_size=10000")
+        cursor.execute("PRAGMA temp_store=MEMORY")
+        cursor.execute("PRAGMA mmap_size=268435456")
+        cursor.close()
 
-            Base.metadata.create_all(bind=self.engine)
-            self._ensure_preview_column()
-            self.SessionLocal = sessionmaker(
-                autocommit=False,
-                autoflush=False,
-                bind=self.engine,
-                expire_on_commit=False,  # Keep objects accessible after commit
+    def _init_database(self) -> None:
+        """Initialize the database schema."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT UNIQUE NOT NULL,
+                domain TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                tag TEXT DEFAULT '',
+                is_read INTEGER DEFAULT 0,
+                preview_url TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
             )
-        except Exception as e:
-            msg = f"Failed to initialize database: {e}"
-            raise DatabaseError(msg)
-
-    def _ensure_preview_column(self) -> None:
-        """Ensure preview_url column exists for links table."""
-        with self.engine.connect() as conn:
-            result = conn.exec_driver_sql("PRAGMA table_info(links)")
-            columns = {row[1] for row in result}
-            if "preview_url" not in columns:
-                conn.exec_driver_sql("ALTER TABLE links ADD COLUMN preview_url TEXT DEFAULT ''")
-                conn.commit()
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_links_domain ON links(domain)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_links_tag ON links(tag)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_links_is_read ON links(is_read)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_domain_is_read ON links(domain, is_read)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_tag_is_read ON links(tag, is_read)")
+        conn.commit()
 
     @contextmanager
-    def get_session(self) -> Generator[Session]:
-        """Get a database session with proper cleanup."""
-        session = self.SessionLocal()
+    def get_session(self) -> Generator[None]:
+        """Get a database session context."""
+        conn = self._get_connection()
         try:
-            yield session
-            session.commit()
+            yield conn
+            conn.commit()
         except Exception:
-            session.rollback()
+            conn.rollback()
             raise
-        finally:
-            session.close()
 
     def exists(self, link_url: str) -> bool:
         """Check if a link with the given URL exists."""
         try:
-            with self.get_session() as session:
-                return session.query(sqlal_exists().where(Link.url == link_url)).scalar()
-        except SQLAlchemyError as e:
-            msg = f"Database error while checking link existence: {e}"
-            raise DatabaseError(msg)
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM links WHERE url = ?", (link_url,))
+            return cursor.fetchone() is not None
         except Exception as e:
-            msg = f"Unexpected error while checking link existence: {e}"
+            msg = f"Database error while checking link existence: {e}"
             raise DatabaseError(msg)
 
     def create_link(self, link_data: LinkCreate) -> Link:
         """Create a new link."""
         try:
-            with self.get_session() as session:
-                # Check if link already exists
-                if session.query(Link).filter(Link.url == link_data.url).first():
-                    raise LinkAlreadyExistsError(link_data.url)
+            conn = self._get_connection()
+            cursor = conn.cursor()
 
-                # Create new link
-                now = datetime.now(UTC).isoformat()
-                link = Link(
-                    url=link_data.url,
-                    domain=extract_domain(url=link_data.url),
-                    description=link_data.description,
-                    tag=link_data.tag,
-                    is_read=link_data.is_read,
-                    preview_url="",
-                    created_at=now,
-                    updated_at=now,
-                )
+            # Check if link already exists
+            cursor.execute("SELECT id FROM links WHERE url = ?", (link_data.url,))
+            if cursor.fetchone():
+                raise LinkAlreadyExistsError(link_data.url)
 
-                session.add(link)
-                session.flush()  # Get the ID before committing
-                session.expunge(link)  # Detach from session
-                return link
+            # Create new link
+            now = datetime.now(UTC).isoformat()
+            domain = extract_domain(url=link_data.url)
 
-        except SQLAlchemyError as e:
-            msg = f"Database error while creating link: {e}"
-            raise DatabaseError(msg)
+            cursor.execute(
+                """INSERT INTO links (url, domain, description, tag, is_read, preview_url, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    link_data.url,
+                    domain,
+                    link_data.description or "",
+                    link_data.tag or "",
+                    1 if link_data.is_read else 0,
+                    "",
+                    now,
+                    now,
+                ),
+            )
+            link_id = cursor.lastrowid
+            conn.commit()
+
+            return Link(
+                id=link_id,
+                url=link_data.url,
+                domain=domain,
+                description=link_data.description or "",
+                tag=link_data.tag or "",
+                is_read=link_data.is_read,
+                preview_url="",
+                created_at=now,
+                updated_at=now,
+            )
+
+        except LinkAlreadyExistsError:
+            raise
         except Exception as e:
-            msg = f"Unexpected error while creating link: {e}"
+            msg = f"Database error while creating link: {e}"
             raise DatabaseError(msg)
 
     def get_link(self, link_id: int) -> Link:
         """Get a link by ID."""
         try:
-            with self.get_session() as session:
-                if not (link := session.query(Link).filter(Link.id == link_id).first()):
-                    raise LinkNotFoundError(link_id)
-                session.expunge(link)  # Detach from session
-                return link
-        except SQLAlchemyError as e:
-            msg = f"Database error while retrieving link: {e}"
-            raise DatabaseError(msg)
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise LinkNotFoundError(link_id)
+            return _row_to_link(row)
+        except LinkNotFoundError:
+            raise
         except Exception as e:
-            msg = f"Unexpected error while retrieving link: {e}"
+            msg = f"Database error while retrieving link: {e}"
             raise DatabaseError(msg)
 
     def get_all_links(self) -> list[Link]:
         """Get all links ordered by creation date."""
         try:
-            with self.get_session() as session:
-                for link in (links := session.query(Link).order_by(Link.created_at.desc()).all()):
-                    session.expunge(link)  # Detach from session
-                return links
-        except SQLAlchemyError as e:
-            msg = f"Database error while retrieving links: {e}"
-            raise DatabaseError(msg)
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM links ORDER BY created_at DESC")
+            return [_row_to_link(row) for row in cursor.fetchall()]
         except Exception as e:
-            msg = f"Unexpected error while retrieving links: {e}"
+            msg = f"Database error while retrieving links: {e}"
             raise DatabaseError(msg)
 
     def get_links_paginated(self, offset: int = 0, limit: int = 50) -> list[Link]:
         """Get links with pagination."""
         try:
-            with self.get_session() as session:
-                query = session.query(Link).order_by(Link.created_at.desc()).offset(offset).limit(limit)
-                for link in (links := query.all()):
-                    session.expunge(link)
-                return links
-        except SQLAlchemyError as e:
-            msg = f"Database error while retrieving links: {e}"
-            raise DatabaseError(msg)
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM links ORDER BY created_at DESC LIMIT ? OFFSET ?", (limit, offset))
+            return [_row_to_link(row) for row in cursor.fetchall()]
         except Exception as e:
-            msg = f"Unexpected error while retrieving links: {e}"
+            msg = f"Database error while retrieving links: {e}"
             raise DatabaseError(msg)
 
     def search_links(self, filters: LinkFilter) -> list[Link]:
-        """Search links with filters using optimized queries."""
+        """Search links with filters."""
         try:
-            with self.get_session() as session:
-                query = session.query(Link)
+            conn = self._get_connection()
+            cursor = conn.cursor()
 
-                # Apply filters with optimized query patterns
-                conditions = []
+            query = "SELECT * FROM links WHERE 1=1"
+            params: list[Any] = []
 
-                if filters.query:
-                    # Use LIKE for text search, could be optimized with FTS if needed
-                    conditions.append(
-                        or_(
-                            Link.url.contains(filters.query),
-                            Link.description.contains(filters.query),
-                            Link.tag.contains(filters.query),
-                        ),
-                    )
+            if filters.query:
+                query += " AND (url LIKE ? OR description LIKE ? OR tag LIKE ?)"
+                search_term = f"%{filters.query}%"
+                params.extend([search_term, search_term, search_term])
 
-                if filters.domain:
-                    # Use indexed domain column
-                    conditions.append(Link.domain.contains(filters.domain))
+            if filters.domain:
+                query += " AND domain LIKE ?"
+                params.append(f"%{filters.domain}%")
 
-                if filters.tag:
-                    # Use indexed tag column
-                    conditions.append(Link.tag.contains(filters.tag))
+            if filters.tag:
+                query += " AND tag LIKE ?"
+                params.append(f"%{filters.tag}%")
 
-                if filters.is_read is not None:
-                    # Use indexed is_read column
-                    conditions.append(Link.is_read == filters.is_read)
+            if filters.is_read is not None:
+                query += " AND is_read = ?"
+                params.append(1 if filters.is_read else 0)
 
-                # Apply all conditions at once
-                if conditions:
-                    from sqlalchemy import and_
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(filters.limit)
 
-                    query = query.filter(and_(*conditions))
-
-                # Order by indexed created_at column and limit
-                for link in (links := query.order_by(Link.created_at.desc()).limit(filters.limit).all()):
-                    session.expunge(link)  # Detach from session
-                return links
-
-        except SQLAlchemyError as e:
-            msg = f"Database error while searching links: {e}"
-            raise DatabaseError(msg)
+            cursor.execute(query, params)
+            return [_row_to_link(row) for row in cursor.fetchall()]
         except Exception as e:
-            msg = f"Unexpected error while searching links: {e}"
+            msg = f"Database error while searching links: {e}"
             raise DatabaseError(msg)
 
     def update_link(self, link_id: int, updates: LinkUpdate) -> Link:
         """Update an existing link."""
         try:
-            with self.get_session() as session:
-                if not (link := session.query(Link).filter(Link.id == link_id).first()):
-                    raise LinkNotFoundError(link_id)
+            conn = self._get_connection()
+            cursor = conn.cursor()
 
-                # Apply updates only for fields that were actually set
-                if "url" in (update_data := updates.model_dump(exclude_unset=True, exclude_none=True)):
-                    # Update domain if URL changed
-                    link.domain = extract_domain(url=update_data["url"])
-                    link.url = update_data["url"]
+            # Get existing link
+            cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise LinkNotFoundError(link_id)
 
-                for key, value in update_data.items():
-                    if key != "url":  # URL already handled above
-                        setattr(link, key, value)
+            # Build update query
+            update_data = updates.model_dump(exclude_unset=True, exclude_none=True)
+            if not update_data:
+                return _row_to_link(row)
 
-                # Update timestamp
-                link.updated_at = datetime.now(UTC).isoformat()
+            # Handle URL change - update domain
+            if "url" in update_data:
+                update_data["domain"] = extract_domain(url=update_data["url"])
 
-                session.flush()
-                session.expunge(link)  # Detach from session
-                return link
+            # Add updated_at timestamp
+            update_data["updated_at"] = datetime.now(UTC).isoformat()
 
-        except IntegrityError as e:
+            # Handle is_read conversion
+            if "is_read" in update_data:
+                update_data["is_read"] = 1 if update_data["is_read"] else 0
+
+            # Build SET clause
+            set_clause = ", ".join([f"{key} = ?" for key in update_data])
+            query = f"UPDATE links SET {set_clause} WHERE id = ?"
+            params = [*list(update_data.values()), link_id]
+
+            cursor.execute(query, params)
+            conn.commit()
+
+            # Return updated link
+            cursor.execute("SELECT * FROM links WHERE id = ?", (link_id,))
+            return _row_to_link(cursor.fetchone())
+
+        except LinkNotFoundError:
+            raise
+        except Exception as e:
             if "UNIQUE constraint failed" in str(e):
                 raise LinkAlreadyExistsError(updates.url or "")
-            msg = f"Database constraint error: {e}"
-            raise DatabaseError(msg)
-        except SQLAlchemyError as e:
             msg = f"Database error while updating link: {e}"
-            raise DatabaseError(msg)
-        except Exception as e:
-            msg = f"Unexpected error while updating link: {e}"
             raise DatabaseError(msg)
 
     def delete_link(self, link_id: int) -> None:
         """Delete a link."""
         try:
-            with self.get_session() as session:
-                if not (link := session.query(Link).filter(Link.id == link_id).first()):
-                    raise LinkNotFoundError(link_id)
+            conn = self._get_connection()
+            cursor = conn.cursor()
 
-                session.delete(link)
+            cursor.execute("SELECT id FROM links WHERE id = ?", (link_id,))
+            if not cursor.fetchone():
+                raise LinkNotFoundError(link_id)
 
-        except SQLAlchemyError as e:
-            msg = f"Database error while deleting link: {e}"
-            raise DatabaseError(msg)
+            cursor.execute("DELETE FROM links WHERE id = ?", (link_id,))
+            conn.commit()
+
+        except LinkNotFoundError:
+            raise
         except Exception as e:
-            msg = f"Unexpected error while deleting link: {e}"
+            msg = f"Database error while deleting link: {e}"
             raise DatabaseError(msg)
 
     def get_random_links(self, limit: int = 5, unread_only: bool = True) -> list[Link]:
         """Get random links from the database."""
         try:
-            with self.get_session() as session:
-                from sqlalchemy import func
+            conn = self._get_connection()
+            cursor = conn.cursor()
 
-                query = session.query(Link)
+            query = "SELECT * FROM links"
+            if unread_only:
+                query += " WHERE is_read = 0"
+            query += " ORDER BY RANDOM() LIMIT ?"
 
-                # Filter for unread links by default
-                if unread_only:
-                    query = query.filter(Link.is_read == False)  # noqa: E712
-
-                # Order randomly and limit
-                for link in (links := query.order_by(func.random()).limit(limit).all()):
-                    session.expunge(link)  # Detach from session
-                return links
-
-        except SQLAlchemyError as e:
-            msg = f"Database error while getting random links: {e}"
-            raise DatabaseError(msg)
+            cursor.execute(query, (limit,))
+            return [_row_to_link(row) for row in cursor.fetchall()]
         except Exception as e:
-            msg = f"Unexpected error while getting random links: {e}"
+            msg = f"Database error while getting random links: {e}"
             raise DatabaseError(msg)
 
     def get_statistics(self) -> dict:
-        """Get database statistics with optimized queries."""
+        """Get database statistics."""
         try:
-            with self.get_session() as session:
-                # Get counts efficiently with single query
-                total_links = session.query(Link).count()
-                read_links = session.query(Link).filter(Link.is_read == True).count()  # noqa: E712
+            conn = self._get_connection()
+            cursor = conn.cursor()
 
-                # Get top domains efficiently with group by
-                from sqlalchemy import func
+            # Get counts
+            cursor.execute("SELECT COUNT(*) FROM links")
+            total_links = cursor.fetchone()[0]
 
-                domain_counts = (
-                    session.query(Link.domain, func.count(Link.domain).label("count"))
-                    .group_by(Link.domain)
-                    .order_by(func.count(Link.domain).desc())
-                    .all()
-                )
+            cursor.execute("SELECT COUNT(*) FROM links WHERE is_read = 1")
+            read_links = cursor.fetchone()[0]
 
-                return {
-                    "total_links": total_links,
-                    "read_links": read_links,
-                    "unread_links": total_links - read_links,
-                    "top_domains": [(domain, count) for domain, count in domain_counts],
-                }
+            # Get top domains
+            cursor.execute("""
+                SELECT domain, COUNT(*) as count
+                FROM links
+                GROUP BY domain
+                ORDER BY count DESC
+                LIMIT 5
+            """)
+            top_domains = [(row[0], row[1]) for row in cursor.fetchall()]
 
-        except SQLAlchemyError as e:
-            msg = f"Database error while getting statistics: {e}"
-            raise DatabaseError(msg)
+            return {
+                "total_links": total_links,
+                "read_links": read_links,
+                "unread_links": total_links - read_links,
+                "top_domains": top_domains,
+            }
         except Exception as e:
-            msg = f"Unexpected error while getting statistics: {e}"
+            msg = f"Database error while getting statistics: {e}"
             raise DatabaseError(msg)
 
 

@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 from typing import Annotated
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, Depends
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -46,7 +46,9 @@ def index(request: Request, link_service: Annotated[LinkService, Depends(get_lin
 
 @app.get("/api/links")
 def list_links(
-    link_service: Annotated[LinkService, Depends(get_link_service)], offset: int = 0, limit: int = 30
+    link_service: Annotated[LinkService, Depends(get_link_service)],
+    offset: int = 0,
+    limit: int = 30,
 ) -> JSONResponse:
     links = link_service.list_links_paginated(offset=offset, limit=limit)
     payload = [

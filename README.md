@@ -377,6 +377,15 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 7. Open a Pull Request
 
 ## 📝 License
+## Related Projects
+
+Explore other CLI tools by Arian Omrani:
+
+- **[PEM](https://github.com/arian24b/pem)** - Python Execution Manager - A powerful tool for managing, scheduling, and executing Python scripts
+- **[OllamaTools](https://github.com/arian24b/ollamatools)** - CLI tool for managing Ollama models (backup, restore, update)
+- **[ThroneTools](https://github.com/arian24b/thronetools)** - Cross-platform installer and management CLI for Throne
+
+---
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
@@ -384,9 +393,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Built with [Typer](https://typer.tiangolo.com/) for the CLI framework
 - [Rich](https://rich.readthedocs.io/) for beautiful terminal output
-- [SQLAlchemy](https://www.sqlalchemy.org/) for database operations
 - [Pydantic](https://pydantic.dev/) for data validation and settings
-- [platformdirs](https://github.com/platformdirs/platformdirs) for cross-platform paths
 
 ---
 

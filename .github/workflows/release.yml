@@ -3,55 +3,51 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
-env:
-  PYTHON_VERSION: "3.13"
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-      id-token: write
-    outputs:
-      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
-      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install uv
+      - name: Set up UV
         uses: astral-sh/setup-uv@v7
         with:
-          version: "latest"
+          python-version: "3.14"
 
       - name: Install dependencies
         run: uv sync
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
+      - name: Configure Git
+        run: |
+          git config user.name ${{ github.actor }}
+          git config user.email ${{ github.actor }}@users.noreply.github.com
 
       - name: Install semantic-release
         run: |
-          npm i -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github @semantic-release/exec
+          uv tool install python-semantic-release
 
-      - name: Run semantic-release
-        id: semantic
-        run: semantic-release
+      - name: Run semantic release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: semantic-release version --changelog --tag
 
-      - name: Debug semantic-release outputs
-        run: |
-          echo "new_release_published: '${{ steps.semantic.outputs.new_release_published }}'"
-          echo "new_release_version: '${{ steps.semantic.outputs.new_release_version }}'"
-          echo "Type of new_release_published: $(echo '${{ steps.semantic.outputs.new_release_published }}' | wc -c)"
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
