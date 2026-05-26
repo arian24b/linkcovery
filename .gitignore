@@ -192,3 +192,4 @@ coverage.xml
 *.log
 
 .ruff_cache
+.opencode

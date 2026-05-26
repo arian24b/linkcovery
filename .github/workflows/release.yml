@@ -1,8 +1,11 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
     branches: [main]
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -13,18 +16,20 @@ permissions:
 
 jobs:
   release:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
 
       - name: Set up UV
         uses: astral-sh/setup-uv@v7
-        with:
-          python-version: "3.14"
 
       - name: Install dependencies
         run: uv sync
@@ -34,20 +39,13 @@ jobs:
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
 
-      - name: Install semantic-release
-        run: |
-          uv tool install python-semantic-release
-
       - name: Run semantic release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: semantic-release version --changelog --tag
+        run: uvx python-semantic-release version --changelog --tag
 
       - name: Build package
         run: uv build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}
