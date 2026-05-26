@@ -1,12 +1,14 @@
 """Configuration management commands for LinkCovery CLI."""
 
 import platform
+import subprocess
+from pathlib import Path
 
 import typer
 from rich.table import Table as RichTable
 
 from linkcovery.core.config import get_config, get_config_manager
-from linkcovery.core.utils import console, handle_errors
+from linkcovery.core.utils import confirm_action, console, handle_errors
 
 app = typer.Typer(help="Manage LinkCovery configuration", rich_help_panel="Configuration", no_args_is_help=True)
 
@@ -122,8 +124,6 @@ def reset() -> None:
         linkcovery config reset
 
     """
-    from linkcovery.core.utils import confirm_action
-
     if not confirm_action("Reset all configuration to defaults?"):
         console.print("🛑 Reset cancelled", style="yellow")
         return
@@ -168,8 +168,6 @@ def validate() -> None:
         linkcovery config validate
 
     """
-    from pathlib import Path
-
     get_config_manager()
 
     console.print("✅ Configuration is valid!", style="green")

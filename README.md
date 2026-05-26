@@ -4,12 +4,14 @@
 
 # LinkCovery - Modern Bookmark Management CLI
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![GitHub stars](https://img.shields.io/github/stars/arian24b/linkcovery.svg?style=social&label=Star)](https://github.com/arian24b/linkcovery)
 [![GitHub forks](https://img.shields.io/github/forks/arian24b/linkcovery.svg?style=social&label=Fork)](https://github.com/arian24b/linkcovery)
 [![GitHub issues](https://img.shields.io/github/issues/arian24b/linkcovery.svg)](https://github.com/arian24b/linkcovery/issues)
+[![Actions Status](https://github.com/arian24b/linkcovery/workflows/Test/badge.svg)](https://github.com/arian24b/linkcovery/actions)
+[![Coverage Status](https://coveralls.io/repos/github/arian24b/linkcovery/badge.svg?branch=main)](https://coveralls.io/github/arian24b/linkcovery?branch=main)
+[![License: MIT](https://linkcovery.readthedocs.io/en/stable/_static/license.svg)](https://github.com/arian24b/linkcovery/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/linkcovery)](https://pypi.org/project/linkcovery/)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/linkcovery?color=brightgreen)](https://pypi.org/project/linkcovery)
 
 <a href="https://www.producthunt.com/products/linkcovery?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-linkcovery" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1001540&theme=light&t=1754328725689" alt="LinkCovery - The&#0032;command&#0045;line&#0032;bookmark&#0032;manager&#0032;for&#0032;developers&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 
@@ -377,6 +379,15 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 7. Open a Pull Request
 
 ## 📝 License
+## Related Projects
+
+Explore other CLI tools by Arian Omrani:
+
+- **[PEM](https://github.com/arian24b/pem)** - Python Execution Manager - A powerful tool for managing, scheduling, and executing Python scripts
+- **[OllamaTools](https://github.com/arian24b/ollamatools)** - CLI tool for managing Ollama models (backup, restore, update)
+- **[ThroneTools](https://github.com/arian24b/thronetools)** - Cross-platform installer and management CLI for Throne
+
+---
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
@@ -384,9 +395,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Built with [Typer](https://typer.tiangolo.com/) for the CLI framework
 - [Rich](https://rich.readthedocs.io/) for beautiful terminal output
-- [SQLAlchemy](https://www.sqlalchemy.org/) for database operations
 - [Pydantic](https://pydantic.dev/) for data validation and settings
-- [platformdirs](https://github.com/platformdirs/platformdirs) for cross-platform paths
 
 ---
 

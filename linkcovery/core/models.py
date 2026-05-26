@@ -1,42 +1,26 @@
 """Database and data models for LinKCovery."""
 
+from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import Boolean, Column, Index, Integer, String
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
 
 
-# Database model for storing bookmark information
-class Link(Base):
-    """SQLAlchemy model for storing bookmark information."""
+@dataclass
+class Link:
+    """Link model for database storage."""
 
-    __tablename__ = "links"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    url = Column(String, nullable=False, unique=True)
-    domain = Column(String, nullable=False, index=True)
-    description = Column(String, nullable=True, default="")
-    tag = Column(String, nullable=False, default="", index=True)
-    is_read = Column(Boolean, default=False, index=True)
-    preview_url = Column(String, nullable=True, default="")
-    created_at = Column(String, nullable=False, index=True)
-    updated_at = Column(String, nullable=False)
-
-    __table_args__ = (
-        # Composite indexes for common query patterns
-        Index("idx_domain_is_read", "domain", "is_read"),
-        Index("idx_tag_is_read", "tag", "is_read"),
-        Index("idx_created_at_desc", "created_at"),
-    )
-
-    def __repr__(self) -> str:
-        return f"<Link(id={self.id}, url='{self.url}', domain='{self.domain}')>"
+    id: int
+    url: str
+    domain: str
+    description: str
+    tag: str
+    is_read: bool
+    preview_url: str
+    created_at: str
+    updated_at: str
 
 
-# Schema for link services
 class LinkCreate(BaseModel):
     """Pydantic model for creating new links."""
 
@@ -118,7 +102,6 @@ class LinkUpdate(BaseModel):
         """Validate and clean description and tag when provided."""
         if v is None:
             return v
-        # Return empty string as-is to allow clearing fields
         return v.strip()
 
 
