@@ -7,461 +7,620 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
       :root {
         --bg: #f7f7f4;
         --panel: #ffffff;
         --ink: #1d1f1f;
-        --muted: #6b6f72;
+        --ink-secondary: #5b5f63;
+        --muted: #808588;
         --border: #e3e6e8;
+        --border-light: #eef0f1;
         --accent: #1f7a5a;
+        --accent-hover: #16694b;
+        --accent-soft: #e1f0eb;
         --accent-ink: #ffffff;
+        --warning: #d55c3a;
+        --warning-soft: #fce9e3;
+        --shadow-sm: 0 1px 3px rgba(24, 26, 28, 0.06);
+        --shadow: 0 6px 20px rgba(24, 26, 28, 0.08);
+        --shadow-lg: 0 12px 40px rgba(24, 26, 28, 0.12);
+        --radius: 12px;
+        --radius-lg: 16px;
+        --toast-bg: #1d1f1f;
+        --toast-text: #f0f0ee;
+        --modal-overlay: rgba(0,0,0,0.35);
+      }
+      .dark {
+        --bg: #131415;
+        --panel: #1a1c1e;
+        --ink: #e8e8e5;
+        --ink-secondary: #9ea2a7;
+        --muted: #6b6f74;
+        --border: #2d3033;
+        --border-light: #26282b;
+        --accent: #2dab7f;
+        --accent-hover: #3abf90;
+        --accent-soft: #1a2e27;
+        --accent-ink: #0f1214;
         --warning: #e07a5f;
-        --shadow: 0 10px 30px rgba(24, 26, 28, 0.08);
+        --warning-soft: #2e1b15;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+        --shadow: 0 6px 20px rgba(0,0,0,0.3);
+        --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
+        --toast-bg: #e8e8e5;
+        --toast-text: #131415;
+        --modal-overlay: rgba(0,0,0,0.6);
       }
-      * {
-        box-sizing: border-box;
-      }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body {
-        margin: 0;
-        font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
         color: var(--ink);
-        background: radial-gradient(1200px 700px at 10% -10%, #e7efe8, transparent), var(--bg);
+        background: var(--bg);
+        transition: background 0.2s, color 0.2s;
+        -webkit-font-smoothing: antialiased;
       }
-      a {
-        color: inherit;
-        text-decoration: none;
-      }
-      .container {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 32px 20px 60px;
-      }
-      .header {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-bottom: 20px;
-      }
-      .toolbar {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .title {
-        font-size: 32px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-      }
-      .subtitle {
-        color: var(--muted);
-      }
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 18px;
-        box-shadow: var(--shadow);
-      }
-      .panel + .panel {
-        margin-top: 16px;
-      }
-      .form {
-        display: grid;
-        grid-template-columns: 2fr 2fr 1fr auto auto;
-        gap: 12px;
-        align-items: center;
-      }
-      .form.compact {
-        grid-template-columns: 1fr auto;
-      }
-      .input {
-        width: 100%;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 10px 12px;
-        font-size: 14px;
-        background: #fafafa;
-      }
-      .checkbox {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-        color: var(--muted);
-      }
-      .button {
-        border: none;
-        border-radius: 12px;
-        padding: 10px 14px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .button.primary {
-        background: var(--accent);
-        color: var(--accent-ink);
-      }
-      .button.ghost {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--ink);
-      }
-      .list {
-        display: grid;
-        gap: 14px;
-        margin-top: 22px;
-      }
-      body.square .card {
-        grid-template-columns: 1fr;
-      }
-      body.square .thumb {
-        width: 100%;
-        height: 200px;
-      }
-      .card {
-        display: grid;
-        grid-template-columns: 120px 1fr auto;
-        gap: 16px;
-        align-items: center;
-        padding: 16px;
-        border-radius: 14px;
-        border: 1px solid var(--border);
-        background: var(--panel);
-      }
-      .thumb {
-        width: 120px;
-        height: 80px;
-        border-radius: 12px;
-        overflow: hidden;
-        background: #f0f2f1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid var(--border);
-      }
-      .thumb img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .details {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .url {
-        font-weight: 600;
-        font-size: 15px;
-        word-break: break-all;
-      }
-      .meta {
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .tag {
-        display: inline-flex;
-        padding: 2px 8px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        font-size: 12px;
-        color: var(--muted);
-        margin-right: 6px;
-      }
-      .status {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--accent);
-      }
-      .actions {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        align-items: flex-end;
-      }
-      .actions form {
-        margin: 0;
-      }
-      .actions .button {
-        min-width: 90px;
-      }
-      .empty {
-        text-align: center;
-        color: var(--muted);
-        padding: 32px 0;
-      }
-      .loader {
-        text-align: center;
-        color: var(--muted);
-        padding: 18px 0;
-      }
-      @media (max-width: 900px) {
-        .form {
-          grid-template-columns: 1fr;
-        }
-        .card {
-          grid-template-columns: 1fr;
-          align-items: flex-start;
-        }
-        .actions {
-          flex-direction: row;
-          justify-content: flex-start;
-        }
+      a { color: inherit; text-decoration: none; }
+      input, select, button { font-family: inherit; }
+
+      .container { max-width: 1000px; margin: 0 auto; padding: 28px 20px 80px; }
+      .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+      .header-left { display: flex; align-items: center; gap: 14px; }
+      .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(135deg, var(--accent), #3abf90); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+      .header-actions { display: flex; gap: 8px; align-items: center; }
+
+      .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 18px; }
+      .stat { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow-sm); }
+      .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+      .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+      .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+      .search-wrap { flex: 1; min-width: 180px; position: relative; }
+      .search-wrap input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); color: var(--ink); font-size: 14px; box-shadow: var(--shadow-sm); }
+      .search-wrap input:focus { outline: none; border-color: var(--accent); }
+      .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; }
+      .search-shortcut { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--muted); background: var(--border-light); padding: 2px 5px; border-radius: 4px; }
+
+      .pills { display: flex; gap: 6px; }
+      .pill { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--ink-secondary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+      .pill:hover { border-color: var(--accent); color: var(--accent); }
+      .pill.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+      .pill-count { font-size: 11px; margin-left: 4px; opacity: 0.7; }
+
+      .filter-group { display: flex; gap: 8px; align-items: center; }
+      .select { padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); color: var(--ink); font-size: 13px; cursor: pointer; box-shadow: var(--shadow-sm); }
+      .select:focus { outline: none; border-color: var(--accent); }
+
+      .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow); }
+      .panel + .panel { margin-top: 12px; }
+
+      .form-add { display: grid; grid-template-columns: 1fr 1fr 120px auto; gap: 10px; align-items: center; }
+      .input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--ink); font-size: 14px; }
+      .input:focus { outline: none; border-color: var(--accent); }
+      .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-secondary); cursor: pointer; }
+      .checkbox-label input { accent-color: var(--accent); }
+
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+      .btn-primary { background: var(--accent); color: var(--accent-ink); }
+      .btn-primary:hover { background: var(--accent-hover); }
+      .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--ink-secondary); }
+      .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+      .btn-danger { background: var(--warning); color: #fff; }
+      .btn-danger:hover { opacity: 0.9; }
+      .btn-sm { padding: 5px 10px; font-size: 12px; }
+      .btn-icon { width: 32px; height: 32px; padding: 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+
+      .list { display: grid; gap: 10px; margin-top: 14px; }
+      .card { display: grid; grid-template-columns: 100px 1fr auto; gap: 14px; align-items: start; padding: 14px; border-radius: var(--radius); border: 1px solid var(--border-light); background: var(--panel); transition: border-color 0.15s; }
+      .card:hover { border-color: var(--border); }
+      .card.selected { border-color: var(--accent); background: var(--accent-soft); }
+      .card-check { display: flex; align-items: center; justify-content: center; padding-top: 2px; }
+      .card-check input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+      .thumb { width: 100px; height: 68px; border-radius: 8px; overflow: hidden; background: var(--border-light); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-light); flex-shrink: 0; }
+      .thumb img { width: 100%; height: 100%; object-fit: cover; }
+      .thumb-placeholder { font-size: 11px; color: var(--muted); }
+
+      .details { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+      .url-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .url-text { font-weight: 600; font-size: 14px; word-break: break-all; color: var(--ink); }
+      .url-text:hover { color: var(--accent); }
+      .url-domain { font-size: 11px; color: var(--muted); background: var(--border-light); padding: 1px 6px; border-radius: 4px; }
+      .description { font-size: 13px; color: var(--ink-secondary); line-height: 1.4; }
+      .meta-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
+      .tag-chip { display: inline-flex; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 500; }
+      .status-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+      .status-badge.read { background: var(--accent-soft); color: var(--accent); }
+      .status-badge.unread { background: var(--warning-soft); color: var(--warning); }
+
+      .card-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+      .bulk-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 20px; box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; z-index: 100; transition: all 0.2s; opacity: 0; pointer-events: none; }
+      .bulk-bar.show { opacity: 1; pointer-events: auto; }
+      .bulk-count { font-size: 14px; font-weight: 600; color: var(--ink); margin-right: 4px; }
+      .bulk-actions { display: flex; gap: 8px; }
+
+      .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+      .modal-overlay.open { opacity: 1; pointer-events: auto; }
+      .modal { background: var(--panel); border-radius: var(--radius-lg); padding: 24px; max-width: 420px; width: 90%; box-shadow: var(--shadow-lg); }
+      .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+      .modal-text { font-size: 14px; color: var(--ink-secondary); margin-bottom: 18px; line-height: 1.5; }
+      .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+      .toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+      .toast { background: var(--toast-bg); color: var(--toast-text); padding: 10px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); animation: slideIn 0.25s ease; max-width: 320px; }
+      @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+      .pagination { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+      .page-btn { min-width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--ink-secondary); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+      .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+      .page-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+      .page-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+      .page-info { font-size: 12px; color: var(--muted); }
+
+      .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+      .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--ink-secondary); }
+      .empty-state p { font-size: 13px; }
+
+      .loader { text-align: center; padding: 20px 0; color: var(--muted); font-size: 13px; }
+      .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .keyboard-modal .modal { max-width: 340px; }
+      .kbd { display: inline-flex; padding: 2px 7px; background: var(--border-light); border-radius: 5px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); min-width: 24px; justify-content: center; }
+      .shortcut-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; }
+      .shortcut-row + .shortcut-row { border-top: 1px solid var(--border-light); }
+
+      @media (max-width: 768px) {
+        .container { padding: 16px 12px 100px; }
+        .form-add { grid-template-columns: 1fr; }
+        .card { grid-template-columns: 1fr; }
+        .thumb { width: 100%; height: 120px; }
+        .card-actions { flex-wrap: wrap; }
+        .stats { grid-template-columns: repeat(2, 1fr); }
+        .header { flex-direction: column; align-items: flex-start; }
+        .header-actions { width: 100%; justify-content: flex-end; }
+        .toolbar { flex-direction: column; align-items: stretch; }
+        .search-wrap { min-width: 0; }
+        .pills { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .bulk-bar { width: calc(100% - 40px); flex-wrap: wrap; justify-content: center; }
       }
     </style>
   </head>
-  <body>
+  <body x-data="app()" :class="{ dark: isDark }" @keydown.window="handleKeydown">
+    <div class="toast-container">
+      <template x-for="t in toasts" :key="t.id">
+        <div class="toast" x-text="t.message"></div>
+      </template>
+    </div>
+
+    <div class="modal-overlay" :class="{ open: modal.show }" @click.self="modal.show = false">
+      <div class="modal">
+        <div class="modal-title" x-text="modal.title"></div>
+        <div class="modal-text" x-text="modal.text"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" @click="modal.show = false">Cancel</button>
+          <button class="btn" :class="modal.danger ? 'btn-danger' : 'btn-primary'" @click="modal.onConfirm(); modal.show = false" x-text="modal.confirmText"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay keyboard-modal" :class="{ open: showShortcuts }" @click.self="showShortcuts = false">
+      <div class="modal">
+        <div class="modal-title">Keyboard Shortcuts</div>
+        <div class="shortcut-row"><span>Focus search</span> <span class="kbd">s</span></div>
+        <div class="shortcut-row"><span>Add new link</span> <span class="kbd">n</span></div>
+        <div class="shortcut-row"><span>Close modals</span> <span class="kbd">Esc</span></div>
+        <div class="shortcut-row"><span>Toggle dark mode</span> <span class="kbd">d</span></div>
+        <div class="shortcut-row"><span>Show shortcuts</span> <span class="kbd">?</span></div>
+        <div class="modal-actions" style="margin-top:14px">
+          <button class="btn btn-ghost" @click="showShortcuts = false">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
+      <!-- Header -->
       <div class="header">
-        <div class="title">LinkCovery</div>
-        <div class="subtitle">Fast, light link manager with previews and simple CRUD.</div>
-        <div class="toolbar">
-          <button class="button ghost" type="button" id="toggleLayout">Toggle layout</button>
-          <a class="button ghost" href="/export">Export JSON</a>
+        <div class="header-left">
+          <div class="logo">LinkCovery</div>
+        </div>
+        <div class="header-actions">
+          <a class="btn btn-sm btn-ghost" href="/export" title="Export JSON">JSON</a>
+          <a class="btn btn-sm btn-ghost" href="/export/markdown" title="Export Markdown">MD</a>
+          <a class="btn btn-sm btn-ghost" href="/export/html" title="Export HTML">HTML</a>
+          <a class="btn btn-sm btn-ghost" href="/config" title="Configuration">Config</a>
+          <button class="btn-icon" @click="isDark = !isDark; localStorage.setItem('dark', isDark)" x-html="isDark ? '&#9789;' : '&#9788;'"></button>
+          <button class="btn-icon" @click="showShortcuts = true">?</button>
         </div>
       </div>
 
+      <!-- Stats -->
+      <div class="stats" x-show="stats">
+        <div class="stat">
+          <div class="stat-value" x-text="stats.total_links || 0"></div>
+          <div class="stat-label">Total links</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" x-text="stats.read_links || 0" style="color:var(--accent)"></div>
+          <div class="stat-label">Read</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" x-text="stats.unread_links || 0" style="color:var(--warning)"></div>
+          <div class="stat-label">Unread</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" x-text="stats.top_domains ? stats.top_domains.length : 0"></div>
+          <div class="stat-label">Domains</div>
+        </div>
+      </div>
+
+      <!-- Add link form -->
       <div class="panel">
-        <form class="form" action="/links" method="post">
-          <input class="input" name="url" placeholder="https://example.com" required />
-          <input class="input" name="description" placeholder="Description" />
-          <input class="input" name="tag" placeholder="Tag" />
-          <label class="checkbox">
-            <input type="checkbox" name="is_read" />
-            Read
-          </label>
-          <button class="button primary" type="submit">Add link</button>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink-secondary)">Add link</div>
+        <form class="form-add" @submit.prevent="addLink">
+          <input class="input" x-model="form.url" placeholder="https://example.com" required />
+          <input class="input" x-model="form.description" placeholder="Description (optional)" />
+          <input class="input" x-model="form.tag" placeholder="Tag (optional)" />
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="checkbox-label">
+              <input type="checkbox" x-model="form.is_read" />
+              Read
+            </label>
+            <button class="btn btn-primary" type="submit">Add</button>
+          </div>
         </form>
       </div>
 
+      <!-- Import -->
       <div class="panel">
-        <form class="form compact" action="/import" method="post" enctype="multipart/form-data">
-          <input class="input" type="file" name="file" accept=".json,.html,.txt" required />
-          <button class="button primary" type="submit">Import file</button>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink-secondary)">Import bookmarks</div>
+        <form class="form-add" method="post" action="/import" enctype="multipart/form-data" style="grid-template-columns:1fr auto">
+          <input class="input" type="file" name="file" accept=".json,.html,.txt" required style="padding:6px 10px;font-size:13px" />
+          <button class="btn btn-primary" type="submit">Import</button>
         </form>
       </div>
 
-      <div class="list" id="linkList" data-limit="{{ limit }}">
-        {% if links %}
-          {% for link in links %}
-            <div class="card">
-              <div class="thumb" data-preview-id="{{ link.id }}">
-                {% if link.preview_url %}
-                  <img src="{{ link.preview_url }}" alt="Preview" loading="lazy" />
-                {% else %}
-                  <span class="meta">No preview</span>
-                {% endif %}
+      <!-- Toolbar: search + filters -->
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">&#128269;</span>
+          <input
+            type="text"
+            x-model="searchQuery"
+            @input.debounce.300ms="doSearch()"
+            @keydown.window.s="if(!isInputFocused()){$event.preventDefault(); $el.focus()}"
+            placeholder="Search URLs, descriptions, tags..."
+          />
+          <span class="search-shortcut" x-show="!searchQuery">s</span>
+        </div>
+        <div class="pills">
+          <button class="pill" :class="{ active: filterStatus === '' }" @click="filterStatus = ''; doSearch()">All</button>
+          <button class="pill" :class="{ active: filterStatus === 'unread' }" @click="filterStatus = 'unread'; doSearch()">Unread</button>
+          <button class="pill" :class="{ active: filterStatus === 'read' }" @click="filterStatus = 'read'; doSearch()">Read</button>
+        </div>
+        <div class="filter-group">
+          <select class="select" x-model="filterTag" @change="doSearch">
+            <option value="">All tags</option>
+            <template x-for="t in tags" :key="t.tag">
+              <option :value="t.tag" x-text="t.tag + ' (' + t.count + ')'"></option>
+            </template>
+          </select>
+          <select class="select" x-model="sortOrder" @change="doSearch">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="domain">Domain</option>
+            <option value="read_status">Read status</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Link list -->
+      <div class="list" id="linkList">
+        <template x-for="link in links" :key="link.id">
+          <div class="card" :class="{ selected: selectedIds.includes(link.id) }">
+            <div style="display:contents">
+              <div class="card-check">
+                <input type="checkbox" :checked="selectedIds.includes(link.id)" @change="toggleSelect(link.id)" />
+              </div>
+              <div class="thumb" style="position:relative">
+                <template x-if="link.preview_url">
+                  <img :src="link.preview_url" alt="Preview" loading="lazy" />
+                </template>
+                <template x-if="!link.preview_url">
+                  <span class="thumb-placeholder" x-text="link.domain || 'No preview'"></span>
+                </template>
+                <template x-if="link.preview_url">
+                  <a :href="link.preview_url" download style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:10px;text-decoration:none;line-height:1.4">&#8595;</a>
+                </template>
               </div>
               <div class="details">
-                <div class="url"><a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.url }}</a></div>
-                {% if link.description %}
-                  <div class="meta">{{ link.description }}</div>
-                {% endif %}
-                <div class="meta">
-                  {% if link.tag %}
-                    <span class="tag">{{ link.tag }}</span>
-                  {% endif %}
-                  <span class="status">{{ "Read" if link.is_read else "Unread" }}</span>
+                <div class="url-row">
+                  <a class="url-text" :href="link.url" target="_blank" rel="noopener" x-text="link.url"></a>
+                  <span class="url-domain" x-text="link.domain"></span>
+                </div>
+                <div class="description" x-show="link.description" x-text="link.description"></div>
+                <div class="meta-row">
+                  <span class="tag-chip" x-show="link.tag" x-text="link.tag"></span>
+                  <span class="status-badge" :class="link.is_read ? 'read' : 'unread'" x-text="link.is_read ? 'Read' : 'Unread'"></span>
+                  <span style="font-size:11px;color:var(--muted)" x-text="link.created_at ? link.created_at.slice(0,10) : ''"></span>
                 </div>
               </div>
-              <div class="actions">
-                <form action="/links/{{ link.id }}/toggle" method="post">
-                  <button class="button ghost" type="submit">Toggle</button>
-                </form>
-                <a class="button ghost" href="/links/{{ link.id }}/edit">Edit</a>
-                <form action="/links/{{ link.id }}/delete" method="post" onsubmit="return confirm('Delete this link?')">
-                  <button class="button" style="background: var(--warning); color: #fff;" type="submit">Delete</button>
-                </form>
-              </div>
             </div>
-          {% endfor %}
-        {% else %}
-          <div class="empty">No links yet. Add your first link above.</div>
-        {% endif %}
+            <div class="card-actions">
+              <button class="btn btn-sm btn-ghost" @click="toggleRead(link.id)">Toggle</button>
+              <a class="btn btn-sm btn-ghost" :href="'/links/' + link.id + '/edit'" @click.prevent="navigateEdit(link.id)">Edit</a>
+              <button class="btn btn-sm btn-ghost" style="color:var(--warning)" @click="confirmDelete(link.id, link.url)">Delete</button>
+            </div>
+          </div>
+        </template>
       </div>
-      <div class="loader" id="loader">Loading more...</div>
+
+      <!-- Empty state -->
+      <div class="empty-state" x-show="!loading && links.length === 0">
+        <h3>No links found</h3>
+        <p x-text="searchQuery || filterStatus || filterTag ? 'Try different search terms or filters.' : 'Add your first link above.'"></p>
+      </div>
+
+      <!-- Loader / Pagination -->
+      <div x-show="loading" class="loader"><span class="spinner"></span></div>
+      <div class="pagination" x-show="totalPages > 1 && !loading">
+        <button class="page-btn" @click="goPage(currentPage - 1)" :disabled="currentPage <= 1">&larr;</button>
+        <template x-for="p in pageNumbers" :key="p">
+          <button class="page-btn" :class="{ active: p === currentPage }" @click="goPage(p)" x-text="p" :disabled="p === '...'"></button>
+        </template>
+        <button class="page-btn" @click="goPage(currentPage + 1)" :disabled="currentPage >= totalPages">&rarr;</button>
+        <span class="page-info" x-text="'Page ' + currentPage + ' of ' + totalPages"></span>
+      </div>
+
+      <!-- Bulk action bar -->
+      <div class="bulk-bar" :class="{ show: selectedIds.length > 0 }">
+        <span class="bulk-count" x-text="selectedIds.length + ' selected'"></span>
+        <div class="bulk-actions">
+          <button class="btn btn-sm btn-primary" @click="bulkAction('mark-read')">Mark read</button>
+          <button class="btn btn-sm btn-ghost" @click="bulkAction('mark-unread')">Mark unread</button>
+          <button class="btn btn-sm btn-ghost" @click="bulkAction('toggle')">Toggle</button>
+          <button class="btn btn-sm btn-danger" @click="bulkAction('delete')">Delete</button>
+        </div>
+      </div>
     </div>
 
     <script>
-      const linkList = document.getElementById("linkList");
-      const loader = document.getElementById("loader");
-      const limit = Number(linkList.dataset.limit || 30);
-      let offset = document.querySelectorAll(".card").length;
-      let loading = false;
-      let done = false;
+      document.addEventListener("alpine:init", () => {
+        Alpine.data("app", () => ({
+          // State
+          links: [],
+          tags: [],
+          stats: null,
+          searchQuery: "",
+          filterStatus: "",
+          filterTag: "",
+          sortOrder: "newest",
+          currentPage: 1,
+          limit: 30,
+          total: 0,
+          loading: false,
+          selectedIds: [],
+          isDark: localStorage.getItem("dark") === "true",
+          showShortcuts: false,
+          toasts: [],
+          modal: { show: false, title: "", text: "", confirmText: "Confirm", danger: false, onConfirm: () => {} },
 
-      const applyLayout = (value) => {
-        if (value === "square") {
-          document.body.classList.add("square");
-        } else {
-          document.body.classList.remove("square");
-        }
-      };
+          // Computed
+          get totalPages() {
+            return Math.max(1, Math.ceil(this.total / this.limit));
+          },
+          get pageNumbers() {
+            const p = [];
+            const tp = this.totalPages;
+            const cur = this.currentPage;
+            if (tp <= 7) {
+              for (let i = 1; i <= tp; i++) p.push(i);
+            } else {
+              p.push(1);
+              if (cur > 3) p.push("...");
+              for (let i = Math.max(2, cur - 1); i <= Math.min(tp - 1, cur + 1); i++) p.push(i);
+              if (cur < tp - 2) p.push("...");
+              p.push(tp);
+            }
+            return p;
+          },
 
-      const savedLayout = localStorage.getItem("layout") || "default";
-      applyLayout(savedLayout);
-      document.getElementById("toggleLayout").addEventListener("click", () => {
-        const next = document.body.classList.contains("square") ? "default" : "square";
-        localStorage.setItem("layout", next);
-        applyLayout(next);
-      });
+          // Init
+          init() {
+            this.fetchStats();
+            this.fetchTags();
+            this.fetchLinks();
+          },
 
-      const hydratePreview = (card) => {
-        if (card.querySelector("img")) {
-          return;
-        }
-        const linkId = card.getAttribute("data-preview-id");
-        fetch(`/links/${linkId}/preview`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (!data.preview_url) {
+          // Fetch methods
+          async fetchStats() {
+            try {
+              const r = await fetch("/api/stats");
+              this.stats = await r.json();
+            } catch (e) {}
+          },
+          async fetchTags() {
+            try {
+              const r = await fetch("/api/tags");
+              const d = await r.json();
+              this.tags = d.tags || [];
+            } catch (e) {}
+          },
+          async fetchLinks() {
+            this.loading = true;
+            try {
+              const params = new URLSearchParams({
+                offset: (this.currentPage - 1) * this.limit,
+                limit: this.limit,
+                sort: this.sortOrder,
+                status: this.filterStatus,
+                tag: this.filterTag,
+                q: this.searchQuery,
+              });
+              const r = await fetch("/api/links/search?" + params.toString());
+              const d = await r.json();
+              this.links = d.links || [];
+              this.total = d.total || 0;
+            } catch (e) {
+              this.toast("Failed to load links");
+            } finally {
+              this.loading = false;
+            }
+          },
+          doSearch() {
+            this.currentPage = 1;
+            this.selectedIds = [];
+            this.fetchLinks();
+          },
+          goPage(p) {
+            if (p < 1 || p > this.totalPages || p === this.currentPage) return;
+            this.currentPage = p;
+            this.selectedIds = [];
+            this.fetchLinks();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          },
+
+          // Selection
+          toggleSelect(id) {
+            const idx = this.selectedIds.indexOf(id);
+            if (idx === -1) this.selectedIds.push(id);
+            else this.selectedIds.splice(idx, 1);
+          },
+
+          // CRUD
+          async addLink() {
+            const data = new FormData();
+            data.append("url", this.form.url);
+            data.append("description", this.form.description);
+            data.append("tag", this.form.tag);
+            if (this.form.is_read) data.append("is_read", "on");
+            try {
+              const r = await fetch("/links", { method: "POST", body: data });
+              if (r.redirected) {
+                this.form = { url: "", description: "", tag: "", is_read: false };
+                this.toast("Link added");
+                this.fetchStats();
+                this.fetchTags();
+                this.fetchLinks();
+              }
+            } catch (e) {
+              this.toast("Failed to add link");
+            }
+          },
+          async toggleRead(id) {
+            try {
+              await fetch("/links/" + id + "/toggle", { method: "POST" });
+              this.toast("Toggled");
+              this.fetchLinks();
+              this.fetchStats();
+            } catch (e) {
+              this.toast("Failed to toggle");
+            }
+          },
+          confirmDelete(id, url) {
+            this.modal = {
+              show: true,
+              title: "Delete link?",
+              text: "Are you sure you want to delete: " + (url || "link #" + id) + "?",
+              confirmText: "Delete",
+              danger: true,
+              onConfirm: async () => {
+                try {
+                  await fetch("/links/" + id + "/delete", { method: "POST" });
+                  this.toast("Link deleted");
+                  this.fetchStats();
+                  this.fetchTags();
+                  this.fetchLinks();
+                } catch (e) {
+                  this.toast("Failed to delete");
+                }
+              },
+            };
+          },
+          navigateEdit(id) {
+            window.location.href = "/links/" + id + "/edit";
+          },
+
+          // Bulk
+          async bulkAction(action) {
+            if (this.selectedIds.length === 0) return;
+            if (action === "delete") {
+              this.modal = {
+                show: true,
+                title: "Delete " + this.selectedIds.length + " links?",
+                text: "This action cannot be undone.",
+                confirmText: "Delete all",
+                danger: true,
+                onConfirm: async () => {
+                  await this.execBulk(action);
+                },
+              };
               return;
             }
-            card.innerHTML = "";
-            const img = document.createElement("img");
-            img.src = data.preview_url;
-            img.alt = "Preview";
-            img.loading = "lazy";
-            card.appendChild(img);
-          })
-          .catch(() => {});
-      };
-
-      const hydratePreviewsInView = () => {
-        document.querySelectorAll("[data-preview-id]").forEach(hydratePreview);
-      };
-
-      const renderCard = (link) => {
-        const card = document.createElement("div");
-        card.className = "card";
-
-        const thumb = document.createElement("div");
-        thumb.className = "thumb";
-        thumb.setAttribute("data-preview-id", link.id);
-        if (link.preview_url) {
-          const img = document.createElement("img");
-          img.src = link.preview_url;
-          img.alt = "Preview";
-          img.loading = "lazy";
-          thumb.appendChild(img);
-        } else {
-          const noPreview = document.createElement("span");
-          noPreview.className = "meta";
-          noPreview.textContent = "No preview";
-          thumb.appendChild(noPreview);
-        }
-
-        const details = document.createElement("div");
-        details.className = "details";
-
-        const urlWrap = document.createElement("div");
-        urlWrap.className = "url";
-        const urlLink = document.createElement("a");
-        urlLink.href = link.url;
-        urlLink.target = "_blank";
-        urlLink.rel = "noopener";
-        urlLink.textContent = link.url;
-        urlWrap.appendChild(urlLink);
-
-        details.appendChild(urlWrap);
-
-        if (link.description) {
-          const desc = document.createElement("div");
-          desc.className = "meta";
-          desc.textContent = link.description;
-          details.appendChild(desc);
-        }
-
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        if (link.tag) {
-          const tag = document.createElement("span");
-          tag.className = "tag";
-          tag.textContent = link.tag;
-          meta.appendChild(tag);
-        }
-        const status = document.createElement("span");
-        status.className = "status";
-        status.textContent = link.is_read ? "Read" : "Unread";
-        meta.appendChild(status);
-        details.appendChild(meta);
-
-        const actions = document.createElement("div");
-        actions.className = "actions";
-        const toggleForm = document.createElement("form");
-        toggleForm.action = `/links/${encodeURIComponent(link.id)}/toggle`;
-        toggleForm.method = "post";
-        const toggleBtn = document.createElement("button");
-        toggleBtn.className = "button ghost";
-        toggleBtn.type = "submit";
-        toggleBtn.textContent = "Toggle";
-        toggleForm.appendChild(toggleBtn);
-
-        const editLink = document.createElement("a");
-        editLink.className = "button ghost";
-        editLink.href = `/links/${encodeURIComponent(link.id)}/edit`;
-        editLink.textContent = "Edit";
-
-        const deleteForm = document.createElement("form");
-        deleteForm.action = `/links/${encodeURIComponent(link.id)}/delete`;
-        deleteForm.method = "post";
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "button";
-        deleteBtn.style.cssText = "background: var(--warning); color: `#fff`;";
-        deleteBtn.type = "submit";
-        deleteBtn.textContent = "Delete";
-        deleteForm.appendChild(deleteBtn);
-
-        actions.appendChild(toggleForm);
-        actions.appendChild(editLink);
-        actions.appendChild(deleteForm);
-
-        card.appendChild(thumb);
-        card.appendChild(details);
-        card.appendChild(actions);
-        linkList.appendChild(card);
-        hydratePreview(thumb);
-      };
-
-      const loadMore = () => {
-        if (loading || done) {
-          return;
-        }
-        loading = true;
-        fetch(`/api/links?offset=${offset}&limit=${limit}`)
-          .then((res) => res.json())
-          .then((data) => {
-            const links = data.links || [];
-            if (!links.length) {
-              done = true;
-              loader.textContent = "No more links";
-              return;
+            await this.execBulk(action);
+          },
+          async execBulk(action) {
+            const data = new FormData();
+            data.append("ids", this.selectedIds.join(","));
+            const endpoint = {
+              "mark-read": "/api/links/bulk-mark-read",
+              "mark-unread": "/api/links/bulk-mark-unread",
+              toggle: "/api/links/bulk-toggle",
+              delete: "/api/links/bulk-delete",
+            }[action];
+            try {
+              await fetch(endpoint, { method: "POST", body: data });
+              this.toast("Done");
+              this.selectedIds = [];
+              this.fetchStats();
+              this.fetchTags();
+              this.fetchLinks();
+            } catch (e) {
+              this.toast("Failed");
             }
-            links.forEach(renderCard);
-            offset += links.length;
-          })
-          .catch(() => {})
-          .finally(() => {
-            loading = false;
-          });
-      };
+          },
 
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            loadMore();
-          }
-        });
+          // Toast
+          toast(message) {
+            const id = Date.now();
+            this.toasts.push({ id, message });
+            setTimeout(() => {
+              this.toasts = this.toasts.filter((t) => t.id !== id);
+            }, 3000);
+          },
+
+          // Keyboard
+          handleKeydown(e) {
+            if (e.key === "Escape") {
+              this.modal.show = false;
+              this.showShortcuts = false;
+            }
+            if (e.key === "?" && !this.isInputFocused()) {
+              e.preventDefault();
+              this.showShortcuts = !this.showShortcuts;
+            }
+            if ((e.key === "d" || e.key === "D") && !this.isInputFocused()) {
+              this.isDark = !this.isDark;
+              localStorage.setItem("dark", this.isDark);
+            }
+            if ((e.key === "n" || e.key === "N") && !this.isInputFocused()) {
+              e.preventDefault();
+              document.querySelector(".form-add input")?.focus();
+            }
+          },
+          isInputFocused() {
+            const el = document.activeElement;
+            return el && (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA");
+          },
+
+          // Form
+          form: { url: "", description: "", tag: "", is_read: false },
+        }));
       });
-
-      if (offset === 0) {
-        loader.textContent = "No links yet";
-      }
-      observer.observe(loader);
-      hydratePreviewsInView();
     </script>
   </body>
 </html>

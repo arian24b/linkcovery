@@ -184,6 +184,60 @@ class DataService:
             for failure in failed_links:
                 console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
+    def export_to_markdown(self, output_path: str | Path) -> str:
+        """Export all links to Markdown format. Returns the content."""
+        links = self.link_service.list_all_links()
+        lines = ["# LinkCovery Bookmarks\n", f"_{len(links)} links exported_\n"]
+        for link in links:
+            tag = f" `[{link.tag}]`" if link.tag else ""
+            status = " ✅ Read" if link.is_read else " ⏳ Unread"
+            desc = f" — {link.description}" if link.description else ""
+            lines.append(f"- [{link.url}]({link.url}){desc}{tag}{status}")
+        content = "\n".join(lines)
+        Path(output_path).write_text(content, encoding="utf-8")
+        return content
+
+    def export_to_html(self, output_path: str | Path) -> str:
+        """Export all links to HTML format. Returns the content."""
+        links = self.link_service.list_all_links()
+        rows = []
+        for link in links:
+            tag = f'<span class="tag">{link.tag}</span>' if link.tag else ""
+            status = "Read" if link.is_read else "Unread"
+            desc = f"<p class=\"desc\">{link.description}</p>" if link.description else ""
+            rows.append(f"""<tr>
+            <td><a href="{link.url}" target="_blank" rel="noopener">{link.url}</a>{desc}</td>
+            <td>{tag}</td>
+            <td><span class="status-{'read' if link.is_read else 'unread'}">{status}</span></td>
+            </tr>""")
+        content = f"""<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LinkCovery Bookmarks</title>
+<style>
+body {{ font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 20px; background: #f7f7f4; color: #1d1f1f; }}
+h1 {{ font-size: 24px; }}
+table {{ width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }}
+th, td {{ padding: 10px 14px; text-align: left; border-bottom: 1px solid #e3e6e8; }}
+th {{ background: #eef0f1; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b6f72; }}
+.desc {{ font-size: 13px; color: #6b6f72; margin: 4px 0 0; }}
+.tag {{ display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #e1f0eb; color: #1f7a5a; }}
+.status-read {{ color: #1f7a5a; font-weight: 600; }}
+.status-unread {{ color: #d55c3a; font-weight: 600; }}
+a {{ color: #1f7a5a; text-decoration: none; font-weight: 500; }}
+</style>
+</head>
+<body>
+<h1>LinkCovery Bookmarks</h1>
+<p style="color:#6b6f72">{len(links)} links exported</p>
+<table><thead><tr><th>URL</th><th>Tag</th><th>Status</th></tr></thead><tbody>
+{"".join(rows)}
+</tbody></table>
+</body>
+</html>"""
+        Path(output_path).write_text(content, encoding="utf-8")
+        return content
+
     def export_links(self, links: list, output_path: str | Path) -> None:
         """Export a specific list of links."""
         try:

@@ -12,8 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from httpx import AsyncClient
 
-from linkcovery.core.config import get_config
-from linkcovery.core.exceptions import ImportExportError, LinKCoveryError
+from linkcovery.core.config import get_config, get_config_manager
+from linkcovery.core.exceptions import ConfigurationError, ImportExportError, LinKCoveryError
 from linkcovery.core.utils import fetch_preview_image
 from linkcovery.services.data_service import get_data_service
 from linkcovery.services.link_service import LinkService, get_link_service
@@ -31,12 +31,13 @@ app.mount("/cache", StaticFiles(directory=str(cache_dir)), name="cache")
 
 
 @app.get("/")
-def index(request: Request, link_service: Annotated[LinkService, Depends(get_link_service)], limit: int = 30):
+async def index(request: Request, link_service: Annotated[LinkService, Depends(get_link_service)], limit: int = 30):
     links = link_service.list_links_paginated(offset=0, limit=limit)
 
     return templates.TemplateResponse(
-        "index.html",
-        {
+        request=request,
+        name="index.html",
+        context={
             "request": request,
             "links": links,
             "limit": limit,
@@ -45,7 +46,7 @@ def index(request: Request, link_service: Annotated[LinkService, Depends(get_lin
 
 
 @app.get("/api/links")
-def list_links(
+async def list_links(
     link_service: Annotated[LinkService, Depends(get_link_service)],
     offset: int = 0,
     limit: int = 30,
@@ -65,8 +66,103 @@ def list_links(
     return JSONResponse({"links": payload})
 
 
+@app.get("/api/stats")
+async def api_stats(link_service: Annotated[LinkService, Depends(get_link_service)]) -> JSONResponse:
+    stats_data = link_service.get_statistics()
+    return JSONResponse(stats_data)
+
+
+@app.get("/api/links/search")
+async def api_search_links(
+    link_service: Annotated[LinkService, Depends(get_link_service)],
+    q: str = "",
+    tag: str = "",
+    status: str = "",
+    domain: str = "",
+    sort: str = "newest",
+    offset: int = 0,
+    limit: int = 30,
+) -> JSONResponse:
+    is_read: bool | None = None
+    if status == "read":
+        is_read = True
+    elif status == "unread":
+        is_read = False
+
+    links, total = link_service.search_links_paginated(
+        query=q, domain=domain, tag=tag, is_read=is_read, sort=sort, offset=offset, limit=limit,
+    )
+    payload = [
+        {
+            "id": link.id,
+            "url": link.url,
+            "description": link.description or "",
+            "tag": link.tag or "",
+            "is_read": link.is_read,
+            "preview_url": link.preview_url or "",
+            "domain": link.domain,
+            "created_at": link.created_at,
+        }
+        for link in links
+    ]
+    return JSONResponse({"links": payload, "total": total})
+
+
+@app.get("/api/tags")
+async def api_tags(link_service: Annotated[LinkService, Depends(get_link_service)]) -> JSONResponse:
+    tags = link_service.get_all_tags()
+    return JSONResponse({"tags": tags})
+
+
+@app.post("/api/links/bulk-delete")
+async def api_bulk_delete(
+    link_service: Annotated[LinkService, Depends(get_link_service)],
+    ids: Annotated[str, Form()],
+) -> JSONResponse:
+    id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+    count = link_service.bulk_delete(id_list)
+    return JSONResponse({"deleted": count})
+
+
+@app.post("/api/links/bulk-mark-read")
+async def api_bulk_mark_read(
+    link_service: Annotated[LinkService, Depends(get_link_service)],
+    ids: Annotated[str, Form()],
+) -> JSONResponse:
+    id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+    count = link_service.bulk_update_read_status(id_list, is_read=True)
+    return JSONResponse({"updated": count})
+
+
+@app.post("/api/links/bulk-mark-unread")
+async def api_bulk_mark_unread(
+    link_service: Annotated[LinkService, Depends(get_link_service)],
+    ids: Annotated[str, Form()],
+) -> JSONResponse:
+    id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+    count = link_service.bulk_update_read_status(id_list, is_read=False)
+    return JSONResponse({"updated": count})
+
+
+@app.post("/api/links/bulk-toggle")
+async def api_bulk_toggle(
+    link_service: Annotated[LinkService, Depends(get_link_service)],
+    ids: Annotated[str, Form()],
+) -> JSONResponse:
+    id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+    count = 0
+    for link_id in id_list:
+        try:
+            link = link_service.get_link(link_id)
+            link_service.update_link(link_id=link_id, is_read=not link.is_read)
+            count += 1
+        except Exception:
+            continue
+    return JSONResponse({"updated": count})
+
+
 @app.post("/links")
-def create_link(
+async def create_link(
     link_service: Annotated[LinkService, Depends(get_link_service)],
     url: Annotated[str, Form()],
     description: Annotated[str, Form()] = "",
@@ -106,7 +202,7 @@ async def import_links(file: UploadFile) -> RedirectResponse:
 
 
 @app.get("/export")
-def export_links() -> FileResponse:
+async def export_links() -> FileResponse:
     data_service = get_data_service()
     output_path = cache_dir / "linkcovery-export.json"
     data_service.export_to_json(output_path)
@@ -116,12 +212,92 @@ def export_links() -> FileResponse:
     return FileResponse(output_path, media_type="application/json", filename="linkcovery-export.json")
 
 
+@app.get("/config")
+async def config_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="config.html",
+        context={"request": request},
+    )
+
+
+@app.get("/api/config")
+async def api_config() -> JSONResponse:
+    config_manager = get_config_manager()
+    return JSONResponse(config_manager.list_all())
+
+
+@app.post("/api/config/update")
+async def api_config_update(
+    key: Annotated[str, Form()],
+    value: Annotated[str, Form()],
+) -> JSONResponse:
+    config_manager = get_config_manager()
+    parsed_value: str | bool | int | list[str] = value
+    if value.lower() in ("true", "yes", "1", "on"):
+        parsed_value = True
+    elif value.lower() in ("false", "no", "0", "off"):
+        parsed_value = False
+    elif value.isdigit():
+        parsed_value = int(value)
+    elif "," in value:
+        parsed_value = [item.strip() for item in value.split(",")]
+    try:
+        config_manager.set(key, parsed_value)
+        return JSONResponse({"status": "ok", "key": key, "value": parsed_value})
+    except ConfigurationError as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+
+
+@app.post("/api/config/reset")
+async def api_config_reset() -> JSONResponse:
+    config_manager = get_config_manager()
+    config_manager.reset()
+    return JSONResponse({"status": "ok"})
+
+
+@app.get("/api/config/validate")
+async def api_config_validate() -> JSONResponse:
+    config_manager = get_config_manager()
+    db_path = Path(config_manager.config.get_database_path())
+    config_dir = config_manager.config.get_config_dir()
+    issues = []
+    if not db_path.exists():
+        issues.append({"field": "database_path", "message": f"Database file not found at {db_path}", "type": "warning"})
+    if not config_dir.exists():
+        issues.append({"field": "config_dir", "message": f"Config directory not found at {config_dir}", "type": "info"})
+    return JSONResponse({"valid": len(issues) == 0, "issues": issues})
+
+
+@app.get("/export/markdown")
+async def export_markdown() -> FileResponse:
+    data_service = get_data_service()
+    output_path = cache_dir / "linkcovery-export.md"
+    data_service.export_to_markdown(output_path)
+    if not output_path.exists():
+        msg = "No links to export"
+        raise ImportExportError(msg)
+    return FileResponse(output_path, media_type="text/markdown", filename="linkcovery-bookmarks.md")
+
+
+@app.get("/export/html")
+async def export_html() -> FileResponse:
+    data_service = get_data_service()
+    output_path = cache_dir / "linkcovery-export.html"
+    data_service.export_to_html(output_path)
+    if not output_path.exists():
+        msg = "No links to export"
+        raise ImportExportError(msg)
+    return FileResponse(output_path, media_type="text/html", filename="linkcovery-bookmarks.html")
+
+
 @app.get("/links/{link_id}/edit")
-def edit_view(request: Request, link_id: int, link_service: Annotated[LinkService, Depends(get_link_service)]):
+async def edit_view(request: Request, link_id: int, link_service: Annotated[LinkService, Depends(get_link_service)]):
     link = link_service.get_link(link_id)
     return templates.TemplateResponse(
-        "edit.html",
-        {
+        request=request,
+        name="edit.html",
+        context={
             "request": request,
             "link": link,
         },
@@ -129,7 +305,7 @@ def edit_view(request: Request, link_id: int, link_service: Annotated[LinkServic
 
 
 @app.post("/links/{link_id}/edit")
-def edit_link(
+async def edit_link(
     link_service: Annotated[LinkService, Depends(get_link_service)],
     link_id: int,
     url: Annotated[str, Form()],
@@ -148,14 +324,14 @@ def edit_link(
 
 
 @app.post("/links/{link_id}/delete")
-def delete_link(link_id: int) -> RedirectResponse:
+async def delete_link(link_id: int) -> RedirectResponse:
     link_service = get_link_service()
     link_service.delete_link(link_id)
     return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/links/{link_id}/toggle")
-def toggle_read(link_id: int) -> RedirectResponse:
+async def toggle_read(link_id: int) -> RedirectResponse:
     link_service = get_link_service()
     link = link_service.get_link(link_id)
     link_service.update_link(link_id=link_id, is_read=not link.is_read)
@@ -186,15 +362,16 @@ async def preview(link_id: int) -> JSONResponse:
 
 
 @app.exception_handler(HTTPException)
-def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 @app.exception_handler(LinKCoveryError)
-def linkcovery_exception_handler(request: Request, exc: LinKCoveryError):
+async def linkcovery_exception_handler(request: Request, exc: LinKCoveryError):
     return templates.TemplateResponse(
-        "error.html",
-        {
+        request=request,
+        name="error.html",
+        context={
             "request": request,
             "message": exc.message,
             "details": exc.details,

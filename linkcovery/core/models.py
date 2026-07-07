@@ -112,6 +112,8 @@ class LinkFilter(BaseModel):
     domain: str = Field("", description="Filter by domain")
     tag: str = Field("", description="Filter by tag")
     is_read: bool | None = Field(None, description="Filter by read status")
+    sort: str = Field("newest", description="Sort order: newest, oldest, domain, read_status")
+    offset: int = Field(0, description="Number of records to skip", ge=0)
     limit: int = Field(50, description="Maximum number of results", ge=1, le=1000)
 
 
