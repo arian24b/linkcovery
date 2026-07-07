@@ -234,6 +234,68 @@ class DatabaseService:
             msg = f"Database error while searching links: {e}"
             raise DatabaseError(msg)
 
+    def search_links_paginated(self, filters: LinkFilter) -> list[Link]:
+        """Search links with filters and pagination support."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            query = "SELECT * FROM links WHERE 1=1"
+            count_query = "SELECT COUNT(*) FROM links WHERE 1=1"
+            params: list[Any] = []
+
+            if filters.query:
+                clause = " AND (url LIKE ? OR description LIKE ? OR tag LIKE ?)"
+                search_term = f"%{filters.query}%"
+                query += clause
+                count_query += clause
+                params.extend([search_term, search_term, search_term])
+
+            if filters.domain:
+                clause = " AND domain LIKE ?"
+                query += clause
+                count_query += clause
+                params.append(f"%{filters.domain}%")
+
+            if filters.tag:
+                clause = " AND tag LIKE ?"
+                query += clause
+                count_query += clause
+                params.append(f"%{filters.tag}%")
+
+            if filters.is_read is not None:
+                clause = " AND is_read = ?"
+                query += clause
+                count_query += clause
+                params.append(1 if filters.is_read else 0)
+
+            # Sort order
+            sort_map = {
+                "newest": "created_at DESC",
+                "oldest": "created_at ASC",
+                "domain": "domain ASC, created_at DESC",
+                "read_status": "is_read ASC, created_at DESC",
+            }
+            query += f" ORDER BY {sort_map.get(filters.sort, 'created_at DESC')}"
+
+            query += " LIMIT ? OFFSET ?"
+            params.extend([filters.limit, filters.offset])
+
+            cursor.execute(query, params)
+            rows = [_row_to_link(row) for row in cursor.fetchall()]
+
+            # Get total count for pagination
+            cursor.execute(count_query, params[:len(params) - 2])
+            total = cursor.fetchone()[0]
+
+            # Attach total via an attribute
+            rows_with_total: Any = rows
+            rows_with_total._total = total
+            return rows_with_total
+        except Exception as e:
+            msg = f"Database error while searching links: {e}"
+            raise DatabaseError(msg)
+
     def update_link(self, link_id: int, updates: LinkUpdate) -> Link:
         """Update an existing link."""
         try:
@@ -316,6 +378,23 @@ class DatabaseService:
             return [_row_to_link(row) for row in cursor.fetchall()]
         except Exception as e:
             msg = f"Database error while getting random links: {e}"
+            raise DatabaseError(msg)
+
+    def get_all_tags(self) -> list[dict]:
+        """Get all tags with link counts."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT tag, COUNT(*) as count
+                FROM links
+                WHERE tag != ''
+                GROUP BY tag
+                ORDER BY count DESC, tag ASC
+            """)
+            return [{"tag": row[0], "count": row[1]} for row in cursor.fetchall()]
+        except Exception as e:
+            msg = f"Database error while retrieving tags: {e}"
             raise DatabaseError(msg)
 
     def get_statistics(self) -> dict:

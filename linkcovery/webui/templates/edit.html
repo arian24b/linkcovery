@@ -3,96 +3,125 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Edit Link</title>
+    <title>Edit Link #{{ link.id }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
       :root {
-        --bg: #f7f7f4;
-        --panel: #ffffff;
-        --ink: #1d1f1f;
-        --muted: #6b6f72;
-        --border: #e3e6e8;
-        --accent: #1f7a5a;
-        --accent-ink: #ffffff;
-        --shadow: 0 10px 30px rgba(24, 26, 28, 0.08);
+        --bg: #f7f7f4; --panel: #ffffff; --ink: #1d1f1f; --ink-secondary: #5b5f63;
+        --muted: #808588; --border: #e3e6e8; --border-light: #eef0f1;
+        --accent: #1f7a5a; --accent-hover: #16694b; --accent-soft: #e1f0eb;
+        --accent-ink: #ffffff; --warning: #d55c3a; --warning-soft: #fce9e3;
+        --shadow: 0 6px 20px rgba(24,26,28,0.08); --shadow-lg: 0 12px 40px rgba(24,26,28,0.12);
+        --radius: 12px; --radius-lg: 16px;
+        --toast-bg: #1d1f1f; --toast-text: #f0f0ee;
+        --modal-overlay: rgba(0,0,0,0.35);
       }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
-        color: var(--ink);
-        background: radial-gradient(1200px 700px at 10% -10%, #e7efe8, transparent), var(--bg);
-      }
-      .container {
-        max-width: 760px;
-        margin: 0 auto;
-        padding: 32px 20px 60px;
-      }
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: var(--shadow);
-      }
-      .title {
-        font-size: 28px;
-        font-weight: 700;
-        margin-bottom: 16px;
-      }
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 14px;
-      }
-      .label {
-        font-size: 13px;
-        color: var(--muted);
-      }
-      .input {
-        width: 100%;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 10px 12px;
-        font-size: 14px;
-        background: #fafafa;
-      }
-      .actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 18px;
-      }
-      .button {
-        border: none;
-        border-radius: 12px;
-        padding: 10px 14px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .button.primary {
-        background: var(--accent);
-        color: var(--accent-ink);
-      }
-      .button.ghost {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--ink);
+      .dark { --bg: #131415; --panel: #1a1c1e; --ink: #e8e8e5; --ink-secondary: #9ea2a7;
+        --muted: #6b6f74; --border: #2d3033; --border-light: #26282b;
+        --accent: #2dab7f; --accent-hover: #3abf90; --accent-soft: #1a2e27;
+        --accent-ink: #0f1214; --warning: #e07a5f; --warning-soft: #2e1b15;
+        --shadow: 0 6px 20px rgba(0,0,0,0.3); --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
+        --toast-bg: #e8e8e5; --toast-text: #131415;
+        --modal-overlay: rgba(0,0,0,0.6); }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: var(--ink); background: var(--bg); transition: background 0.2s; -webkit-font-smoothing: antialiased; }
+      a { color: inherit; text-decoration: none; }
+      input, button { font-family: inherit; }
+      .container { max-width: 720px; margin: 0 auto; padding: 28px 20px 60px; }
+      .back { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+      .back:hover { color: var(--accent); }
+      .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow); }
+      .title { font-size: 20px; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+      .preview-wrap { width: 100%; height: 180px; border-radius: var(--radius); overflow: hidden; background: var(--border-light); border: 1px solid var(--border); margin-bottom: 18px; position: relative; display: flex; align-items: center; justify-content: center; }
+      .preview-wrap img { width: 100%; height: 100%; object-fit: cover; }
+      .preview-placeholder { font-size: 13px; color: var(--muted); }
+      .preview-dl { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.5); color: #fff; border: none; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; text-decoration: none; }
+      .preview-dl:hover { background: rgba(0,0,0,0.7); }
+      .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+      .label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+      .input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--ink); font-size: 14px; }
+      .input:focus { outline: none; border-color: var(--accent); }
+      .checkbox-wrap { display: flex; align-items: center; gap: 8px; color: var(--ink-secondary); font-size: 14px; cursor: pointer; margin-bottom: 14px; }
+      .checkbox-wrap input { accent-color: var(--accent); width: 16px; height: 16px; }
+      .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+      .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+      .btn-primary { background: var(--accent); color: var(--accent-ink); }
+      .btn-primary:hover { background: var(--accent-hover); }
+      .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--ink-secondary); }
+      .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+      .btn-danger { background: var(--warning); color: #fff; }
+      .btn-danger:hover { opacity: 0.9; }
+      .btn-sm { padding: 6px 12px; font-size: 12px; }
+      .meta { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+      .meta span { display: inline-block; margin-right: 12px; }
+
+      .toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+      .toast { background: var(--toast-bg); color: var(--toast-text); padding: 10px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); animation: slideIn 0.25s ease; max-width: 320px; }
+      @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+      .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+      .modal-overlay.open { opacity: 1; pointer-events: auto; }
+      .modal { background: var(--panel); border-radius: var(--radius-lg); padding: 24px; max-width: 400px; width: 90%; box-shadow: var(--shadow-lg); }
+      .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+      .modal-text { font-size: 14px; color: var(--ink-secondary); margin-bottom: 18px; }
+      .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+      .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      @media (max-width: 600px) {
+        .container { padding: 16px 12px; }
+        .preview-wrap { height: 140px; }
       }
     </style>
   </head>
-  <body>
+  <body x-data="editApp({{ link.id }})" :class="{ dark: isDark }">
+    <div class="toast-container">
+      <template x-for="t in toasts" :key="t.id">
+        <div class="toast" x-text="t.message"></div>
+      </template>
+    </div>
+
+    <div class="modal-overlay" :class="{ open: modal.show }" @click.self="modal.show = false">
+      <div class="modal">
+        <div class="modal-title" x-text="modal.title"></div>
+        <div class="modal-text" x-text="modal.text"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" @click="modal.show = false">Cancel</button>
+          <button class="btn" :class="modal.danger ? 'btn-danger' : 'btn-primary'" @click="modal.onConfirm(); modal.show = false" x-text="modal.confirmText"></button>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
+      <a class="back" href="/">&#8592; Back to list</a>
       <div class="panel">
-        <div class="title">Edit link</div>
-        <form action="/links/{{ link.id }}/edit" method="post">
+        <div class="title">
+          Edit link #{{ link.id }}
+          <button class="btn btn-sm btn-ghost" @click="isDark = !isDark; localStorage.setItem('dark', isDark)" x-html="isDark ? '&#9789;' : '&#9788;'"></button>
+        </div>
+
+        {% if link.preview_url %}
+          <div class="preview-wrap">
+            <img src="{{ link.preview_url }}" alt="Preview" />
+            <a class="preview-dl" href="{{ link.preview_url }}" download>Download image</a>
+          </div>
+        {% endif %}
+
+        <div class="meta">
+          <span>Created: {{ link.created_at[:10] if link.created_at else "—" }}</span>
+          <span>Updated: {{ link.updated_at[:10] if link.updated_at else "—" }}</span>
+          <span>Domain: {{ link.domain }}</span>
+        </div>
+
+        <form action="/links/{{ link.id }}/edit" method="post" @submit="toast('Saved!')">
           <div class="field">
             <div class="label">URL</div>
             <input class="input" name="url" value="{{ link.url }}" required />
@@ -105,16 +134,53 @@
             <div class="label">Tag</div>
             <input class="input" name="tag" value="{{ link.tag }}" />
           </div>
-          <label style="display: flex; align-items: center; gap: 8px; color: var(--muted);">
+          <div class="checkbox-wrap">
             <input type="checkbox" name="is_read" {% if link.is_read %}checked{% endif %} />
-            Read
-          </label>
+            Mark as read
+          </div>
           <div class="actions">
-            <button class="button primary" type="submit">Save</button>
-            <a class="button ghost" href="/">Cancel</a>
+            <button class="btn btn-primary" type="submit">Save changes</button>
+            <a class="btn btn-ghost" href="/">Cancel</a>
+            <button class="btn btn-danger" type="button" style="margin-left:auto" @click="confirmDelete({{ link.id }})">Delete link</button>
           </div>
         </form>
       </div>
     </div>
+
+    <script>
+      document.addEventListener("alpine:init", () => {
+        Alpine.data("editApp", (linkId) => ({
+          linkId,
+          isDark: localStorage.getItem("dark") === "true",
+          toasts: [],
+          modal: { show: false, title: "", text: "", confirmText: "Confirm", danger: false, onConfirm: () => {} },
+
+          confirmDelete(id) {
+            this.modal = {
+              show: true,
+              title: "Delete link #" + id + "?",
+              text: "This action cannot be undone.",
+              confirmText: "Delete",
+              danger: true,
+              onConfirm: async () => {
+                try {
+                  const form = new FormData();
+                  await fetch("/links/" + id + "/delete", { method: "POST" });
+                  window.location.href = "/";
+                } catch (e) {
+                  this.toast("Failed to delete");
+                }
+              },
+            };
+          },
+
+          toast(message) {
+            const id = Date.now();
+            this.toasts.push({ id, message });
+            setTimeout(() => { this.toasts = this.toasts.filter((t) => t.id !== id); }, 3000);
+          },
+        }));
+      });
+    </script>
   </body>
 </html>

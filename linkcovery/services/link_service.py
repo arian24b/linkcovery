@@ -108,6 +108,56 @@ class LinkService:
         """Get random links, optionally filtering for unread links only."""
         return self.db.get_random_links(limit=number, unread_only=unread_only)
 
+    def search_links_paginated(
+        self,
+        query: str = "",
+        domain: str = "",
+        tag: str = "",
+        is_read: bool | None = None,
+        sort: str = "newest",
+        offset: int = 0,
+        limit: int = 50,
+    ) -> tuple[list[Link], int]:
+        """Search links with filters and pagination. Returns (links, total_count)."""
+        filters = LinkFilter(
+            query=query,
+            domain=domain,
+            tag=tag,
+            is_read=is_read,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+        )
+        links = self.db.search_links_paginated(filters)
+        total = getattr(links, "_total", len(links))
+        return links, total
+
+    def bulk_delete(self, ids: list[int]) -> int:
+        """Delete multiple links by IDs. Returns count deleted."""
+        deleted = 0
+        for link_id in ids:
+            try:
+                self.db.delete_link(link_id)
+                deleted += 1
+            except Exception:
+                continue
+        return deleted
+
+    def bulk_update_read_status(self, ids: list[int], is_read: bool) -> int:
+        """Update read status for multiple links. Returns count updated."""
+        updated = 0
+        for link_id in ids:
+            try:
+                self.db.update_link(link_id, LinkUpdate(is_read=is_read))
+                updated += 1
+            except Exception:
+                continue
+        return updated
+
+    def get_all_tags(self) -> list[dict]:
+        """Get all tags with counts."""
+        return self.db.get_all_tags()
+
     def get_statistics(self) -> dict:
         """Get link statistics."""
         return self.db.get_statistics()
