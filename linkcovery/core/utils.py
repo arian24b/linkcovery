@@ -3,38 +3,88 @@
 import functools
 from collections.abc import Callable
 from html.parser import HTMLParser
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin, urlparse, urlunparse
 
-from httpx import AsyncClient
 from rich.console import Console
 from typer import Exit
 
 from linkcovery.core.exceptions import LinKCoveryError
 
+if TYPE_CHECKING:
+    pass
+
+# Stdout console for command output (tables, results).
 console = Console()
+# Stderr console for diagnostics: errors, warnings, progress, spinners.
+err_console = Console(stderr=True)
+
+
+def _error_payload(e: Exception) -> dict[str, Any]:
+    """Build the machine-readable error payload for --json mode."""
+    payload: dict[str, Any] = {"error": str(getattr(e, "message", e)) or e.__class__.__name__}
+    for key in ("details", "hint"):
+        if getattr(e, key, ""):
+            payload[key] = getattr(e, key)
+    return payload
+
+
+def _print_error(e: Exception, *, unexpected: bool = False) -> None:
+    """Print an error to stderr, as text or JSON depending on CLI state."""
+    import json
+
+    from linkcovery.cli.cli_state import state
+
+    if state.json_mode:
+        err_console.print(json.dumps(_error_payload(e)), soft_wrap=True, markup=False, highlight=False)
+        return
+
+    if unexpected:
+        err_console.print(f"❌ Unexpected error: {e}", style="red")
+        return
+
+    assert isinstance(e, LinKCoveryError)  # narrowed: callers guarantee this
+    err_console.print(f"❌ {e.message}", style="red")
+    if e.details:
+        err_console.print(f"   {e.details}", style="dim red")
+    if e.hint:
+        err_console.print(f"💡 Hint: {e.hint}", style="yellow")
+
+
+def _print_cancelled() -> None:
+    """Report Ctrl-C on stderr, honoring --json mode."""
+    import json
+
+    from linkcovery.cli.cli_state import state
+
+    if state.json_mode:
+        payload = {"error": "cancelled", "hint": "Interrupted by user"}
+        err_console.print(json.dumps(payload), soft_wrap=True, markup=False, highlight=False)
+    else:
+        err_console.print("\n🛑 Operation cancelled by user", style="yellow")
 
 
 def handle_errors(func: Callable) -> Callable:
-    """Decorator to handle errors gracefully in CLI commands."""
+    """Decorator to handle errors gracefully in CLI commands.
+
+    Exit codes: LinKCoveryError/unexpected error -> 1, Ctrl-C -> 130.
+    """
 
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
+        except Exit:
+            raise
         except LinKCoveryError as e:
-            console.print(f"❌ {e.message}", style="red")
-            if e.details:
-                console.print(f"   {e.details}", style="dim red")
-            if e.hint:
-                console.print(f"💡 Hint: {e.hint}", style="yellow")
+            _print_error(e)
             raise Exit(1)
         except KeyboardInterrupt:
-            console.print("\n🛑 Operation cancelled by user", style="yellow")
+            _print_cancelled()
             raise Exit(130)
         except Exception as e:
-            console.print(f"❌ Unexpected error: {e}", style="red")
-            if console._environ.get("LINKCOVERY_DEBUG"):  # type: ignore
+            _print_error(e, unexpected=True)
+            if err_console._environ.get("LINKCOVERY_DEBUG"):  # type: ignore[attr-defined]
                 import traceback
 
                 traceback.print_exc()
@@ -44,14 +94,14 @@ def handle_errors(func: Callable) -> Callable:
 
 
 def confirm_action(message: str, default: bool = False) -> bool:
-    """Ask for user confirmation."""
-    try:
-        from rich.prompt import Confirm
+    """Ask for user confirmation.
 
-        return Confirm.ask(message, default=default)
-    except KeyboardInterrupt:
-        console.print("\n🛑 Operation cancelled", style="yellow")
-        return False
+    Raises:
+        KeyboardInterrupt: Propagated so handle_errors turns it into exit code 130.
+    """
+    from rich.prompt import Confirm
+
+    return Confirm.ask(message, default=default)
 
 
 def extract_domain(url: str) -> str:
@@ -115,36 +165,10 @@ class PreviewParser(HTMLParser):
             self.first_img = (attrs.get("src") or "").strip()
 
 
-async def fetch_description(url: str, timeout: int = 10, show_spinner: bool = True) -> str:
-    """Fetch page description from URL.
+async def _fetch_description_inner(url: str, timeout: int) -> str:
+    """Fetch and parse the meta description for a URL (no spinner)."""
+    from httpx import AsyncClient
 
-    Args:
-        url: URL to fetch description from
-        timeout: Timeout in seconds (default: 10)
-        show_spinner: Whether to show loading spinner (default: True)
-
-    Returns:
-        Fetched description or empty string on failure
-
-    """
-    if show_spinner:
-        from rich.status import Status
-
-        with Status("📥 Fetching metadata...", console=console):
-            try:
-                async with AsyncClient(
-                    timeout=timeout,
-                    follow_redirects=True,
-                    verify=False,
-                    http2=True,
-                ) as client:
-                    resp = await client.get(url)
-                    resp.raise_for_status()
-            except Exception:
-                return ""
-        parser = DescriptionParser()
-        parser.feed(resp.text)
-        return parser.description
     try:
         async with AsyncClient(
             timeout=timeout,
@@ -161,8 +185,34 @@ async def fetch_description(url: str, timeout: int = 10, show_spinner: bool = Tr
     return parser.description
 
 
+async def fetch_description(url: str, timeout: int = 10, show_spinner: bool = True) -> str:
+    """Fetch page description from URL.
+
+    Args:
+        url: URL to fetch description from
+        timeout: Timeout in seconds (default: 10)
+        show_spinner: Whether to show loading spinner (default: True)
+
+    Returns:
+        Fetched description or empty string on failure
+    """
+    from linkcovery.cli.cli_state import state
+
+    if state.json_mode:
+        show_spinner = False
+
+    if show_spinner:
+        from rich.status import Status
+
+        with Status("📥 Fetching metadata...", console=err_console):
+            return await _fetch_description_inner(url, timeout)
+    return await _fetch_description_inner(url, timeout)
+
+
 async def fetch_preview_image(url: str, timeout: int = 10) -> str:
     """Fetch og:image or first image URL from a page."""
+    from httpx import AsyncClient
+
     try:
         async with AsyncClient(
             timeout=timeout,

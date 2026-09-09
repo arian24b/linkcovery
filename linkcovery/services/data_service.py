@@ -6,10 +6,11 @@ from pathlib import Path
 
 from rich.progress import Progress, TaskID
 
+from linkcovery.cli.cli_state import state
 from linkcovery.core.chrome_bookmark import extractor
 from linkcovery.core.exceptions import ImportExportError
 from linkcovery.core.models import LinkExport
-from linkcovery.core.utils import console, fetch_description
+from linkcovery.core.utils import console, err_console, fetch_description
 from linkcovery.services.link_service import LinkService, get_link_service
 
 
@@ -27,18 +28,18 @@ class DataService:
             links = self.link_service.list_all_links()
 
             if not links:
-                console.print("📭 No links to export", style="yellow")
+                if not state.json_mode:
+                    console.print("📭 No links to export", style="yellow")
                 return
 
-            # Convert to export format
             export_data = [LinkExport.from_db_link(link).model_dump() for link in links]
 
-            # Write to file
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
                 dump(export_data, f, indent=2, ensure_ascii=False)
 
-            console.print(f"✅ Successfully exported {len(links)} links to {output_path}", style="green")
+            if not state.json_mode:
+                console.print(f"✅ Successfully exported {len(links)} links to {output_path}", style="green")
 
         except Exception as e:
             msg = f"Failed to export links: {e}"
@@ -50,7 +51,8 @@ class DataService:
             with open(file_path, encoding="utf-8") as f:
                 links_data = load(f)
             if not links_data:
-                console.print("ℹ️ No links found in the JSON file", style="blue")
+                if not state.json_mode:
+                    console.print("ℹ️ No links found in the JSON file", style="blue")
                 return
         except JSONDecodeError as e:
             msg = f"Invalid JSON format: {e}"
@@ -63,9 +65,10 @@ class DataService:
         failed_count = 0
         failed_links = []
 
-        console.print(f"📥 Importing {len(links_data)} links...")
+        if not state.json_mode:
+            err_console.print(f"📥 Importing {len(links_data)} links...")
 
-        with Progress() as progress:
+        with Progress(console=err_console, disable=state.json_mode) as progress:
             task: TaskID = progress.add_task("Importing links...", total=len(links_data))
 
             for i, link_data in enumerate(links_data, 1):
@@ -78,9 +81,13 @@ class DataService:
                     continue
 
                 try:
+                    # show_spinner=False: a nested Status would corrupt the Progress bar
+                    description = link_data.get("description", None)
+                    if description is None:
+                        description = asyncio_run(fetch_description(url=url, show_spinner=False))
                     self.link_service.add_link(
                         url=url,
-                        description=link_data.get("description", asyncio_run(fetch_description(url=url))),
+                        description=description,
                         tag=link_data.get("tag", ""),
                         is_read=link_data.get("is_read", False),
                     )
@@ -91,11 +98,12 @@ class DataService:
 
                 progress.update(task, advance=1)
 
-        console.print(f"✅ Import completed: {added_count} links added", style="green")
+        if not state.json_mode:
+            console.print(f"✅ Import completed: {added_count} links added", style="green")
         if failed_count > 0:
-            console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
+            err_console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
             for failure in failed_links:
-                console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
+                err_console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def import_from_txt(self, file_path: Path) -> None:
         """Import links from a text file (one URL per line)."""
@@ -108,16 +116,18 @@ class DataService:
         urls = [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]
 
         if not urls:
-            console.print("ℹ️ No links found in the text file", style="blue")
+            if not state.json_mode:
+                console.print("ℹ️ No links found in the text file", style="blue")
             return
 
         added_count = 0
         failed_count = 0
         failed_links = []
 
-        console.print(f"📥 Importing {len(urls)} links...")
+        if not state.json_mode:
+            err_console.print(f"📥 Importing {len(urls)} links...")
 
-        with Progress() as progress:
+        with Progress(console=err_console, disable=state.json_mode) as progress:
             task: TaskID = progress.add_task("Importing links...", total=len(urls))
 
             for i, url in enumerate(urls, 1):
@@ -136,27 +146,30 @@ class DataService:
 
                 progress.update(task, advance=1)
 
-        console.print(f"✅ Import completed: {added_count} links added", style="green")
+        if not state.json_mode:
+            console.print(f"✅ Import completed: {added_count} links added", style="green")
         if failed_count > 0:
-            console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
+            err_console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
             for failure in failed_links:
-                console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
+                err_console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def import_from_html(self, file_path: Path) -> None:
         """Import links from HTML file."""
         links = extractor(file_path)
 
         if not links:
-            console.print("ℹ️ No links found in the HTML file", style="blue")
+            if not state.json_mode:
+                console.print("ℹ️ No links found in the HTML file", style="blue")
             return
 
         added_count = 0
         failed_count = 0
         failed_links = []
 
-        console.print(f"📥 Importing {len(links)} links...")
+        if not state.json_mode:
+            err_console.print(f"📥 Importing {len(links)} links...")
 
-        with Progress() as progress:
+        with Progress(console=err_console, disable=state.json_mode) as progress:
             task: TaskID = progress.add_task("Importing links...", total=len(links))
 
             for i, link in enumerate(links, 1):
@@ -169,7 +182,7 @@ class DataService:
                 try:
                     self.link_service.add_link(
                         url=link,
-                        description=asyncio_run(fetch_description(url=link)),
+                        description=asyncio_run(fetch_description(url=link, show_spinner=False)),
                     )
                     added_count += 1
                 except Exception as e:
@@ -178,11 +191,12 @@ class DataService:
 
                 progress.update(task, advance=1)
 
-        console.print(f"✅ Import completed: {added_count} links added", style="green")
+        if not state.json_mode:
+            console.print(f"✅ Import completed: {added_count} links added", style="green")
         if failed_count > 0:
-            console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
+            err_console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
             for failure in failed_links:
-                console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
+                err_console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def export_to_markdown(self, output_path: str | Path) -> str:
         """Export all links to Markdown format. Returns the content."""
@@ -248,7 +262,8 @@ a {{ color: #1f7a5a; text-decoration: none; font-weight: 500; }}
             with open(output_path, "w", encoding="utf-8") as f:
                 dump(export_data, f, indent=2, ensure_ascii=False)
 
-            console.print(f"✅ Successfully exported {len(links)} links to {output_path}", style="green")
+            if not state.json_mode:
+                console.print(f"✅ Successfully exported {len(links)} links to {output_path}", style="green")
 
         except Exception as e:
             msg = f"Failed to export links: {e}"

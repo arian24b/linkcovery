@@ -36,25 +36,35 @@ class AppConfig(BaseModel):
     _cached_log_dir: Path | None = None
 
     def get_database_path(self) -> str:
-        """Get the database path with fallback options (cached)."""
+        """Get the database path with fallback options (cached).
+
+        Precedence: environment variable > config file > default.
+        """
         if self._cached_db_path:
+            return self._cached_db_path
+
+        # Precedence contract: env > config file > default (README documents this).
+        if db_path := getenv("LINKCOVERY_DB"):
+            self._cached_db_path = db_path
             return self._cached_db_path
 
         if self.database_path:
             self._cached_db_path = self.database_path
             return self._cached_db_path
 
-        # Try environment variable first
-        if db_path := getenv("LINKCOVERY_DB"):
-            self._cached_db_path = db_path
-            return self._cached_db_path
-
-        # Fallback to home directory
         data_dir = Path.home() / ".linkcovery"
         data_dir.mkdir(parents=True, exist_ok=True)
         self._cached_db_path = str(data_dir / "links.db")
 
         return self._cached_db_path
+
+    def database_path_source(self) -> str:
+        """Provenance of the effective database path: env/file/default."""
+        if getenv("LINKCOVERY_DB"):
+            return "env"
+        if self.database_path:
+            return "file"
+        return "default"
 
     def get_config_dir(self) -> Path:
         """Get the configuration directory (cached)."""
@@ -96,6 +106,7 @@ class ConfigManager:
     def __init__(self) -> None:
         self._config: AppConfig = AppConfig()
         self._config_file: Path = self._config.get_config_dir() / "config.json"
+        self._file_keys: set[str] = set()
         self.load()
 
     @property
@@ -111,7 +122,9 @@ class ConfigManager:
 
         try:
             with open(self._config_file, encoding="utf-8") as f:
-                self._config = AppConfig(**jload(f))
+                file_data = jload(f)
+            self._file_keys = set(file_data)
+            self._config = AppConfig(**file_data)
         except Exception as e:
             msg = f"Failed to load configuration: {e}"
             raise ConfigurationError(msg)
@@ -158,6 +171,14 @@ class ConfigManager:
     def list_all(self) -> dict:
         """Get all configuration values."""
         return self._config.model_dump()
+
+    def value_source(self, key: str) -> str:
+        """Which source provides the effective value: env/file/default."""
+        if key == "database_path" and getenv("LINKCOVERY_DB"):
+            return "env"
+        if key in self._file_keys:
+            return "file"
+        return "default"
 
 
 # Global configuration manager
