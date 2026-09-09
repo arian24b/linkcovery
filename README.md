@@ -107,81 +107,101 @@ uv run linkcovery import my-bookmarks.json
 
 ## 📋 CLI Reference
 
+### Global Flags
+Available on every command (before the command name):
+- `--json` - Machine-readable JSON output on data commands; errors go to stderr as `{"error": "...", "hint": "..."}` with exit code 1
+- `--no-color` - Disable colored output (also honors the `NO_COLOR` environment variable)
+- `--version` - Print `linkcovery <version>` and exit
+- `--help` - Show help
+
+Exit codes: `0` success, `1` error (including any per-item failure in `mark`/`open`/`normalize`), `130` interrupted (Ctrl-C).
+
 ### Link Management
 - `add <url>` - Add a new bookmark
   - `--desc, -d` - Description for the link
-  - `--tag, -t` - Tag to categorize the link (can be used multiple times)
+  - `--tag, -t` - Tag to categorize the link
   - `--read, -r` - Mark as already read
-  - `--interactive, -i` - Interactive mode with prompts
+  - `--no-fetch` - Skip fetching metadata from URL
+  - `--timeout` - Timeout for fetching metadata (seconds)
 - `list` - List all bookmarks
   - `--limit, -l` - Maximum number of links to show
   - `--full` - Show full descriptions
   - `--read-only` - Show only read links
   - `--unread-only` - Show only unread links
-- `search [query]` - Search bookmarks
+- `search [query]` - Search bookmarks (requires a query or at least one filter)
   - `--domain` - Filter by domain
   - `--tag, -t` - Filter by tag
   - `--read-only` - Show only read links
   - `--unread-only` - Show only unread links
   - `--limit, -l` - Maximum results
-  - `--interactive, -i` - Interactive selection mode
 - `show <id>` - Show detailed link information
 - `edit <id>` - Edit an existing link
   - `--url` - New URL
   - `--desc, -d` - New description
   - `--tag, -t` - New tags
-  - `--read` - Mark as read
-  - `--unread` - Mark as unread
-  - `--interactive, -i` - Interactive mode with prompts
-- `delete <id>` - Delete a link
-  - `--force, -f` - Skip confirmation
-- `mark <id>` - Mark links as read or unread
-  - `--read` - Force read
-  - `--unread` - Force unread
+  - `--read, -r` - Mark as read
+  - `--unread, -u` - Mark as unread
+- `delete <id>` - Delete one or more links
+  - `--force, -f` / `--yes, -y` - Skip confirmation
+- `mark <id>...` - Mark links as read or unread
+  - `--read, -r` - Force read
+  - `--unread, -u` - Force unread
   - (If neither specified, toggles current status)
-- `open <id>` - Open links in web browser
-- `normalize <id>` - Normalize link URLs
-  - `--all, -a` - Normalize all links
-- `read-random` - Read random links from bookmarks
+- `open <id>...` - Open links in web browser
+- `normalize <id>...` - Normalize link URLs
+  - `--all, -a` - Normalize all links (asks for confirmation)
+  - `--yes, -y` - Skip the `--all` confirmation
+- `random` - Read random links from bookmarks and mark them as read
+  - `--number, -n` - How many links (default 5)
+  - `--include-read` - Include already-read links
 
-### Aliases
+### Aliases (hidden)
 - `ls` - Alias for `list`
 - `find` - Alias for `search`
 - `new` - Alias for `add`
 - `rm` - Alias for `delete`
+- `read-random` - Alias for `random` (legacy name)
 
 ### Data Management
 - `export <file>` - Export links to JSON
-  - `--force, -f` - Overwrite existing file
+  - `--force, -f` / `--yes, -y` - Overwrite existing file without confirmation
 - `import <file>` - Import links from JSON, HTML, or TXT
+  - `--yes, -y` - Skip import confirmation
 
 ### Configuration
-- `config show` - Show current configuration
+- `config show` - Show current configuration, with each value's source (env/file/default)
 - `config get <key>` - Get a specific configuration value
 - `config set <key> <value>` - Set a configuration value
 - `config edit` - Open config file in default editor
 - `config validate` - Validate configuration
 - `config reset` - Reset to default configuration
+  - `--yes, -y` - Skip confirmation
 
 ### General Commands
 - `stats` - Show bookmark statistics
 - `paths` - Show all LinkCovery file paths
-- `version` - Show version information
+- `webui` - Run the web UI (`--host`, `--port`, `--reload`, `--background`)
+- `linkcovery --version` - Show version information
 
 ## ⚙️ Configuration
 
-LinkCovery stores its configuration in your system's config directory:
-- **macOS**: `~/Library/Application Support/linkcovery/config.json`
-- **Linux**: `~/.config/linkcovery/config.json`
-- **Windows**: `%APPDATA%/linkcovery/config.json`
+LinkCovery stores its configuration at `~/.config/linkcovery/config.json` (same location on macOS, Linux, and Windows — the tool does not use OS-specific directories).
+
+Values resolve in this order (highest wins):
+
+1. Environment variable (where supported, e.g. `LINKCOVERY_DB` for the database path)
+2. Config file (`config.json`)
+3. Built-in defaults
+
+Run `linkcovery config show` to see every setting with its source (flag/env/file/default).
 
 ### Available Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `app_name` | "LinkCovery" | Application name |
-| `version` | "1.0.0" | Application version |
-| `database_path` | (auto-detected) | Custom database path |
+| `version` | (package version) | Application version |
+| `database_path` | (auto-detected) | Custom database path (overridden by `LINKCOVERY_DB` env var) |
 | `default_export_format` | "json" | Default export format |
 | `max_search_results` | 50 | Maximum search results |
 | `allowed_extensions` | [".json"] | Allowed file extensions |
@@ -201,11 +221,7 @@ uv run linkcovery config show
 
 ## 🗄️ Database
 
-LinkCovery uses SQLite for data storage. The database is automatically created in your system's data directory:
-
-- **macOS**: `~/Library/Application Support/linkcovery/links.db`
-- **Linux**: `~/.local/share/linkcovery/links.db`
-- **Windows**: `%APPDATA%/linkcovery/links.db`
+LinkCovery uses SQLite for data storage. The database defaults to `~/.linkcovery/links.db` and is created automatically. Point it elsewhere with the `LINKCOVERY_DB` environment variable or the `database_path` setting.
 
 ### Database Schema
 
@@ -223,26 +239,36 @@ The `links` table contains:
 
 ```
 linkcovery/
-├── main.py                         # Application entry point
 ├── linkcovery/
+│   ├── __init__.py                # Package root (version)
 │   ├── cli/                        # Command-line interface
-│   │   ├── __init__.py            # Main CLI app and routing
+│   │   ├── __init__.py            # Exports cli_app
+│   │   ├── cli.py                 # Main CLI app, global flags, webui/stats/paths/mark/open
+│   │   ├── cli_state.py           # Runtime flags (--json/--no-color)
 │   │   ├── links.py               # Link management commands
 │   │   ├── config.py              # Configuration commands
-│   │   ├── data.py                # Import/export commands
-│   │   └── utils.py               # CLI utilities and decorators
+│   │   └── data.py                # Import/export commands
 │   ├── core/                      # Core business logic
+│   │   ├── chrome_bookmark.py     # Chrome bookmarks HTML parsing
 │   │   ├── config.py              # Configuration management
 │   │   ├── database.py            # Database service layer
-│   │   ├── exceptions.py          # Custom exception classes
-│   │   ├── models.py              # Pydantic and SQLAlchemy models
-│   │   └── utils.py               # Core utility functions
-│   └── services/                  # Business logic services
-│       ├── link_service.py        # Link management business logic
-│       └── data_service.py # Import/export operations
+│   │   ├── exceptions.py          # Custom exception classes (with hints)
+│   │   ├── models.py              # Pydantic models
+│   │   └── utils.py               # Consoles, error handling, URL helpers
+│   ├── services/                  # Business logic services
+│   │   ├── link_service.py        # Link management business logic
+│   │   └── data_service.py        # Import/export operations
+│   └── webui/                     # FastAPI web UI
+│       ├── app.py                 # FastAPI application
+│       ├── static/               # Static assets
+│       └── templates/             # Jinja2 templates
+├── tests/                         # Pytest suite (CLI behavior)
+├── scripts/                       # Dev scripts
 ├── pyproject.toml                 # Project configuration
 └── README.md                      # This file
 ```
+
+Entry point: `linkcovery.cli:cli_app` (see `[project.scripts]` in `pyproject.toml`).
 
 ## 🧪 Development
 
@@ -344,9 +370,10 @@ uv run linkcovery webui --background
 - Preview images cached locally for speed
 
 ### Cache and Logs
-LinkCovery uses platformdirs for cache and log storage:
-- Cache (preview images): `user_cache_dir("linkcovery")/previews`
-- Logs (web UI): `user_log_dir("linkcovery")/webui.log`
+- Cache (preview images): `~/.cache/linkcovery/previews`
+- Logs (web UI): `~/.local/state/linkcovery/logs/webui.log`
+
+(The `paths` command prints your exact locations.)
 
 ### Configuration
 ```bash

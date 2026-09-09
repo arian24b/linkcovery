@@ -1,14 +1,41 @@
 """Link management commands for LinkCovery CLI."""
 
+import json
 from asyncio import run as asyncio_run
 
 import typer
 from rich.table import Table
 
-from linkcovery.core.utils import confirm_action, console, fetch_description, handle_errors
-from linkcovery.services.link_service import get_link_service
+from linkcovery.cli.cli_state import state
+from linkcovery.core.utils import confirm_action, console, err_console, fetch_description, handle_errors
+
+
+def _link_service():
+    from linkcovery.services.link_service import get_link_service
+
+    return get_link_service()
+
 
 app = typer.Typer(help="Manage your bookmarked links", no_args_is_help=True)
+
+
+def _link_dict(link) -> dict:
+    """Serializable representation of a link for --json output."""
+    return {
+        "id": link.id,
+        "url": link.url,
+        "domain": link.domain,
+        "description": link.description,
+        "tag": link.tag,
+        "is_read": link.is_read,
+        "created_at": link.created_at,
+        "updated_at": link.updated_at,
+    }
+
+
+def _emit_json(payload) -> None:
+    """Print a JSON payload to stdout (single source of truth for --json)."""
+    console.print(json.dumps(payload, ensure_ascii=False, default=str))
 
 
 @app.command(rich_help_panel="Link Management")
@@ -30,7 +57,7 @@ def add(
         linkcovery add "url.com" --timeout 30
 
     """
-    link_service = get_link_service()
+    link_service = _link_service()
 
     link = link_service.add_link(
         url=url,
@@ -40,6 +67,10 @@ def add(
         tag=tag or "",
         is_read=read,
     )
+
+    if state.json_mode:
+        _emit_json(_link_dict(link))
+        return
 
     console.print(f"✅ Added link #{link.id}", style="green")
     console.print(f"   URL: {url}")
@@ -62,16 +93,14 @@ def list_links(
         linkcovery list --full
 
     """
-    link_service = get_link_service()
+    link_service = _link_service()
 
-    # Determine read status filter
     is_read = None
     if read_only:
         is_read = True
     elif unread_only:
         is_read = False
 
-    # Get links with filter
     if is_read is not None:
         links = link_service.search_links(is_read=is_read, limit=limit)
     else:
@@ -79,16 +108,21 @@ def list_links(
         if limit and len(links) > limit:
             links = links[:limit]
 
+    if state.json_mode:
+        _emit_json([_link_dict(link) for link in links])
+        return
+
     if not links:
         console.print("📭 No links found", style="yellow")
         return
 
-    # Create table
     table = Table(
         title=f"📚 Your Links ({len(links)} shown)",
         show_lines=bool(full),
+        box=None,
+        header_style="dim",
     )
-    table.add_column("ID", style="cyan", width=4)
+    table.add_column("ID", style="cyan", width=4, justify="right")
     table.add_column("Status", width=6)
     table.add_column("URL", style="blue")
     table.add_column("Description", style="dim")
@@ -128,26 +162,13 @@ def search(
         linkcovery search --domain github.com     # Filter by domain only
 
     """
-    link_service = get_link_service()
+    link_service = _link_service()
 
-    # If no query or filters provided, show help
     if not query and not domain and not tag:
-        console.print("🔍 [bold blue]Search Help[/bold blue]")
-        console.print()
-        console.print("Please provide a search query or filters:")
-        console.print()
-        console.print("  linkcovery search <query>              # Search all fields")
-        console.print("  linkcovery search --tag <tag>          # Filter by tag")
-        console.print("  linkcovery search --domain <domain>     # Filter by domain")
-        console.print()
-        console.print("Options:")
-        console.print("  --limit, -l           Maximum number of results")
-        console.print("  --read-only            Show only read links")
-        console.print("  --unread-only          Show only unread links")
-        console.print()
-        return
+        err_console.print("❌ No search query or filters provided", style="red")
+        err_console.print("💡 Hint: linkcovery search <query> | --tag <tag> | --domain <domain>", style="yellow")
+        raise typer.Exit(1)
 
-    # Determine read status filter
     is_read = None
     if read_only:
         is_read = True
@@ -162,13 +183,16 @@ def search(
         limit=limit,
     )
 
+    if state.json_mode:
+        _emit_json([_link_dict(link) for link in results])
+        return
+
     if not results:
         console.print("🔍 No matches found", style="yellow")
         return
 
-    # Create table
-    table = Table(title=f"🔍 Search Results ({len(results)} found)")
-    table.add_column("ID", style="cyan", width=4)
+    table = Table(title=f"🔍 Search Results ({len(results)} found)", box=None, header_style="dim")
+    table.add_column("ID", style="cyan", width=4, justify="right")
     table.add_column("Status", width=6)
     table.add_column("URL", style="blue")
     table.add_column("Description", style="dim")
@@ -194,8 +218,12 @@ def show(link_id: int = typer.Argument(..., help="Link ID to display")) -> None:
         linkcovery show 1
 
     """
-    link_service = get_link_service()
+    link_service = _link_service()
     link = link_service.get_link(link_id)
+
+    if state.json_mode:
+        _emit_json(_link_dict(link))
+        return
 
     console.print(f"📖 Link #{link.id}", style="bold blue")
     console.print(f"   URL: {link.url}")
@@ -213,7 +241,7 @@ def edit(
     link_id: int = typer.Argument(..., help="Link ID to edit"),
     url: str | None = typer.Option(None, "--url", help="New URL"),
     description: str | None = typer.Option(None, "--desc", "-d", help="New description"),
-    tag: str | None = typer.Option(None, "--tag", "-t", help="New tag"),
+    tag: str | None = typer.Option(None, "--tag", "-t", help="New tags"),
     read: bool = typer.Option(False, "--read", "-r", help="Mark as read"),
     unread: bool = typer.Option(False, "--unread", "-u", help="Mark as unread"),
 ) -> None:
@@ -224,19 +252,17 @@ def edit(
         linkcovery edit 1 --url "https://newurl.com"
 
     """
-    link_service = get_link_service()
+    link_service = _link_service()
 
-    # Determine read status
     is_read = None
     if read:
         is_read = True
     elif unread:
         is_read = False
 
-    # Check if any updates were provided
     if not any([url, description is not None, tag is not None, is_read is not None]):
-        console.print("⚠️ No updates specified", style="yellow")
-        return
+        err_console.print("⚠️ No updates specified", style="yellow")
+        raise typer.Exit(1)
 
     link = link_service.update_link(
         link_id=link_id,
@@ -246,6 +272,10 @@ def edit(
         is_read=is_read,
     )
 
+    if state.json_mode:
+        _emit_json(_link_dict(link))
+        return
+
     console.print(f"✅ Updated link #{link.id}", style="green")
 
 
@@ -254,6 +284,7 @@ def edit(
 def delete(
     link_id: list[int] = typer.Argument(..., help="Link ID to delete"),
     force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation (same as --force)"),
 ) -> None:
     """Delete a link from your bookmarks.
 
@@ -263,17 +294,21 @@ def delete(
         linkcovery delete 1 --force
 
     """
-    link_service = get_link_service()
+    link_service = _link_service()
 
-    # Get link details for confirmation
     links = [link_service.get_link(id) for id in link_id]
 
-    if not force and not confirm_action(f"Delete links: {', '.join(str(link.id) for link in links)}?"):
+    if not force and not yes and not confirm_action(f"Delete links: {', '.join(str(link.id) for link in links)}?"):
         console.print("🛑 Deletion cancelled", style="yellow")
         return
 
     for link in links:
         link_service.delete_link(link.id)
+
+    if state.json_mode:
+        _emit_json({"deleted": [link.id for link in links]})
+        return
+
     console.print(f"✅ Deleted links: {', '.join(str(link.id) for link in links)}", style="green")
 
 
@@ -282,6 +317,7 @@ def delete(
 def normalize(
     link_id: list[int] = typer.Argument(None, help="Link IDs to normalize"),
     all_links: bool = typer.Option(False, "--all", "-a", help="Normalize all links"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation for --all"),
 ) -> None:
     """Normalize link URLs by removing trailing slashes, converting http to https, and removing www.
 
@@ -289,36 +325,56 @@ def normalize(
         linkcovery normalize 1
         linkcovery normalize 1 2 3
         linkcovery normalize --all
+        linkcovery normalize --all -y
 
     """
-    link_service = get_link_service()
+    link_service = _link_service()
 
     if all_links:
-        # Normalize all links
         if link_id:
-            console.print("⚠️ Ignoring specific link IDs when --all is used", style="yellow")
+            err_console.print("⚠️ Ignoring specific link IDs when --all is used", style="yellow")
+
+        if not yes and not confirm_action("Normalize ALL links? This modifies URLs in bulk"):
+            console.print("🛑 Normalization cancelled", style="yellow")
+            return
 
         console.print("🔄 Normalizing all links...", style="blue")
 
         if normalized_links := link_service.normalize_all_links():
+            if state.json_mode:
+                _emit_json({"normalized": [_link_dict(link) for link in normalized_links]})
+                return
             console.print(f"✅ Normalized {len(normalized_links)} links", style="green")
             for link in normalized_links:
                 console.print(f"   • Link #{link.id}: {link.url}", style="dim")
         else:
+            if state.json_mode:
+                _emit_json({"normalized": []})
+                return
             console.print("📭 No links found to normalize", style="yellow")
     elif link_id:
-        # Normalize specific links
+        failed = False
+        normalized = []
         for id in link_id:
             try:
                 link = link_service.normalize_link(id)
+                normalized.append(_link_dict(link))
                 console.print(f"✅ Normalized link #{link.id}: {link.url}", style="green")
             except Exception as e:
-                console.print(f"❌ Failed to normalize link #{id}: {e}", style="red")
+                failed = True
+                err_console.print(f"❌ Failed to normalize link #{id}: {e}", style="red")
+
+        if state.json_mode:
+            _emit_json({"normalized": normalized, "failed": int(failed)})
+        if failed:
+            raise typer.Exit(1)
     else:
-        console.print("⚠️ Please specify link IDs or use --all to normalize all links", style="yellow")
+        err_console.print("❌ Please specify link IDs or use --all", style="red")
+        err_console.print("💡 Hint: linkcovery normalize <id> | linkcovery normalize --all", style="yellow")
+        raise typer.Exit(1)
 
 
-@app.command(rich_help_panel="Link Management")
+@app.command(name="random", rich_help_panel="Link Management")
 @handle_errors
 def read_random(
     number: int = typer.Option(5, "--number", "-n", help="Number of random links to read"),
@@ -327,18 +383,22 @@ def read_random(
     """Read random links from your bookmarks and mark them as read.
 
     Examples:
-        linkcovery read-random
-        linkcovery read-random --number 10
-        linkcovery read-random --include-read
+        linkcovery random
+        linkcovery random --number 10
+        linkcovery random --include-read
 
     """
-    link_service = get_link_service()
+    link_service = _link_service()
 
     if number < 1:
-        console.print("⚠️ Number must be at least 1", style="yellow")
-        return
+        err_console.print("⚠️ Number must be at least 1", style="yellow")
+        raise typer.Exit(1)
 
     links = link_service.get_random_links(number=number, unread_only=not include_read)
+
+    if state.json_mode:
+        _emit_json([_link_dict(link) for link in links])
+        return
 
     if not links:
         filter_msg = "unread " if not include_read else ""
@@ -359,3 +419,14 @@ def read_random(
         else:
             console.print("   📖 Already read", style="dim")
         console.print()  # Add empty line for readability
+
+
+# Hidden legacy alias for 'random' (formerly 'read-random')
+@app.command(name="read-random", hidden=True)
+@handle_errors
+def read_random_legacy(
+    number: int = typer.Option(5, "--number", "-n", help="Number of random links to read"),
+    include_read: bool = typer.Option(False, "--include-read", help="Include already read links"),
+) -> None:
+    """Alias for 'random' command."""
+    read_random(number=number, include_read=include_read)
