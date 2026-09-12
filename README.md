@@ -151,6 +151,11 @@ Exit codes: `0` success, `1` error (including any per-item failure in `mark`/`op
 - `normalize <id>...` - Normalize link URLs
   - `--all, -a` - Normalize all links (asks for confirmation)
   - `--yes, -y` - Skip the `--all` confirmation
+- `describe <id>...` - Fetch and fill in missing descriptions
+  - `--all, -a` - Describe all links, including ones that already have a description (asks for confirmation)
+  - `--yes, -y` - Skip the `--all` confirmation
+  - `--concurrency, -c` - Maximum parallel fetches (default 30)
+  - `--timeout` - Fetch timeout in seconds (default 10)
 - `random` - Read random links from bookmarks and mark them as read
   - `--number, -n` - How many links (default 5)
   - `--include-read` - Include already-read links
