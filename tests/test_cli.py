@@ -228,3 +228,81 @@ def test_no_color_flag_accepted():
     _add()
     result = runner.invoke(cli_app, ["--no-color", "list"])
     assert result.exit_code == 0
+
+
+def _stub_fetch(monkeypatch, description: str = "Stubbed description") -> None:
+    """Replace the CLI-module fetch_description with a network-free stub."""
+
+    async def fake(url: str, timeout: int = 10, show_spinner: bool = True) -> str:
+        return description
+
+    monkeypatch.setattr("linkcovery.cli.links.fetch_description", fake)
+
+
+def _listing() -> list[dict]:
+    result = runner.invoke(cli_app, ["--json", "list"])
+    return json.loads(_stdout(result))
+
+
+def test_describe_fills_missing_only(monkeypatch):
+    _add("https://a.example.com")
+    _add("https://b.example.com")
+    runner.invoke(cli_app, ["edit", "1", "--desc", "Existing description"])
+    _stub_fetch(monkeypatch)
+    result = runner.invoke(cli_app, ["describe"])
+    assert result.exit_code == 0
+    payload = {link["id"]: link["description"] for link in _listing()}
+    assert payload[1] == "Existing description"
+    assert payload[2] == "Stubbed description"
+
+
+def test_describe_all_requires_confirmation(monkeypatch):
+    _add("https://www.example.com")
+    result = runner.invoke(cli_app, ["describe", "--all"], input="n\n")
+    assert result.exit_code == 0
+    assert _listing()[0]["description"] == ""
+
+
+def test_describe_all_with_yes_overwrites(monkeypatch):
+    _add("https://www.example.com")
+    runner.invoke(cli_app, ["edit", "1", "--desc", "Old description"])
+    _stub_fetch(monkeypatch)
+    result = runner.invoke(cli_app, ["describe", "--all", "-y"])
+    assert result.exit_code == 0
+    assert _listing()[0]["description"] == "Stubbed description"
+
+
+def test_describe_specific_ids(monkeypatch):
+    _add("https://a.example.com")
+    _add("https://b.example.com")
+    _stub_fetch(monkeypatch)
+    result = runner.invoke(cli_app, ["describe", "1", "2"])
+    assert result.exit_code == 0
+    payload = {link["id"]: link["description"] for link in _listing()}
+    assert payload[1] == "Stubbed description"
+    assert payload[2] == "Stubbed description"
+
+
+def test_describe_missing_id_fails():
+    _add()
+    result = runner.invoke(cli_app, ["describe", "999"])
+    assert result.exit_code == 1
+
+
+def test_describe_no_candidates_succeeds():
+    _add("https://a.example.com")
+    runner.invoke(cli_app, ["edit", "1", "--desc", "Existing description"])
+    result = runner.invoke(cli_app, ["describe"])
+    assert result.exit_code == 0
+
+
+def test_describe_empty_fetch_result_skipped(monkeypatch):
+    _add("https://a.example.com")
+    runner.invoke(cli_app, ["edit", "1", "--desc", "Keep me"])
+    _add("https://b.example.com")
+    _stub_fetch(monkeypatch, description="")
+    result = runner.invoke(cli_app, ["describe"])
+    assert result.exit_code == 0
+    payload = {link["id"]: link["description"] for link in _listing()}
+    assert payload[1] == "Keep me"
+    assert payload[2] == ""

@@ -1,9 +1,12 @@
 """Link management commands for LinkCovery CLI."""
 
+import asyncio
 import json
 from asyncio import run as asyncio_run
+from collections.abc import Callable
 
 import typer
+from rich.progress import Progress
 from rich.table import Table
 
 from linkcovery.cli.cli_state import state
@@ -371,6 +374,103 @@ def normalize(
     else:
         err_console.print("❌ Please specify link IDs or use --all", style="red")
         err_console.print("💡 Hint: linkcovery normalize <id> | linkcovery normalize --all", style="yellow")
+        raise typer.Exit(1)
+
+
+@app.command(rich_help_panel="Link Management")
+@handle_errors
+def describe(
+    link_id: list[int] = typer.Argument(None, help="Link IDs to describe"),
+    all_links: bool = typer.Option(
+        False, "--all", "-a", help="Update descriptions for ALL links, including ones that already have one"
+    ),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation for --all"),
+    concurrency: int = typer.Option(30, "--concurrency", "-c", help="Maximum parallel fetches"),
+    timeout: int = typer.Option(10, "--timeout", help="Fetch timeout in seconds"),
+) -> None:
+    """Fetch and fill in missing descriptions for links.
+
+    Without arguments, only links with an empty description are fetched
+    (links whose fetch returns nothing are counted as skipped, not failed).
+
+    Examples:
+        linkcovery describe
+        linkcovery describe 1 2 3
+        linkcovery describe --all
+        linkcovery describe --all -y
+
+    """
+    link_service = _link_service()
+
+    if all_links:
+        if link_id:
+            err_console.print("⚠️ Ignoring specific link IDs when --all is used", style="yellow")
+
+        if not yes and not confirm_action("Fetch descriptions for ALL links? This overwrites existing descriptions"):
+            console.print("🛑 Description update cancelled", style="yellow")
+            return
+
+        links = link_service.list_all_links()
+    elif link_id:
+        links = []
+        for raw_id in link_id:
+            try:
+                links.append(link_service.get_link(raw_id))
+            except Exception as e:
+                err_console.print(f"❌ Failed to describe link #{raw_id}: {e}", style="red")
+        if len(links) < len(link_id):
+            raise typer.Exit(1)
+    else:
+        links = [link for link in link_service.list_all_links() if not link.description.strip()]
+
+    if not links:
+        if state.json_mode:
+            _emit_json({"updated": [], "skipped": 0, "failed": 0})
+            return
+        console.print("📭 No links found needing descriptions", style="yellow")
+        return
+
+    async def _fetch_all(on_done: Callable[[], None]) -> list[tuple[int, str]]:
+        sem = asyncio.Semaphore(concurrency)
+
+        async def one(_id: int, url: str) -> tuple[int, str]:
+            async with sem:
+                result = _id, await fetch_description(url=url, timeout=timeout, show_spinner=False)
+            on_done()
+            return result
+
+        return await asyncio.gather(*(one(link.id, str(link.url)) for link in links))
+
+    with Progress(console=err_console, disable=state.json_mode) as progress:
+        task = progress.add_task("Fetching descriptions...", total=len(links))
+        results = asyncio_run(_fetch_all(lambda: progress.advance(task)))
+
+    updated: list[dict] = []
+    skipped = 0
+    failed = 0
+
+    for link_id_, desc in results:
+        if not desc.strip():
+            skipped += 1
+            continue
+        try:
+            link = link_service.update_link(link_id=link_id_, description=desc)
+            updated.append(_link_dict(link))
+            if not state.json_mode:
+                console.print(f"✅ Described link #{link.id}: {desc[:50]}", style="green")
+        except Exception as e:
+            failed += 1
+            err_console.print(f"❌ Failed to update link #{link_id_}: {e}", style="red")
+
+    if state.json_mode:
+        _emit_json({"updated": updated, "skipped": skipped, "failed": failed})
+    else:
+        console.print(
+            f"📊 Descriptions: {len(updated)} updated, {skipped} skipped, {failed} failed",
+            style="bold blue",
+        )
+
+    if failed:
         raise typer.Exit(1)
 
 
