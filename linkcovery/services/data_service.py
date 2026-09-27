@@ -154,8 +154,28 @@ class DataService:
                 err_console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def import_from_html(self, file_path: Path) -> None:
-        """Import links from HTML file."""
-        links = extractor(file_path)
+        """Import links from HTML file (Chrome export) or Chrome JSON bookmarks."""
+        from json import loads as _jloads
+
+        links: list[str] = []
+        if file_path.name == "Bookmarks" or file_path.suffix.lower() not in {".html", ".htm"}:
+            try:  # Chrome's JSON bookmarks file: roots -> bookmark_bar/other/synced
+                raw = _jloads(file_path.read_text(encoding="utf-8"))
+                stack = [raw.get("roots", raw)]
+                while stack:
+                    node = stack.pop()
+                    if isinstance(node, dict):
+                        if node.get("type") == "url" and node.get("url"):
+                            links.append(node["url"])
+                        stack.extend(v for v in node.values() if isinstance(v, (dict, list)))
+                    elif isinstance(node, list):
+                        stack.extend(node)
+            except Exception:
+                pass
+            if not links:  # maybe plain HTML with a Chrome-ish name
+                links = extractor(file_path)
+        else:
+            links = extractor(file_path)
 
         if not links:
             if not state.json_mode:
@@ -252,22 +272,6 @@ a {{ color: #1f7a5a; text-decoration: none; font-weight: 500; }}
         Path(output_path).write_text(content, encoding="utf-8")
         return content
 
-    def export_links(self, links: list, output_path: str | Path) -> None:
-        """Export a specific list of links."""
-        try:
-            output_path = Path(output_path)
-            export_data = [LinkExport.from_db_link(link).model_dump() for link in links]
-
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                dump(export_data, f, indent=2, ensure_ascii=False)
-
-            if not state.json_mode:
-                console.print(f"✅ Successfully exported {len(links)} links to {output_path}", style="green")
-
-        except Exception as e:
-            msg = f"Failed to export links: {e}"
-            raise ImportExportError(msg)
 
 
 # Global service instance

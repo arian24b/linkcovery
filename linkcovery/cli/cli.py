@@ -257,7 +257,7 @@ def mark(
         raise typer.Exit(1)
 
 
-@cli_app.command(rich_help_panel="Link Management")
+@cli_app.command(name="open", rich_help_panel="Link Management")
 @handle_errors
 def open_link(
     link_ids: list[int] = typer.Argument(..., help="Link IDs to open"),
@@ -288,6 +288,39 @@ def open_link(
         console.print(json.dumps({"opened": opened, "failed": failed}))
     if failed:
         raise typer.Exit(1)
+
+
+@cli_app.command(name="help", rich_help_panel="Other")
+@handle_errors
+def show_help(
+    ctx: typer.Context,
+    topic: list[str] | None = typer.Argument(None, help="Command to show help for (e.g. help config show)"),
+) -> None:
+    """Show help for a command.
+
+    Examples:
+        linkcovery help
+        linkcovery help list
+        linkcovery help config show
+
+    """
+    import click
+
+    root = ctx.parent
+    if root is None or not topic:
+        typer.echo(root.get_help() if root else ctx.get_help())
+        return
+    node = root.command
+    sub = root
+    for part in topic:
+        nxt = node.get_command(sub, part)
+        if nxt is None:
+            err_console.print(f"❌ No such command: {' '.join(topic)}", style="red")
+            err_console.print("💡 Hint: run linkcovery help to list commands", style="yellow")
+            raise typer.Exit(1)
+        sub = click.Context(nxt, parent=sub, info_name=part)
+        node = nxt
+    typer.echo(sub.get_help())
 
 
 # Command aliases (hidden from main help): same functions, registered under second names.
