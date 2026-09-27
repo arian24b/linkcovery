@@ -1,7 +1,6 @@
 """Link management commands for LinkCovery CLI."""
 
 import asyncio
-import json
 from asyncio import run as asyncio_run
 from collections.abc import Callable
 
@@ -38,7 +37,9 @@ def _link_dict(link) -> dict:
 
 def _emit_json(payload) -> None:
     """Print a JSON payload to stdout (single source of truth for --json)."""
-    console.print(json.dumps(payload, ensure_ascii=False, default=str))
+    from linkcovery.core.utils import print_json
+
+    print_json(payload)
 
 
 @app.command(rich_help_panel="Link Management")
@@ -521,12 +522,3 @@ def read_random(
         console.print()  # Add empty line for readability
 
 
-# Hidden legacy alias for 'random' (formerly 'read-random')
-@app.command(name="read-random", hidden=True)
-@handle_errors
-def read_random_legacy(
-    number: int = typer.Option(5, "--number", "-n", help="Number of random links to read"),
-    include_read: bool = typer.Option(False, "--include-read", help="Include already read links"),
-) -> None:
-    """Alias for 'random' command."""
-    read_random(number=number, include_read=include_read)

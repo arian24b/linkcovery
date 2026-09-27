@@ -20,6 +20,13 @@ console = Console()
 err_console = Console(stderr=True)
 
 
+def print_json(payload) -> None:
+    """Stdout JSON with no markup/highlight/wrap so pipes stay parseable."""
+    import json
+
+    console.print(json.dumps(payload, ensure_ascii=False, default=str), markup=False, highlight=False, soft_wrap=True)
+
+
 def _error_payload(e: Exception) -> dict[str, Any]:
     """Build the machine-readable error payload for --json mode."""
     payload: dict[str, Any] = {"error": str(getattr(e, "message", e)) or e.__class__.__name__}

@@ -165,13 +165,53 @@ def test_hidden_aliases_still_work():
     assert runner.invoke(cli_app, ["rm", "1", "-f"]).exit_code == 0
 
 
-def test_read_random_legacy_alias_hidden_but_works():
+def test_random_reads_and_marks():
     _add("https://random.example.com")
-    result = runner.invoke(cli_app, ["read-random", "--number", "1"])
+    result = runner.invoke(cli_app, ["random", "--number", "1"])
     assert result.exit_code == 0
     help_result = runner.invoke(cli_app, ["--help"])
     assert "read-random" not in _stdout(help_result)
     assert "random" in _stdout(help_result)
+
+
+def test_open_opens_links(monkeypatch):
+    monkeypatch.setattr("webbrowser.open", lambda url: True)
+    _add()
+    assert runner.invoke(cli_app, ["open", "1"]).exit_code == 0
+
+
+def test_import_chrome_flag_exists():
+    result = runner.invoke(cli_app, ["import", "--help"])
+    assert result.exit_code == 0
+    assert "--chrome" in _stdout(result)
+
+
+def test_export_format_md_and_html(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _add()
+    assert runner.invoke(cli_app, ["export", "out.md"]).exit_code == 0
+    assert runner.invoke(cli_app, ["export", "out.html"]).exit_code == 0
+    assert (tmp_path / "out.md").exists()
+    assert (tmp_path / "out.html").exists()
+
+
+def test_help_resolves_topics():
+    assert runner.invoke(cli_app, ["help"]).exit_code == 0
+    assert "Usage" in _stdout(runner.invoke(cli_app, ["help", "list"]))
+    assert "Usage" in _stdout(runner.invoke(cli_app, ["help", "config", "show"]))
+    bad = runner.invoke(cli_app, ["help", "nope"])
+    assert bad.exit_code == 1
+    assert "nope" in bad.stderr
+
+
+def test_chrome_bookmarks_json_imports(tmp_path):
+    import json as _json
+
+    raw = {"roots": {"bookmark_bar": {"children": [{"type": "url", "url": "https://c.example.com"}]}}}
+    f = tmp_path / "Bookmarks"
+    f.write_text(_json.dumps(raw))
+    assert runner.invoke(cli_app, ["import", str(f), "-y"]).exit_code == 0
+    assert _listing()[0]["url"] == "https://c.example.com"
 
 
 def test_delete_accepts_yes_flag():
@@ -294,6 +334,8 @@ def test_describe_no_candidates_succeeds():
     runner.invoke(cli_app, ["edit", "1", "--desc", "Existing description"])
     result = runner.invoke(cli_app, ["describe"])
     assert result.exit_code == 0
+
+
 
 
 def test_describe_empty_fetch_result_skipped(monkeypatch):
