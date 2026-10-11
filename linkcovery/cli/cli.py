@@ -9,7 +9,10 @@ from socket import socket
 
 from cfui import Arg, ui
 
-from linkcovery.cli import config as _config_cmds  # noqa: F401  (importing registers commands)
+# importing these registers their commands on the app
+from linkcovery.cli import config as _config  # noqa: F401
+from linkcovery.cli import data as _data  # noqa: F401
+from linkcovery.cli import links as _links  # noqa: F401
 from linkcovery.cli.app import app as cli
 from linkcovery.cli.app import command
 from linkcovery.cli.cli_state import state
