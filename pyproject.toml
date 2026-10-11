@@ -14,12 +14,9 @@ dependencies = [
     "jinja2>=3.1.6",
     "pydantic>=2.12.5",
     "python-multipart>=0.0.22",
-    "cfuicli>=0.2.0",
+    "cfuicli>=1.0.0",
     "uvicorn>=0.40.0",
 ]
-
-[tool.uv.sources]
-cfuicli = { path = "../cfui", editable = true }  # drop once cfui is on PyPI
 
 [project.scripts]
 linkcovery = "linkcovery.cli:main"
