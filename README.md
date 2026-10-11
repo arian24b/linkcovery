@@ -1,446 +1,102 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/arian24b/linkcovery/refs/heads/main/linkcovery.png" alt="LinkCovery Logo" width="400"/>
+  <img src="https://raw.githubusercontent.com/arian24b/linkcovery/refs/heads/main/linkcovery.png" alt="LinkCovery logo" width="400"/>
 </div>
 
-# LinkCovery - Modern Bookmark Management CLI
+# LinkCovery
 
-[![GitHub stars](https://img.shields.io/github/stars/arian24b/linkcovery.svg?style=social&label=Star)](https://github.com/arian24b/linkcovery)
-[![GitHub forks](https://img.shields.io/github/forks/arian24b/linkcovery.svg?style=social&label=Fork)](https://github.com/arian24b/linkcovery)
-[![GitHub issues](https://img.shields.io/github/issues/arian24b/linkcovery.svg)](https://github.com/arian24b/linkcovery/issues)
-[![Actions Status](https://github.com/arian24b/linkcovery/workflows/Test/badge.svg)](https://github.com/arian24b/linkcovery/actions)
-[![Coverage Status](https://coveralls.io/repos/github/arian24b/linkcovery/badge.svg?branch=main)](https://coveralls.io/github/arian24b/linkcovery?branch=main)
-[![License: MIT](https://linkcovery.readthedocs.io/en/stable/_static/license.svg)](https://github.com/arian24b/linkcovery/blob/main/LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/linkcovery)](https://pypi.org/project/linkcovery/)
-[![Supported Python Versions](https://img.shields.io/pypi/pyversions/linkcovery?color=brightgreen)](https://pypi.org/project/linkcovery)
+[فارسی](README.fa.md)
 
-<a href="https://www.producthunt.com/products/linkcovery?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-linkcovery" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1001540&theme=light&t=1754328725689" alt="LinkCovery - The&#0032;command&#0045;line&#0032;bookmark&#0032;manager&#0032;for&#0032;developers&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+A bookmark manager for the terminal, with a small web UI. Add links, search them by text, domain or tag, mark what you have read, and move your data in and out as JSON, HTML or TXT.
 
-LinkCovery is a modern, fast, and intuitive bookmark management tool built with Python. It provides a beautiful command-line interface that makes managing, searching, and organizing your links effortless.
+## Install
 
-## 🤔 Why LinkCovery?
+Python 3.12 to 3.15.
 
-Browser bookmarks quickly become cluttered and inefficient. LinkCovery helps you intelligently manage and organize your links from the terminal—the place where you, as a developer, spend most of your time. With powerful search capabilities, tagging systems, and data portability, LinkCovery transforms how you interact with your saved links, making them truly useful rather than just saved.
-
-## ✨ Features
-
-### 🚀 Core Functionality
-- **Smart Link Management**: Add, edit, delete, and organize links with ease
-- **Powerful Search**: Search by URL, description, tags, domain, or read status
-- **Data Portability**: Import and export your bookmarks in JSON, HTML, or TXT format
-- **Read Tracking**: Keep track of which links you've read
-- **Rich Statistics**: Get insights into your bookmark collection
-- **Web UI**: Lightweight FastAPI interface for CRUD and previews
-
-### 🏗️ Technical Excellence
-- **Modern Architecture**: Clean separation of concerns with service layers
-- **Type Safety**: Full Pydantic validation and type hints throughout
-- **Error Handling**: Comprehensive error handling with helpful messages
-- **Beautiful UI**: Rich terminal interface with tables and colors
-- **Configuration**: Flexible configuration system with file-based storage
-- **Cross-Platform**: Works seamlessly on macOS, Linux, and Windows
-
-## 📦 Installation
-
-### Prerequisites
-- Python 3.13 or higher
-- [uv](https://github.com/astral-sh/uv) package manager (recommended)
-
-### Install from Source
 ```bash
-git clone https://github.com/arian24b/linkcovery.git
-cd linkcovery
-uv sync
+uv tool install linkcovery      # or: pipx install linkcovery
+linkcovery --help
 ```
 
-### Install as Package
+From a clone: `uv sync && uv run linkcovery --help`.
+
+## Quick start
+
 ```bash
-uv add linkcovery
+linkcovery add https://github.com/arian24b/linkcovery --tag python,cli    # fetches the page description
+linkcovery list --unread-only
+linkcovery search python --tag cli
+linkcovery mark 1                      # toggle read/unread
+linkcovery export my-bookmarks.md      # .json, .md or .html, picked from the suffix
+linkcovery import bookmarks.html
+linkcovery webui                       # http://127.0.0.1:8000
 ```
 
-## 🎯 Quick Start
-
-After installation, you can use the `linkcovery` command directly:
-
-### Add Your First Link
-```bash
-uv run linkcovery add "https://github.com/arian24b/linkcovery" \
-  --desc "LinkCovery GitHub Repository" \
-  --tag "github,project"
-```
-
-### List Your Links
-```bash
-uv run linkcovery list
-```
-
-### Run the Web UI
-```bash
-uv run linkcovery webui
-```
-
-### Run Web UI in Background
-```bash
-uv run linkcovery webui --background
-```
-
-### Search Your Bookmarks
-```bash
-# Search by keyword
-uv run linkcovery search github
-
-# Search by domain
-uv run linkcovery search --domain github.com
-
-# Search by tag
-uv run linkcovery search --tag project
-```
-
-### Export Your Data
-```bash
-uv run linkcovery export my-bookmarks.json
-```
-
-### Import Bookmarks
-```bash
-uv run linkcovery import my-bookmarks.json
-```
-
-## 📋 CLI Reference
-
-### Global Flags
-Available on every command (before the command name):
-- `--json` - Machine-readable JSON output on data commands; errors go to stderr as `{"error": "...", "hint": "..."}` with exit code 1
-- `--no-color` - Disable colored output (also honors the `NO_COLOR` environment variable)
-- `--version` - Print `linkcovery <version>` and exit
-- `--help` - Show help
-
-Exit codes: `0` success, `1` error (including any per-item failure in `mark`/`open`/`normalize`), `130` interrupted (Ctrl-C).
-
-### Link Management
-- `add <url>` - Add a new bookmark
-  - `--desc, -d` - Description for the link
-  - `--tag, -t` - Tag to categorize the link
-  - `--read, -r` - Mark as already read
-  - `--no-fetch` - Skip fetching metadata from URL
-  - `--timeout` - Timeout for fetching metadata (seconds)
-- `list` - List all bookmarks
-  - `--limit, -l` - Maximum number of links to show
-  - `--full` - Show full descriptions
-  - `--read-only` - Show only read links
-  - `--unread-only` - Show only unread links
-- `search [query]` - Search bookmarks (requires a query or at least one filter)
-  - `--domain` - Filter by domain
-  - `--tag, -t` - Filter by tag
-  - `--read-only` - Show only read links
-  - `--unread-only` - Show only unread links
-  - `--limit, -l` - Maximum results
-- `show <id>` - Show detailed link information
-- `edit <id>` - Edit an existing link
-  - `--url` - New URL
-  - `--desc, -d` - New description
-  - `--tag, -t` - New tags
-  - `--read, -r` - Mark as read
-  - `--unread, -u` - Mark as unread
-- `delete <id>` - Delete one or more links
-  - `--force, -f` / `--yes, -y` - Skip confirmation
-- `mark <id>...` - Mark links as read or unread
-  - `--read, -r` - Force read
-  - `--unread, -u` - Force unread
-  - (If neither specified, toggles current status)
-- `open <id>...` - Open links in web browser
-- `normalize <id>...` - Normalize link URLs
-  - `--all, -a` - Normalize all links (asks for confirmation)
-  - `--yes, -y` - Skip the `--all` confirmation
-- `describe <id>...` - Fetch and fill in missing descriptions
-  - `--all, -a` - Describe all links, including ones that already have a description (asks for confirmation)
-  - `--yes, -y` - Skip the `--all` confirmation
-  - `--concurrency, -c` - Maximum parallel fetches (default 30)
-  - `--timeout` - Fetch timeout in seconds (default 10)
-- `random` - Read random links from bookmarks and mark them as read
-  - `--number, -n` - How many links (default 5)
-  - `--include-read` - Include already-read links
-
-### Aliases (hidden)
-- `ls` - Alias for `list`
-- `find` - Alias for `search`
-- `new` - Alias for `add`
-- `rm` - Alias for `delete`
-- `read-random` - Alias for `random` (legacy name)
-
-### Data Management
-- `export <file>` - Export links to JSON
-  - `--force, -f` / `--yes, -y` - Overwrite existing file without confirmation
-- `import <file>` - Import links from JSON, HTML, or TXT
-  - `--yes, -y` - Skip import confirmation
-
-### Configuration
-- `config show` - Show current configuration, with each value's source (env/file/default)
-- `config get <key>` - Get a specific configuration value
-- `config set <key> <value>` - Set a configuration value
-- `config edit` - Open config file in default editor
-- `config validate` - Validate configuration
-- `config reset` - Reset to default configuration
-  - `--yes, -y` - Skip confirmation
-
-### General Commands
-- `stats` - Show bookmark statistics
-- `paths` - Show all LinkCovery file paths
-- `webui` - Run the web UI (`--host`, `--port`, `--reload`, `--background`)
-- `linkcovery --version` - Show version information
-
-## ⚙️ Configuration
-
-LinkCovery stores its configuration at `~/.config/linkcovery/config.json` (same location on macOS, Linux, and Windows — the tool does not use OS-specific directories).
-
-Values resolve in this order (highest wins):
-
-1. Environment variable (where supported, e.g. `LINKCOVERY_DB` for the database path)
-2. Config file (`config.json`)
-3. Built-in defaults
-
-Run `linkcovery config show` to see every setting with its source (flag/env/file/default).
-
-### Available Settings
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `app_name` | "LinkCovery" | Application name |
-| `version` | (package version) | Application version |
-| `database_path` | (auto-detected) | Custom database path (overridden by `LINKCOVERY_DB` env var) |
-| `default_export_format` | "json" | Default export format |
-| `max_search_results` | 50 | Maximum search results |
-| `allowed_extensions` | [".json"] | Allowed file extensions |
-| `debug` | false | Enable debug mode |
-
-### Examples
-```bash
-# Set maximum search results
-uv run linkcovery config set max_search_results 100
-
-# Enable debug mode
-uv run linkcovery config set debug true
-
-# View all settings
-uv run linkcovery config show
-```
-
-## 🗄️ Database
-
-LinkCovery uses SQLite for data storage. The database defaults to `~/.linkcovery/links.db` and is created automatically. Point it elsewhere with the `LINKCOVERY_DB` environment variable or the `database_path` setting.
-
-### Database Schema
-
-The `links` table contains:
-- `id` - Unique identifier (primary key)
-- `url` - The bookmark URL (unique, required)
-- `domain` - Extracted domain name (required)
-- `description` - Optional description text
-- `tag` - Associated tag for categorization
-- `is_read` - Boolean read status
-- `created_at` - ISO timestamp of creation
-- `updated_at` - ISO timestamp of last update
-
-## 🏗️ Project Structure
-
-```
-linkcovery/
-├── linkcovery/
-│   ├── __init__.py                # Package root (version)
-│   ├── cli/                        # Command-line interface
-│   │   ├── __init__.py            # Exports cli_app
-│   │   ├── cli.py                 # Main CLI app, global flags, webui/stats/paths/mark/open
-│   │   ├── cli_state.py           # Runtime flags (--json/--no-color)
-│   │   ├── links.py               # Link management commands
-│   │   ├── config.py              # Configuration commands
-│   │   └── data.py                # Import/export commands
-│   ├── core/                      # Core business logic
-│   │   ├── chrome_bookmark.py     # Chrome bookmarks HTML parsing
-│   │   ├── config.py              # Configuration management
-│   │   ├── database.py            # Database service layer
-│   │   ├── exceptions.py          # Custom exception classes (with hints)
-│   │   ├── models.py              # Pydantic models
-│   │   └── utils.py               # Consoles, error handling, URL helpers
-│   ├── services/                  # Business logic services
-│   │   ├── link_service.py        # Link management business logic
-│   │   └── data_service.py        # Import/export operations
-│   └── webui/                     # FastAPI web UI
-│       ├── app.py                 # FastAPI application
-│       ├── static/               # Static assets
-│       └── templates/             # Jinja2 templates
-├── tests/                         # Pytest suite (CLI behavior)
-├── scripts/                       # Dev scripts
-├── pyproject.toml                 # Project configuration
-└── README.md                      # This file
-```
-
-Entry point: `linkcovery.cli:cli_app` (see `[project.scripts]` in `pyproject.toml`).
-
-## 🧪 Development
-
-### Setup Development Environment
-```bash
-# Clone the repository
-git clone https://github.com/arian24b/linkcovery.git
-cd linkcovery
-
-# Install with development dependencies
-uv sync --all-groups
-
-# Install pre-commit hooks (if available)
-uv run pre-commit install
-```
-
-### Running Tests
-```bash
-# Run all tests
-uv run pytest
-
-# Run with coverage
-uv run pytest --cov=linkcovery --cov-report=html
-```
-
-### Code Quality
-```bash
-# Run linting
-uv run ruff check
-
-# Format code
-uv run ruff format
-
-# Type checking
-uv run mypy linkcovery
-```
-
-### Building
-```bash
-# Build binary
-uv run python build_binary.py
-```
-
-## 📖 Examples
-
-### Managing Links
-```bash
-# Add a link with description and tags
-uv run linkcovery add "https://docs.python.org" \
-  --desc "Official Python Documentation" \
-  --tag "python,docs,reference"
-
-# List only unread links
-uv run linkcovery list --unread-only --limit 10
-
-# Search for Python-related links
-uv run linkcovery search python
-
-# Mark a link as read
-uv run linkcovery mark 5
-
-# Mark a link as unread
-uv run linkcovery mark 5 --unread
-
-# Edit a link's description
-uv run linkcovery edit 5 --desc "Updated description"
-```
-
-### Data Management
-```bash
-# Export all links
-uv run linkcovery export my-bookmarks-$(date +%Y%m%d).json
-
-# Import from another file
-uv run linkcovery import bookmarks-backup.json
-
-# Import from text (one link per line)
-uv run linkcovery import links.txt
-
-# View statistics
-uv run linkcovery stats
-```
-
-## 🌐 Web UI
-
-The web UI is a lightweight FastAPI interface for CRUD, previews, and file import/export.
-
-### Web UI Commands
-```bash
-uv run linkcovery webui --host 0.0.0.0 --port 8080
-uv run linkcovery webui --background
-```
-
-### Web UI Features
-- CRUD for links with quick edit and delete
-- Import (JSON/HTML/TXT) and export (JSON)
-- Lazy loading + infinite scroll
-- Layout toggle (square vs. standard cards)
-- Preview images cached locally for speed
-
-### Cache and Logs
-- Cache (preview images): `~/.cache/linkcovery/previews`
-- Logs (web UI): `~/.local/state/linkcovery/logs/webui.log`
-
-(The `paths` command prints your exact locations.)
-
-### Configuration
-```bash
-# Increase search result limit
-uv run linkcovery config set max_search_results 100
-
-# View current configuration
-uv run linkcovery config show
-
-# Edit configuration file
-uv run linkcovery config edit
-
-# View all paths
-uv run linkcovery paths
-
-# Reset to defaults
-uv run linkcovery config reset
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes following the project's coding standards
-4. Run tests and linting (`uv run pytest && uv run ruff check`)
-5. Commit your changes (`git commit -m 'Add some amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-## 📝 License
-## Related Projects
-
-Explore other CLI tools by Arian Omrani:
-
-- **[PEM](https://github.com/arian24b/pem)** - Python Execution Manager - A powerful tool for managing, scheduling, and executing Python scripts
-- **[OllamaTools](https://github.com/arian24b/ollamatools)** - CLI tool for managing Ollama models (backup, restore, update)
-- **[ThroneTools](https://github.com/arian24b/thronetools)** - Cross-platform installer and management CLI for Throne
-
----
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [cfui](https://github.com/arian24b/cfui) for the CLI framework and terminal UI
-- [Pydantic](https://pydantic.dev/) for data validation and settings
-
----
-
-**LinkCovery** - Because your bookmarks deserve better organization! 🔗✨
+## Commands
+
+| Command | What it does |
+|---|---|
+| `add URL [-d DESC] [-t TAG] [-r] [--no-fetch] [--timeout S]` (alias `new`) | save a link |
+| `list [-l N] [--read-only] [--unread-only] [--full]` (alias `ls`) | show links |
+| `search [QUERY] [--domain D] [-t TAG] [--read-only] [--unread-only] [-l N]` (alias `find`) | search; all filters must match |
+| `show ID` | one link in detail |
+| `edit ID [--url U] [-d DESC] [-t TAG] [-r] [-u]` | change a link |
+| `delete ID... [-f] [-y]` (alias `rm`) | delete links, with confirmation |
+| `mark ID... [-r] [-u]` | set read or unread; toggles when neither is given |
+| `open ID...` | open links in the browser |
+| `normalize [ID...] [-a] [-y]` | trailing slash, `http` to `https`, drop `www` |
+| `describe [ID...] [-a] [-y] [-c N] [--timeout S]` | fetch missing descriptions |
+| `random [-n N] [--include-read]` | pick random unread links and mark them read |
+| `export [FILE] [-f] [-y]` | write all links (default `links.json`) |
+| `import [FILE] [--chrome] [-y]` | read `.json`, `.html`, `.txt` or Chrome's bookmarks file |
+| `stats` | totals and top domains |
+| `paths` | where the config, database and data live |
+| `webui [--host H] [--port P] [--reload] [--background]` | run the web UI |
+| `config show\|get\|set\|reset\|edit\|validate` | settings |
+
+Global flags: `--json` prints machine-readable output (errors become JSON on stderr) and `--no-color` turns color off. Commands that need an ID or URL ask for it when you leave it out.
+
+## Settings
+
+Stored in `~/.config/linkcovery/config.json` on every platform. Resolution order: environment variable, then the file, then the default. `linkcovery config show` lists each value with its source.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `database_path` | auto | database file (`LINKCOVERY_DB` overrides it) |
+| `default_export_format` | `json` | export format |
+| `max_search_results` | `50` | search limit |
+| `allowed_extensions` | `[".json"]` | accepted import extensions |
+| `debug` | `false` | debug mode |
+
+## Web UI
+
+A small FastAPI app: add, edit and delete links, import and export, lazy-loaded list, preview images cached in `~/.cache/linkcovery/previews`. The log of a background run is `~/.local/state/linkcovery/logs/webui.log`; `linkcovery paths` prints the exact locations.
 
 ## Common commands
 
-Built with [cfui](https://github.com/arian24b/cfui), so every command shares the same look and flags:
+Built on [cfuicli](https://github.com/arian24b/cfui), so it looks and behaves like the other tools in this family.
 
 ```bash
-linkcovery help [command]     # help
-linkcovery version            # version and git repo (also: linkcovery -v)
-linkcovery update [--check]   # self update
-linkcovery -q ...             # quiet: no banners/notes (or LINKCOVERY_QUIET=1)
+linkcovery help [command]     # help; -h works on any command
+linkcovery version            # version and git repository (also: -v)
+linkcovery update [--check]   # update the tool itself; --check only compares versions
+linkcovery -q ...             # quiet: no banner or notes (or LINKCOVERY_QUIET=1)
 ```
 
-Missing required options are asked for interactively on a TTY; in pipes/CI they fail with `--flag is required`.
+- A missing required option is asked for when you run the tool in a terminal. In a pipe or in CI it stops with `--flag is required. Pass --flag <value> or run interactively.` (exit code 2).
+- Errors appear in a red box on stderr with a non-zero exit code. Ctrl-C exits with 130.
+- Color is used only on a terminal. `NO_COLOR=1` turns it off.
+- With `--json`, nothing but JSON is written to stdout.
+
+## Development
+
+```bash
+uv sync
+uv run pytest
+uv run ruff check . && uv run ruff format --check .
+```
+
+Related tools: [PEM](https://github.com/arian24b/pem), [ollama-tool-cli](https://github.com/arian24b/ollamatools), [ThroneTools](https://github.com/arian24b/thronetools).
+
+## License
+
+MIT
