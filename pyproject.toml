@@ -7,9 +7,9 @@ license = "MIT"
 keywords = ["bookmark", "link", "management", "cli", "python"]
 authors = [{name = "Arian Omrani", email = "arian24b@gmail.com"}]
 maintainers = [{name = "Arian Omrani", email = "arian24b@gmail.com"}]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
-    "fastapi[standard-no-fastapi-cloud-cli]>=0.129.0",
+    "fastapi>=0.129.0",
     "httpx[http2]>=0.28.1",
     "jinja2>=3.1.6",
     "pydantic>=2.12.5",
