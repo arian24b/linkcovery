@@ -285,7 +285,7 @@ class DatabaseService:
             rows = [_row_to_link(row) for row in cursor.fetchall()]
 
             # Get total count for pagination
-            cursor.execute(count_query, params[:len(params) - 2])
+            cursor.execute(count_query, params[: len(params) - 2])
             total = cursor.fetchone()[0]
 
             # Attach total via an attribute

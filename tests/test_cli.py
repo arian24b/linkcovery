@@ -1,14 +1,35 @@
 """CLI behavior tests: global flags, JSON mode, exit codes, confirmation gating."""
 
+import contextlib
+import io
 import json
+from types import SimpleNamespace
+from unittest import mock
 
 import pytest
-from typer.testing import CliRunner
 
-from linkcovery.cli import cli_app
+from linkcovery.cli.app import app as cli_app
 from linkcovery.cli.cli_state import state
 
-runner = CliRunner()
+
+class Runner:
+    """Run the cfui app in-process and capture stdout/stderr like click's CliRunner."""
+
+    def invoke(self, app, args, input=None):  # noqa: A002
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(contextlib.redirect_stdout(out))
+            stack.enter_context(contextlib.redirect_stderr(err))
+            if input is not None:  # behave like a terminal that answers with `input`
+                stack.enter_context(mock.patch("sys.stdin", io.StringIO(input)))
+                stack.enter_context(mock.patch("cfui.ui.interactive", lambda: True))
+            code = app.run(list(args))
+        return SimpleNamespace(
+            exit_code=code, stdout=out.getvalue(), stderr=err.getvalue(), output=out.getvalue() + err.getvalue()
+        )
+
+
+runner = Runner()
 
 
 def _stdout(result) -> str:
@@ -24,10 +45,11 @@ def _isolated_env(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("LINKCOVERY_DB", str(tmp_path / "links.db"))
     monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.setattr("typer.testing.CliRunner.env", {"NO_COLOR": "1"}, raising=False)
+    monkeypatch.setenv("NO_COLOR", "1")
     # Reset global singletons + flags between tests
     monkeypatch.setattr("linkcovery.core.config._config_manager", None)
     monkeypatch.setattr("linkcovery.services.link_service._link_service", None)
+    monkeypatch.setattr("linkcovery.services.data_service._data_service", None)
     monkeypatch.setattr("linkcovery.core.database._db_service", None)
     state.json_mode = False
     state.no_color = False
@@ -49,7 +71,8 @@ def test_version_flag_prints_version_and_exits_zero():
 def test_version_stdout_is_clean():
     result = runner.invoke(cli_app, ["--version"])
     lines = [line for line in _stdout(result).splitlines() if line.strip()]
-    assert lines == ["linkcovery 1.7.8"]
+    assert lines[0] == "linkcovery 1.7.8"
+    assert "github.com/arian24b/linkcovery" in lines[1]
 
 
 def test_help_has_no_banner():
@@ -92,7 +115,7 @@ def test_show_missing_link_stderr_and_exit_code():
     assert result.exit_code == 1
     assert _stdout(result) == ""  # stdout clean
     assert "999" in result.stderr
-    assert "Hint" in result.stderr
+    assert "Use 'linkcovery list'" in result.stderr
 
 
 def test_mark_missing_link_exits_one():
@@ -197,10 +220,10 @@ def test_export_format_md_and_html(tmp_path, monkeypatch):
 
 def test_help_resolves_topics():
     assert runner.invoke(cli_app, ["help"]).exit_code == 0
-    assert "Usage" in _stdout(runner.invoke(cli_app, ["help", "list"]))
-    assert "Usage" in _stdout(runner.invoke(cli_app, ["help", "config", "show"]))
+    assert "linkcovery list" in _stdout(runner.invoke(cli_app, ["help", "list"]))
+    assert "linkcovery config show" in _stdout(runner.invoke(cli_app, ["help", "config", "show"]))
     bad = runner.invoke(cli_app, ["help", "nope"])
-    assert bad.exit_code == 1
+    assert bad.exit_code == 2
     assert "nope" in bad.stderr
 
 
@@ -210,7 +233,9 @@ def test_chrome_bookmarks_json_imports(tmp_path):
     raw = {"roots": {"bookmark_bar": {"children": [{"type": "url", "url": "https://c.example.com"}]}}}
     f = tmp_path / "Bookmarks"
     f.write_text(_json.dumps(raw))
-    assert runner.invoke(cli_app, ["import", str(f), "-y"]).exit_code == 0
+    res = runner.invoke(cli_app, ["import", str(f), "-y"])
+    assert res.exit_code == 0, res.output
+    assert _listing(), res.output
     assert _listing()[0]["url"] == "https://c.example.com"
 
 
@@ -226,7 +251,8 @@ def test_confirm_interrupt_propagates(monkeypatch):
     def raise_interrupt(message, default=False):
         raise KeyboardInterrupt
 
-    monkeypatch.setattr("rich.prompt.Confirm.ask", staticmethod(raise_interrupt))
+    monkeypatch.setattr("cfui.ui.confirm", raise_interrupt)
+    monkeypatch.setattr("cfui.ui.interactive", lambda: True)
     _add()
     result = runner.invoke(cli_app, ["delete", "1"])
     assert result.exit_code == 130
@@ -334,8 +360,6 @@ def test_describe_no_candidates_succeeds():
     runner.invoke(cli_app, ["edit", "1", "--desc", "Existing description"])
     result = runner.invoke(cli_app, ["describe"])
     assert result.exit_code == 0
-
-
 
 
 def test_describe_empty_fetch_result_skipped(monkeypatch):

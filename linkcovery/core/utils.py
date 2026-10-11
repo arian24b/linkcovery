@@ -1,30 +1,25 @@
 """Core utilities for LinKCovery."""
 
 import functools
+import os
 from collections.abc import Callable
 from html.parser import HTMLParser
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin, urlparse, urlunparse
 
-from rich.console import Console
-from typer import Exit
+from cfui import Fail, ui
 
 from linkcovery.core.exceptions import LinKCoveryError
 
 if TYPE_CHECKING:
     pass
 
-# Stdout console for command output (tables, results).
-console = Console()
-# Stderr console for diagnostics: errors, warnings, progress, spinners.
-err_console = Console(stderr=True)
-
 
 def print_json(payload) -> None:
-    """Stdout JSON with no markup/highlight/wrap so pipes stay parseable."""
+    """Stdout JSON, no markup, so pipes stay parseable."""
     import json
 
-    console.print(json.dumps(payload, ensure_ascii=False, default=str), markup=False, highlight=False, soft_wrap=True)
+    print(json.dumps(payload, ensure_ascii=False, default=str))
 
 
 def _error_payload(e: Exception) -> dict[str, Any]:
@@ -36,79 +31,40 @@ def _error_payload(e: Exception) -> dict[str, Any]:
     return payload
 
 
-def _print_error(e: Exception, *, unexpected: bool = False) -> None:
-    """Print an error to stderr, as text or JSON depending on CLI state."""
-    import json
-
-    from linkcovery.cli.cli_state import state
-
-    if state.json_mode:
-        err_console.print(json.dumps(_error_payload(e)), soft_wrap=True, markup=False, highlight=False)
-        return
-
-    if unexpected:
-        err_console.print(f"❌ Unexpected error: {e}", style="red")
-        return
-
-    assert isinstance(e, LinKCoveryError)  # narrowed: callers guarantee this
-    err_console.print(f"❌ {e.message}", style="red")
-    if e.details:
-        err_console.print(f"   {e.details}", style="dim red")
-    if e.hint:
-        err_console.print(f"💡 Hint: {e.hint}", style="yellow")
-
-
-def _print_cancelled() -> None:
-    """Report Ctrl-C on stderr, honoring --json mode."""
-    import json
-
-    from linkcovery.cli.cli_state import state
-
-    if state.json_mode:
-        payload = {"error": "cancelled", "hint": "Interrupted by user"}
-        err_console.print(json.dumps(payload), soft_wrap=True, markup=False, highlight=False)
-    else:
-        err_console.print("\n🛑 Operation cancelled by user", style="yellow")
-
-
 def handle_errors(func: Callable) -> Callable:
-    """Decorator to handle errors gracefully in CLI commands.
-
-    Exit codes: LinKCoveryError/unexpected error -> 1, Ctrl-C -> 130.
-    """
+    """Turn LinKCoveryError / unexpected errors into cfui boxed errors (or a JSON error with --json). Exit 1."""
 
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
+        from linkcovery.cli.cli_state import state
+
         try:
             return func(*args, **kwargs)
-        except Exit:
+        except (Fail, SystemExit, KeyboardInterrupt):
             raise
-        except LinKCoveryError as e:
-            _print_error(e)
-            raise Exit(1)
-        except KeyboardInterrupt:
-            _print_cancelled()
-            raise Exit(130)
         except Exception as e:
-            _print_error(e, unexpected=True)
-            if err_console._environ.get("LINKCOVERY_DEBUG"):  # type: ignore[attr-defined]
+            known = isinstance(e, LinKCoveryError)
+            if state.json_mode:
+                import json
+                import sys
+
+                print(json.dumps(_error_payload(e)), file=sys.stderr)
+                raise SystemExit(1) from None
+            if not known and os.environ.get("LINKCOVERY_DEBUG"):
                 import traceback
 
                 traceback.print_exc()
-            raise Exit(1)
+            hint = " ".join(x for x in (getattr(e, "details", ""), getattr(e, "hint", "")) if x) or None
+            raise Fail(e.message if known else f"Unexpected error: {e}", hint) from None
 
     return wrapper
 
 
 def confirm_action(message: str, default: bool = False) -> bool:
-    """Ask for user confirmation.
-
-    Raises:
-        KeyboardInterrupt: Propagated so handle_errors turns it into exit code 130.
-    """
-    from rich.prompt import Confirm
-
-    return Confirm.ask(message, default=default)
+    """Ask for confirmation; non-interactive runs must pass --yes."""
+    if not ui.interactive():
+        raise Fail(f"{message}", "Not a terminal: pass --yes to confirm.", code=2)
+    return ui.confirm(message, default=default)
 
 
 def extract_domain(url: str) -> str:
@@ -209,10 +165,7 @@ async def fetch_description(url: str, timeout: int = 10, show_spinner: bool = Tr
         show_spinner = False
 
     if show_spinner:
-        from rich.status import Status
-
-        with Status("📥 Fetching metadata...", console=err_console):
-            return await _fetch_description_inner(url, timeout)
+        ui.info("Fetching metadata...")
     return await _fetch_description_inner(url, timeout)
 
 

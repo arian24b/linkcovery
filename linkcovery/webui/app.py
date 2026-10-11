@@ -90,7 +90,13 @@ async def api_search_links(
         is_read = False
 
     links, total = link_service.search_links_paginated(
-        query=q, domain=domain, tag=tag, is_read=is_read, sort=sort, offset=offset, limit=limit,
+        query=q,
+        domain=domain,
+        tag=tag,
+        is_read=is_read,
+        sort=sort,
+        offset=offset,
+        limit=limit,
     )
     payload = [
         {

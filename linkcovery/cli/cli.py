@@ -1,6 +1,5 @@
 """Modern CLI application for LinkCovery."""
 
-import json
 import subprocess
 import sys
 import webbrowser
@@ -8,13 +7,13 @@ from datetime import datetime
 from pathlib import Path
 from socket import socket
 
-import typer
-from rich.table import Table
+from cfui import Arg, ui
 
-from linkcovery import __version__
-from linkcovery.cli import config, data, links
+from linkcovery.cli import config as _config_cmds  # noqa: F401  (importing registers commands)
+from linkcovery.cli.app import app as cli
+from linkcovery.cli.app import command
 from linkcovery.cli.cli_state import state
-from linkcovery.core.utils import console, err_console, handle_errors
+from linkcovery.core.utils import handle_errors, print_json
 
 
 def _get_config():
@@ -30,61 +29,19 @@ def get_link_service():
     return _get()
 
 
-# Main app
-cli_app = typer.Typer(
-    name="linkcovery",
-    help="🔗 Modern bookmark and link management tool",
-    no_args_is_help=True,
-    rich_markup_mode="rich",
+@command(
+    cli,
+    "webui",
+    "Run the LinkCovery web UI",
+    args=[
+        Arg("--host", default="127.0.0.1", help="Host to bind"),
+        Arg("--port", type=int, default=8000, help="Port to listen on"),
+        Arg("--reload", action="store_true", help="Auto-reload on code changes"),
+        Arg("--background", action="store_true", help="Run web UI in background"),
+    ],
 )
-
-# Add command groups
-cli_app.add_typer(links.app)
-cli_app.add_typer(data.app)
-cli_app.add_typer(config.app, name="config")
-
-
-def _version_callback(value: bool) -> None:
-    """Print version and exit."""
-    if value:
-        console.print(f"linkcovery {__version__}")
-        raise typer.Exit(0)
-
-
-@cli_app.callback(no_args_is_help=True)
-def main(
-    version: bool = typer.Option(
-        None,
-        "--version",
-        callback=_version_callback,
-        is_eager=True,
-        help="Show version and exit",
-    ),
-    json_mode: bool = typer.Option(False, "--json", help="Output machine-readable JSON"),
-    no_color: bool = typer.Option(False, "--no-color", help="Disable colored output"),
-) -> None:
-    """LinkCovery - Modern bookmark management tool.
-
-    Efficiently manage, search, and organize your bookmarks with a clean CLI interface.
-    """
-    state.json_mode = json_mode
-    state.no_color = no_color
-    if no_color:
-        console.no_color = True
-        err_console.no_color = True
-        import os
-
-        os.environ["NO_COLOR"] = "1"
-
-
-@cli_app.command(rich_help_panel="Other")
 @handle_errors
-def webui(
-    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind"),
-    port: int = typer.Option(8000, "--port", help="Port to listen on"),
-    reload: bool = typer.Option(False, "--reload", help="Auto-reload on code changes"),
-    background: bool = typer.Option(False, "--background", help="Run web UI in background"),
-) -> None:
+def webui(host, port, reload, background) -> None:
     """Run the LinkCovery web UI."""
     import uvicorn
 
@@ -103,17 +60,17 @@ def webui(
 
         if not _wait_for_port(host, port, timeout=10.0):
             process.terminate()
-            err_console.print(f"❌ Web UI failed to start at {url} within 10s", style="red")
-            err_console.print(f"💡 Hint: check {log_file} for details", style="yellow")
-            raise typer.Exit(1)
+            ui.error(f"Web UI failed to start at {url} within 10s")
+            ui.hint(f"check {log_file} for details")
+            raise SystemExit(1)
 
-        console.print(f"🌐 Web UI running at {url}", style="green")
-        console.print(f"🧾 Logs: {log_file}", style="dim")
-        console.print(f"🧩 PID: {process.pid}", style="dim")
+        ui.success(f"Web UI running at {url}")
+        ui.hint(f"Logs: {log_file}")
+        ui.hint(f"PID: {process.pid}")
         webbrowser.open(url)
         return
 
-    console.print(f"🌐 Web UI running at {url}", style="green")
+    ui.success(f"Web UI running at {url}")
     webbrowser.open(url)
     if reload:
         uvicorn.run("linkcovery.webui.app:app", host=host, port=port, reload=True)
@@ -138,7 +95,7 @@ def _wait_for_port(host: str, port: int, timeout: float = 10.0) -> bool:
     return False
 
 
-@cli_app.command(rich_help_panel="Other")
+@command(cli, "stats", "Show bookmark statistics")
 @handle_errors
 def stats() -> None:
     """Show bookmark statistics."""
@@ -146,21 +103,21 @@ def stats() -> None:
     stats_data = link_service.get_statistics()
 
     if state.json_mode:
-        console.print(json.dumps(stats_data, ensure_ascii=False, default=str))
+        print_json(stats_data, ensure_ascii=False, default=str)
         return
 
-    console.print("📊 [bold blue]LinkCovery Statistics[/bold blue]")
-    console.print(f"   Total links: [bold]{stats_data['total_links']}[/bold]")
-    console.print(f"   Read: [green]{stats_data['read_links']}[/green]")
-    console.print(f"   Unread: [yellow]{stats_data['unread_links']}[/yellow]")
+    ui.heading("LinkCovery Statistics")
+    ui.out(f"   Total links: {stats_data['total_links']}")
+    ui.out(f"   Read: {stats_data['read_links']}")
+    ui.out(f"   Unread: {stats_data['unread_links']}")
 
     if stats_data["top_domains"]:
-        console.print("\n   Top domains:")
+        ui.out("\n   Top domains:")
         for domain, count in stats_data["top_domains"][:5]:
-            console.print(f"     [cyan]{domain}[/cyan]: {count}")
+            ui.out(f"     {domain}: {count}")
 
 
-@cli_app.command(rich_help_panel="Other")
+@command(cli, "paths", "Show all LinkCovery file paths")
 @handle_errors
 def paths() -> None:
     """Show all LinkCovery file paths."""
@@ -183,36 +140,37 @@ def paths() -> None:
     data_dir = db_path.parent
 
     if state.json_mode:
-        console.print(
-            json.dumps(
-                {
-                    "config_file": str(config_file),
-                    "database": str(db_path),
-                    "data_dir": str(data_dir),
-                }
-            )
+        print_json(
+            {
+                "config_file": str(config_file),
+                "database": str(db_path),
+                "data_dir": str(data_dir),
+            }
         )
         return
 
-    table = Table(title="📂 LinkCovery Paths", box=None, header_style="dim")
-    table.add_column("Location", style="cyan")
-    table.add_column("Path", style="green")
-    table.add_column("Size", style="yellow", justify="right")
-    table.add_column("Modified", style="dim")
-    table.add_row("Configuration", str(config_file), config_size, config_modified)
-    table.add_row("Database", str(db_path), db_size, db_modified)
-    table.add_row("Data Directory", str(data_dir), "-", "-")
-
-    console.print(table)
+    ui.table(
+        [
+            ("Configuration", config_file, config_size, config_modified),
+            ("Database", db_path, db_size, db_modified),
+            ("Data Directory", data_dir, "-", "-"),
+        ],
+        ["Location", "Path", "Size", "Modified"],
+    )
 
 
-@cli_app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "mark",
+    "Mark links as read or unread (toggles when neither flag is given)",
+    args=[
+        Arg("link_ids", type=int, nargs="+", required=True, prompt="Link IDs to mark", help="Link IDs to mark"),
+        Arg("-r", "--read", action="store_true", help="Mark as read"),
+        Arg("-u", "--unread", action="store_true", help="Mark as unread"),
+    ],
+)
 @handle_errors
-def mark(
-    link_ids: list[int] = typer.Argument(..., help="Link IDs to mark"),
-    read: bool = typer.Option(None, "--read", "-r", help="Mark as read"),
-    unread: bool = typer.Option(None, "--unread", "-u", help="Mark as unread"),
-) -> None:
+def mark(link_ids, read, unread) -> None:
     """Mark links as read or unread.
 
     If neither --read nor --unread is specified, toggles the current status.
@@ -245,23 +203,26 @@ def mark(
                 link_service.mark_as_unread(link_id)
             marked.append({"id": link_id, "is_read": new_status})
             if not state.json_mode:
-                console.print(f"✅ Marked link #{link_id} as {'read' if new_status else 'unread'}", style="green")
+                ui.success(f"Marked link #{link_id} as {'read' if new_status else 'unread'}")
 
         except Exception as e:
             failed = True
-            err_console.print(f"❌ Failed to mark link #{link_id}: {e}", style="red")
+            ui.error(f"Failed to mark link #{link_id}: {e}")
 
     if state.json_mode:
-        console.print(json.dumps({"marked": marked, "failed": failed}))
+        print_json({"marked": marked, "failed": failed})
     if failed:
-        raise typer.Exit(1)
+        raise SystemExit(1)
 
 
-@cli_app.command(name="open", rich_help_panel="Link Management")
+@command(
+    cli,
+    "open",
+    "Open links in your default web browser",
+    args=[Arg("link_ids", type=int, nargs="+", required=True, prompt="Link IDs to open", help="Link IDs to open")],
+)
 @handle_errors
-def open_link(
-    link_ids: list[int] = typer.Argument(..., help="Link IDs to open"),
-) -> None:
+def open_link(link_ids) -> None:
     """Open links in your default web browser.
 
     Examples:
@@ -279,52 +240,16 @@ def open_link(
             link_service.open_link(link_id)
             opened.append({"id": link_id, "url": link.url})
             if not state.json_mode:
-                console.print(f"🌐 Opening link #{link_id}: {link.url}", style="blue")
+                ui.info(f"Opening link #{link_id}: {link.url}")
         except Exception as e:
             failed = True
-            err_console.print(f"❌ Failed to open link #{link_id}: {e}", style="red")
+            ui.error(f"Failed to open link #{link_id}: {e}")
 
     if state.json_mode:
-        console.print(json.dumps({"opened": opened, "failed": failed}))
+        print_json({"opened": opened, "failed": failed})
     if failed:
-        raise typer.Exit(1)
+        raise SystemExit(1)
 
 
-@cli_app.command(name="help", rich_help_panel="Other")
-@handle_errors
-def show_help(
-    ctx: typer.Context,
-    topic: list[str] | None = typer.Argument(None, help="Command to show help for (e.g. help config show)"),
-) -> None:
-    """Show help for a command.
-
-    Examples:
-        linkcovery help
-        linkcovery help list
-        linkcovery help config show
-
-    """
-    import click
-
-    root = ctx.parent
-    if root is None or not topic:
-        typer.echo(root.get_help() if root else ctx.get_help())
-        return
-    node = root.command
-    sub = root
-    for part in topic:
-        nxt = node.get_command(sub, part)
-        if nxt is None:
-            err_console.print(f"❌ No such command: {' '.join(topic)}", style="red")
-            err_console.print("💡 Hint: run linkcovery help to list commands", style="yellow")
-            raise typer.Exit(1)
-        sub = click.Context(nxt, parent=sub, info_name=part)
-        node = nxt
-    typer.echo(sub.get_help())
-
-
-# Command aliases (hidden from main help): same functions, registered under second names.
-cli_app.command(name="ls", hidden=True, rich_help_panel="Link Management")(links.list_links)
-cli_app.command(name="find", hidden=True, rich_help_panel="Link Management")(links.search)
-cli_app.command(name="new", hidden=True, rich_help_panel="Link Management")(links.add)
-cli_app.command(name="rm", hidden=True, rich_help_panel="Link Management")(links.delete)
+def main() -> None:
+    cli.main()

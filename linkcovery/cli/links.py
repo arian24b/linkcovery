@@ -4,21 +4,18 @@ import asyncio
 from asyncio import run as asyncio_run
 from collections.abc import Callable
 
-import typer
-from rich.progress import Progress
-from rich.table import Table
+from cfui import Arg, ui
 
+from linkcovery.cli.app import app as cli
+from linkcovery.cli.app import command
 from linkcovery.cli.cli_state import state
-from linkcovery.core.utils import confirm_action, console, err_console, fetch_description, handle_errors
+from linkcovery.core.utils import confirm_action, fetch_description, handle_errors
 
 
 def _link_service():
     from linkcovery.services.link_service import get_link_service
 
     return get_link_service()
-
-
-app = typer.Typer(help="Manage your bookmarked links", no_args_is_help=True)
 
 
 def _link_dict(link) -> dict:
@@ -42,16 +39,22 @@ def _emit_json(payload) -> None:
     print_json(payload)
 
 
-@app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "add",
+    "Add a new link to your bookmarks",
+    aliases=("new",),
+    args=[
+        Arg("url", required=True, prompt="URL to bookmark", help="URL to bookmark"),
+        Arg("-d", "--desc", dest="description", default="", help="Description for link"),
+        Arg("-t", "--tag", help="Tag to categorize link"),
+        Arg("-r", "--read", action="store_true", help="Mark as already read"),
+        Arg("--no-fetch", action="store_true", help="Skip fetching metadata from URL"),
+        Arg("--timeout", type=int, default=10, help="Timeout for fetching metadata (seconds)"),
+    ],
+)
 @handle_errors
-def add(
-    url: str = typer.Argument(..., help="URL to bookmark"),
-    description: str = typer.Option("", "--desc", "-d", help="Description for link"),
-    tag: str | None = typer.Option(None, "--tag", "-t", help="Tag to categorize link"),
-    read: bool = typer.Option(False, "--read", "-r", help="Mark as already read"),
-    no_fetch: bool = typer.Option(False, "--no-fetch", help="Skip fetching metadata from URL"),
-    timeout: int = typer.Option(10, "--timeout", help="Timeout for fetching metadata (seconds)"),
-) -> None:
+def add(url, description, tag, read, no_fetch, timeout) -> None:
     """Add a new link to your bookmarks.
 
     Examples:
@@ -76,18 +79,24 @@ def add(
         _emit_json(_link_dict(link))
         return
 
-    console.print(f"✅ Added link #{link.id}", style="green")
-    console.print(f"   URL: {url}")
+    ui.success(f"Added link #{link.id}")
+    ui.out(f"   URL: {url}")
 
 
-@app.command(name="list", rich_help_panel="Link Management")
+@command(
+    cli,
+    "list",
+    "List your bookmarked links",
+    aliases=("ls",),
+    args=[
+        Arg("-l", "--limit", type=int, default=20, help="Maximum number of links to show"),
+        Arg("--read-only", action="store_true", help="Show only read links"),
+        Arg("--unread-only", action="store_true", help="Show only unread links"),
+        Arg("--full", action="store_true", help="Show full descriptions without truncation"),
+    ],
+)
 @handle_errors
-def list_links(
-    limit: int = typer.Option(20, "--limit", "-l", help="Maximum number of links to show"),
-    read_only: bool = typer.Option(False, "--read-only", help="Show only read links"),
-    unread_only: bool = typer.Option(False, "--unread-only", help="Show only unread links"),
-    full: bool = typer.Option(False, "--full", help="Show full descriptions without truncation"),
-) -> None:
+def list_links(limit, read_only, unread_only, full) -> None:
     """List your bookmarked links.
 
     Examples:
@@ -117,44 +126,35 @@ def list_links(
         return
 
     if not links:
-        console.print("📭 No links found", style="yellow")
+        ui.warning("No links found")
         return
 
-    table = Table(
-        title=f"📚 Your Links ({len(links)} shown)",
-        show_lines=bool(full),
-        box=None,
-        header_style="dim",
-    )
-    table.add_column("ID", style="cyan", width=4, justify="right")
-    table.add_column("Status", width=6)
-    table.add_column("URL", style="blue")
-    table.add_column("Description", style="dim")
-    table.add_column("Tag", style="magenta")
-    table.add_column("Added", style="dim", width=10)
-
+    rows = []
     for link in links:
-        status = "✅ Read" if link.is_read else "⏳ New"
         description = link.description or ""
         desc = description if full else description[:50] + "..." if len(description) > 50 else description
-        tag = link.tag or ""
-        date = link.created_at[:10] if link.created_at else ""
-
-        table.add_row(str(link.id), status, link.url, desc, tag, date)
-
-    console.print(table)
+        rows.append(
+            (link.id, "read" if link.is_read else "new", link.url, desc, link.tag or "", (link.created_at or "")[:10])
+        )
+    ui.table(rows, ["ID", "Status", "URL", "Description", "Tag", "Added"])
 
 
-@app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "search",
+    "Search your bookmarks with filters (all filters are ANDed)",
+    aliases=("find",),
+    args=[
+        Arg("query", nargs="?", help="Search in URLs, descriptions, and tags"),
+        Arg("--domain", default="", help="Filter by domain"),
+        Arg("-t", "--tag", default="", help="Filter by tag"),
+        Arg("--read-only", action="store_true", help="Show only read links"),
+        Arg("--unread-only", action="store_true", help="Show only unread links"),
+        Arg("-l", "--limit", type=int, default=20, help="Maximum results"),
+    ],
+)
 @handle_errors
-def search(
-    query: str = typer.Argument(None, help="Search in URLs, descriptions, and tags"),
-    domain: str = typer.Option("", "--domain", help="Filter by domain"),
-    tag: str = typer.Option("", "--tag", "-t", help="Filter by tag"),
-    read_only: bool = typer.Option(False, "--read-only", help="Show only read links"),
-    unread_only: bool = typer.Option(False, "--unread-only", help="Show only unread links"),
-    limit: int = typer.Option(20, "--limit", "-l", help="Maximum results"),
-) -> None:
+def search(query, domain, tag, read_only, unread_only, limit) -> None:
     """Search your bookmarks with filters.
 
     All filters use AND logic (intersection).
@@ -169,9 +169,9 @@ def search(
     link_service = _link_service()
 
     if not query and not domain and not tag:
-        err_console.print("❌ No search query or filters provided", style="red")
-        err_console.print("💡 Hint: linkcovery search <query> | --tag <tag> | --domain <domain>", style="yellow")
-        raise typer.Exit(1)
+        ui.error("No search query or filters provided")
+        ui.hint("linkcovery search <query> | --tag <tag> | --domain <domain>")
+        raise SystemExit(1)
 
     is_read = None
     if read_only:
@@ -192,30 +192,32 @@ def search(
         return
 
     if not results:
-        console.print("🔍 No matches found", style="yellow")
+        ui.warning("No matches found")
         return
 
-    table = Table(title=f"🔍 Search Results ({len(results)} found)", box=None, header_style="dim")
-    table.add_column("ID", style="cyan", width=4, justify="right")
-    table.add_column("Status", width=6)
-    table.add_column("URL", style="blue")
-    table.add_column("Description", style="dim")
-    table.add_column("Tag", style="magenta")
-
-    for link in results:
-        status = "✅" if link.is_read else "⏳"
-        description = link.description or ""
-        desc = description[:50] + "..." if len(description) > 50 else description
-        tag = link.tag or ""
-
-        table.add_row(str(link.id), status, link.url, desc, tag)
-
-    console.print(table)
+    ui.table(
+        [
+            (
+                link.id,
+                "read" if link.is_read else "new",
+                link.url,
+                (link.description or "")[:50] + ("..." if len(link.description or "") > 50 else ""),
+                link.tag or "",
+            )
+            for link in results
+        ],
+        ["ID", "Status", "URL", "Description", "Tag"],
+    )
 
 
-@app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "show",
+    "Show detailed information about a specific link",
+    args=[Arg("link_id", type=int, required=True, prompt="Link ID", help="Link ID to display")],
+)
 @handle_errors
-def show(link_id: int = typer.Argument(..., help="Link ID to display")) -> None:
+def show(link_id) -> None:
     """Show detailed information about a specific link.
 
     Examples:
@@ -229,26 +231,31 @@ def show(link_id: int = typer.Argument(..., help="Link ID to display")) -> None:
         _emit_json(_link_dict(link))
         return
 
-    console.print(f"📖 Link #{link.id}", style="bold blue")
-    console.print(f"   URL: {link.url}")
-    console.print(f"   Domain: {link.domain}")
-    console.print(f"   Description: {link.description or 'None'}")
-    console.print(f"   Tag: {link.tag or 'None'}")
-    console.print(f"   Status: {'✅ Read' if link.is_read else '⏳ Unread'}")
-    console.print(f"   Created: {link.created_at}")
-    console.print(f"   Updated: {link.updated_at}")
+    ui.heading(f"Link #{link.id}")
+    ui.out(f"   URL: {link.url}")
+    ui.out(f"   Domain: {link.domain}")
+    ui.out(f"   Description: {link.description or 'None'}")
+    ui.out(f"   Tag: {link.tag or 'None'}")
+    ui.out(f"   Status: {'✅ Read' if link.is_read else '⏳ Unread'}")
+    ui.out(f"   Created: {link.created_at}")
+    ui.out(f"   Updated: {link.updated_at}")
 
 
-@app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "edit",
+    "Edit an existing link",
+    args=[
+        Arg("link_id", type=int, required=True, prompt="Link ID", help="Link ID to edit"),
+        Arg("--url", help="New URL"),
+        Arg("-d", "--desc", dest="description", help="New description"),
+        Arg("-t", "--tag", help="New tags"),
+        Arg("-r", "--read", action="store_true", help="Mark as read"),
+        Arg("-u", "--unread", action="store_true", help="Mark as unread"),
+    ],
+)
 @handle_errors
-def edit(
-    link_id: int = typer.Argument(..., help="Link ID to edit"),
-    url: str | None = typer.Option(None, "--url", help="New URL"),
-    description: str | None = typer.Option(None, "--desc", "-d", help="New description"),
-    tag: str | None = typer.Option(None, "--tag", "-t", help="New tags"),
-    read: bool = typer.Option(False, "--read", "-r", help="Mark as read"),
-    unread: bool = typer.Option(False, "--unread", "-u", help="Mark as unread"),
-) -> None:
+def edit(link_id, url, description, tag, read, unread) -> None:
     """Edit an existing link.
 
     Examples:
@@ -265,8 +272,8 @@ def edit(
         is_read = False
 
     if not any([url, description is not None, tag is not None, is_read is not None]):
-        err_console.print("⚠️ No updates specified", style="yellow")
-        raise typer.Exit(1)
+        ui.warning("No updates specified")
+        raise SystemExit(1)
 
     link = link_service.update_link(
         link_id=link_id,
@@ -280,16 +287,22 @@ def edit(
         _emit_json(_link_dict(link))
         return
 
-    console.print(f"✅ Updated link #{link.id}", style="green")
+    ui.success(f"Updated link #{link.id}")
 
 
-@app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "delete",
+    "Delete links from your bookmarks",
+    aliases=("rm",),
+    args=[
+        Arg("link_id", type=int, nargs="+", required=True, prompt="Link IDs to delete", help="Link IDs to delete"),
+        Arg("-f", "--force", action="store_true", help="Skip confirmation"),
+        Arg("-y", "--yes", action="store_true", help="Skip confirmation (same as --force)"),
+    ],
+)
 @handle_errors
-def delete(
-    link_id: list[int] = typer.Argument(..., help="Link ID to delete"),
-    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation"),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation (same as --force)"),
-) -> None:
+def delete(link_id, force, yes) -> None:
     """Delete a link from your bookmarks.
 
     Examples:
@@ -303,7 +316,7 @@ def delete(
     links = [link_service.get_link(id) for id in link_id]
 
     if not force and not yes and not confirm_action(f"Delete links: {', '.join(str(link.id) for link in links)}?"):
-        console.print("🛑 Deletion cancelled", style="yellow")
+        ui.warning("Deletion cancelled")
         return
 
     for link in links:
@@ -313,16 +326,21 @@ def delete(
         _emit_json({"deleted": [link.id for link in links]})
         return
 
-    console.print(f"✅ Deleted links: {', '.join(str(link.id) for link in links)}", style="green")
+    ui.success(f"Deleted links: {', '.join(str(link.id) for link in links)}")
 
 
-@app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "normalize",
+    "Normalize link URLs (trailing slash, http to https, www)",
+    args=[
+        Arg("link_id", type=int, nargs="*", help="Link IDs to normalize"),
+        Arg("-a", "--all", dest="all_links", action="store_true", help="Normalize all links"),
+        Arg("-y", "--yes", action="store_true", help="Skip confirmation for --all"),
+    ],
+)
 @handle_errors
-def normalize(
-    link_id: list[int] = typer.Argument(None, help="Link IDs to normalize"),
-    all_links: bool = typer.Option(False, "--all", "-a", help="Normalize all links"),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation for --all"),
-) -> None:
+def normalize(link_id, all_links, yes) -> None:
     """Normalize link URLs by removing trailing slashes, converting http to https, and removing www.
 
     Examples:
@@ -336,26 +354,26 @@ def normalize(
 
     if all_links:
         if link_id:
-            err_console.print("⚠️ Ignoring specific link IDs when --all is used", style="yellow")
+            ui.warning("Ignoring specific link IDs when --all is used")
 
         if not yes and not confirm_action("Normalize ALL links? This modifies URLs in bulk"):
-            console.print("🛑 Normalization cancelled", style="yellow")
+            ui.warning("Normalization cancelled")
             return
 
-        console.print("🔄 Normalizing all links...", style="blue")
+        ui.info("Normalizing all links...")
 
         if normalized_links := link_service.normalize_all_links():
             if state.json_mode:
                 _emit_json({"normalized": [_link_dict(link) for link in normalized_links]})
                 return
-            console.print(f"✅ Normalized {len(normalized_links)} links", style="green")
+            ui.success(f"Normalized {len(normalized_links)} links")
             for link in normalized_links:
-                console.print(f"   • Link #{link.id}: {link.url}", style="dim")
+                ui.hint(f"   • Link #{link.id}: {link.url}")
         else:
             if state.json_mode:
                 _emit_json({"normalized": []})
                 return
-            console.print("📭 No links found to normalize", style="yellow")
+            ui.warning("No links found to normalize")
     elif link_id:
         failed = False
         normalized = []
@@ -363,32 +381,35 @@ def normalize(
             try:
                 link = link_service.normalize_link(id)
                 normalized.append(_link_dict(link))
-                console.print(f"✅ Normalized link #{link.id}: {link.url}", style="green")
+                ui.success(f"Normalized link #{link.id}: {link.url}")
             except Exception as e:
                 failed = True
-                err_console.print(f"❌ Failed to normalize link #{id}: {e}", style="red")
+                ui.error(f"Failed to normalize link #{id}: {e}")
 
         if state.json_mode:
             _emit_json({"normalized": normalized, "failed": int(failed)})
         if failed:
-            raise typer.Exit(1)
+            raise SystemExit(1)
     else:
-        err_console.print("❌ Please specify link IDs or use --all", style="red")
-        err_console.print("💡 Hint: linkcovery normalize <id> | linkcovery normalize --all", style="yellow")
-        raise typer.Exit(1)
+        ui.error("Please specify link IDs or use --all")
+        ui.hint("linkcovery normalize <id> | linkcovery normalize --all")
+        raise SystemExit(1)
 
 
-@app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "describe",
+    "Fetch and fill in missing descriptions for links",
+    args=[
+        Arg("link_id", type=int, nargs="*", help="Link IDs to describe"),
+        Arg("-a", "--all", dest="all_links", action="store_true", help="Update descriptions for ALL links"),
+        Arg("-y", "--yes", action="store_true", help="Skip confirmation for --all"),
+        Arg("-c", "--concurrency", type=int, default=30, help="Maximum parallel fetches"),
+        Arg("--timeout", type=int, default=10, help="Fetch timeout in seconds"),
+    ],
+)
 @handle_errors
-def describe(
-    link_id: list[int] = typer.Argument(None, help="Link IDs to describe"),
-    all_links: bool = typer.Option(
-        False, "--all", "-a", help="Update descriptions for ALL links, including ones that already have one"
-    ),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation for --all"),
-    concurrency: int = typer.Option(30, "--concurrency", "-c", help="Maximum parallel fetches"),
-    timeout: int = typer.Option(10, "--timeout", help="Fetch timeout in seconds"),
-) -> None:
+def describe(link_id, all_links, yes, concurrency, timeout) -> None:
     """Fetch and fill in missing descriptions for links.
 
     Without arguments, only links with an empty description are fetched
@@ -405,10 +426,10 @@ def describe(
 
     if all_links:
         if link_id:
-            err_console.print("⚠️ Ignoring specific link IDs when --all is used", style="yellow")
+            ui.warning("Ignoring specific link IDs when --all is used")
 
         if not yes and not confirm_action("Fetch descriptions for ALL links? This overwrites existing descriptions"):
-            console.print("🛑 Description update cancelled", style="yellow")
+            ui.warning("Description update cancelled")
             return
 
         links = link_service.list_all_links()
@@ -418,9 +439,9 @@ def describe(
             try:
                 links.append(link_service.get_link(raw_id))
             except Exception as e:
-                err_console.print(f"❌ Failed to describe link #{raw_id}: {e}", style="red")
+                ui.error(f"Failed to describe link #{raw_id}: {e}")
         if len(links) < len(link_id):
-            raise typer.Exit(1)
+            raise SystemExit(1)
     else:
         links = [link for link in link_service.list_all_links() if not link.description.strip()]
 
@@ -428,7 +449,7 @@ def describe(
         if state.json_mode:
             _emit_json({"updated": [], "skipped": 0, "failed": 0})
             return
-        console.print("📭 No links found needing descriptions", style="yellow")
+        ui.warning("No links found needing descriptions")
         return
 
     async def _fetch_all(on_done: Callable[[], None]) -> list[tuple[int, str]]:
@@ -442,9 +463,8 @@ def describe(
 
         return await asyncio.gather(*(one(link.id, str(link.url)) for link in links))
 
-    with Progress(console=err_console, disable=state.json_mode) as progress:
-        task = progress.add_task("Fetching descriptions...", total=len(links))
-        results = asyncio_run(_fetch_all(lambda: progress.advance(task)))
+    with ui.progress("Fetching descriptions", len(links), enabled=not state.json_mode) as progress:
+        results = asyncio_run(_fetch_all(progress.advance))
 
     updated: list[dict] = []
     skipped = 0
@@ -458,29 +478,31 @@ def describe(
             link = link_service.update_link(link_id=link_id_, description=desc)
             updated.append(_link_dict(link))
             if not state.json_mode:
-                console.print(f"✅ Described link #{link.id}: {desc[:50]}", style="green")
+                ui.success(f"Described link #{link.id}: {desc[:50]}")
         except Exception as e:
             failed += 1
-            err_console.print(f"❌ Failed to update link #{link_id_}: {e}", style="red")
+            ui.error(f"Failed to update link #{link_id_}: {e}")
 
     if state.json_mode:
         _emit_json({"updated": updated, "skipped": skipped, "failed": failed})
     else:
-        console.print(
-            f"📊 Descriptions: {len(updated)} updated, {skipped} skipped, {failed} failed",
-            style="bold blue",
-        )
+        ui.info(f"Descriptions: {len(updated)} updated, {skipped} skipped, {failed} failed")
 
     if failed:
-        raise typer.Exit(1)
+        raise SystemExit(1)
 
 
-@app.command(name="random", rich_help_panel="Link Management")
+@command(
+    cli,
+    "random",
+    "Read random links and mark them as read",
+    args=[
+        Arg("-n", "--number", type=int, default=5, help="Number of random links to read"),
+        Arg("--include-read", action="store_true", help="Include already read links"),
+    ],
+)
 @handle_errors
-def read_random(
-    number: int = typer.Option(5, "--number", "-n", help="Number of random links to read"),
-    include_read: bool = typer.Option(False, "--include-read", help="Include already read links"),
-) -> None:
+def read_random(number, include_read) -> None:
     """Read random links from your bookmarks and mark them as read.
 
     Examples:
@@ -492,8 +514,8 @@ def read_random(
     link_service = _link_service()
 
     if number < 1:
-        err_console.print("⚠️ Number must be at least 1", style="yellow")
-        raise typer.Exit(1)
+        ui.warning("Number must be at least 1")
+        raise SystemExit(1)
 
     links = link_service.get_random_links(number=number, unread_only=not include_read)
 
@@ -503,22 +525,20 @@ def read_random(
 
     if not links:
         filter_msg = "unread " if not include_read else ""
-        console.print(f"📭 No {filter_msg}links available to read", style="yellow")
+        ui.warning(f"No {filter_msg}links available to read")
         return
 
-    console.print(f"📚 Reading {len(links)} random link{'s' if len(links) > 1 else ''}:", style="bold blue")
+    ui.heading(f"Reading {len(links)} random link{'s' if len(links) > 1 else ''}:")
 
     for link in links:
-        console.print(f"🔗 Reading link #{link.id}: {link.url}", style="blue")
+        ui.info(f"Reading link #{link.id}: {link.url}")
         if link.description:
-            console.print(f"   📝 {link.description}", style="dim")
+            ui.hint(f"{link.description}")
 
         # Only mark as read if it wasn't already read
         if not link.is_read:
             link_service.mark_as_read(link.id)
-            console.print("   ✅ Marked as read", style="green")
+            ui.success("Marked as read")
         else:
-            console.print("   📖 Already read", style="dim")
-        console.print()  # Add empty line for readability
-
-
+            ui.hint("Already read")
+        ui.out()

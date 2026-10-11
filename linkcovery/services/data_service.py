@@ -4,13 +4,13 @@ from asyncio import run as asyncio_run
 from json import JSONDecodeError, dump, load
 from pathlib import Path
 
-from rich.progress import Progress, TaskID
+from cfui import ui
 
 from linkcovery.cli.cli_state import state
 from linkcovery.core.chrome_bookmark import extractor
 from linkcovery.core.exceptions import ImportExportError
 from linkcovery.core.models import LinkExport
-from linkcovery.core.utils import console, err_console, fetch_description
+from linkcovery.core.utils import fetch_description
 from linkcovery.services.link_service import LinkService, get_link_service
 
 
@@ -29,7 +29,7 @@ class DataService:
 
             if not links:
                 if not state.json_mode:
-                    console.print("📭 No links to export", style="yellow")
+                    ui.warning("No links to export")
                 return
 
             export_data = [LinkExport.from_db_link(link).model_dump() for link in links]
@@ -39,7 +39,7 @@ class DataService:
                 dump(export_data, f, indent=2, ensure_ascii=False)
 
             if not state.json_mode:
-                console.print(f"✅ Successfully exported {len(links)} links to {output_path}", style="green")
+                ui.success(f"Successfully exported {len(links)} links to {output_path}")
 
         except Exception as e:
             msg = f"Failed to export links: {e}"
@@ -52,7 +52,7 @@ class DataService:
                 links_data = load(f)
             if not links_data:
                 if not state.json_mode:
-                    console.print("ℹ️ No links found in the JSON file", style="blue")
+                    ui.info("No links found in the JSON file")
                 return
         except JSONDecodeError as e:
             msg = f"Invalid JSON format: {e}"
@@ -66,18 +66,16 @@ class DataService:
         failed_links = []
 
         if not state.json_mode:
-            err_console.print(f"📥 Importing {len(links_data)} links...")
+            ui.info(f"Importing {len(links_data)} links...")
 
-        with Progress(console=err_console, disable=state.json_mode) as progress:
-            task: TaskID = progress.add_task("Importing links...", total=len(links_data))
-
+        with ui.progress("Importing links", len(links_data), enabled=not state.json_mode) as progress:
             for i, link_data in enumerate(links_data, 1):
                 url = link_data.get("url")
 
                 if not url or self.link_service.exists(url):
                     failed_count += 1
                     failed_links.append({"index": i, "url": url or "", "error": "URL missing or already exists"})
-                    progress.update(task, advance=1)
+                    progress.advance()
                     continue
 
                 try:
@@ -96,14 +94,14 @@ class DataService:
                     failed_count += 1
                     failed_links.append({"index": i, "url": link_data.get("url", ""), "error": str(e)})
 
-                progress.update(task, advance=1)
+                progress.advance()
 
         if not state.json_mode:
-            console.print(f"✅ Import completed: {added_count} links added", style="green")
+            ui.success(f"Import completed: {added_count} links added")
         if failed_count > 0:
-            err_console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
+            ui.warning(f"{failed_count} links failed to import")
             for failure in failed_links:
-                err_console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
+                ui.info(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def import_from_txt(self, file_path: Path) -> None:
         """Import links from a text file (one URL per line)."""
@@ -117,7 +115,7 @@ class DataService:
 
         if not urls:
             if not state.json_mode:
-                console.print("ℹ️ No links found in the text file", style="blue")
+                ui.info("No links found in the text file")
             return
 
         added_count = 0
@@ -125,16 +123,14 @@ class DataService:
         failed_links = []
 
         if not state.json_mode:
-            err_console.print(f"📥 Importing {len(urls)} links...")
+            ui.info(f"Importing {len(urls)} links...")
 
-        with Progress(console=err_console, disable=state.json_mode) as progress:
-            task: TaskID = progress.add_task("Importing links...", total=len(urls))
-
+        with ui.progress("Importing links", len(urls), enabled=not state.json_mode) as progress:
             for i, url in enumerate(urls, 1):
                 if self.link_service.exists(url):
                     failed_count += 1
                     failed_links.append({"index": i, "url": url or "", "error": "URL missing or already exists"})
-                    progress.update(task, advance=1)
+                    progress.advance()
                     continue
 
                 try:
@@ -144,14 +140,14 @@ class DataService:
                     failed_count += 1
                     failed_links.append({"index": i, "url": url, "error": str(e)})
 
-                progress.update(task, advance=1)
+                progress.advance()
 
         if not state.json_mode:
-            console.print(f"✅ Import completed: {added_count} links added", style="green")
+            ui.success(f"Import completed: {added_count} links added")
         if failed_count > 0:
-            err_console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
+            ui.warning(f"{failed_count} links failed to import")
             for failure in failed_links:
-                err_console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
+                ui.info(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def import_from_html(self, file_path: Path) -> None:
         """Import links from HTML file (Chrome export) or Chrome JSON bookmarks."""
@@ -179,7 +175,7 @@ class DataService:
 
         if not links:
             if not state.json_mode:
-                console.print("ℹ️ No links found in the HTML file", style="blue")
+                ui.info("No links found in the HTML file")
             return
 
         added_count = 0
@@ -187,16 +183,14 @@ class DataService:
         failed_links = []
 
         if not state.json_mode:
-            err_console.print(f"📥 Importing {len(links)} links...")
+            ui.info(f"Importing {len(links)} links...")
 
-        with Progress(console=err_console, disable=state.json_mode) as progress:
-            task: TaskID = progress.add_task("Importing links...", total=len(links))
-
+        with ui.progress("Importing links", len(links), enabled=not state.json_mode) as progress:
             for i, link in enumerate(links, 1):
                 if not link or self.link_service.exists(link):
                     failed_count += 1
                     failed_links.append({"index": i, "url": link or "", "error": "URL missing or already exists"})
-                    progress.update(task, advance=1)
+                    progress.advance()
                     continue
 
                 try:
@@ -209,14 +203,14 @@ class DataService:
                     failed_count += 1
                     failed_links.append({"index": i, "url": link, "error": str(e)})
 
-                progress.update(task, advance=1)
+                progress.advance()
 
         if not state.json_mode:
-            console.print(f"✅ Import completed: {added_count} links added", style="green")
+            ui.success(f"Import completed: {added_count} links added")
         if failed_count > 0:
-            err_console.print(f"⚠️  {failed_count} links failed to import", style="yellow")
+            ui.warning(f"{failed_count} links failed to import")
             for failure in failed_links:
-                err_console.print(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
+                ui.info(f"  #{failure['index']}: {failure['url']} - {failure['error']}")
 
     def export_to_markdown(self, output_path: str | Path) -> str:
         """Export all links to Markdown format. Returns the content."""
@@ -238,11 +232,11 @@ class DataService:
         for link in links:
             tag = f'<span class="tag">{link.tag}</span>' if link.tag else ""
             status = "Read" if link.is_read else "Unread"
-            desc = f"<p class=\"desc\">{link.description}</p>" if link.description else ""
+            desc = f'<p class="desc">{link.description}</p>' if link.description else ""
             rows.append(f"""<tr>
             <td><a href="{link.url}" target="_blank" rel="noopener">{link.url}</a>{desc}</td>
             <td>{tag}</td>
-            <td><span class="status-{'read' if link.is_read else 'unread'}">{status}</span></td>
+            <td><span class="status-{"read" if link.is_read else "unread"}">{status}</span></td>
             </tr>""")
         content = f"""<!doctype html>
 <html lang="en">
@@ -271,7 +265,6 @@ a {{ color: #1f7a5a; text-decoration: none; font-weight: 500; }}
 </html>"""
         Path(output_path).write_text(content, encoding="utf-8")
         return content
-
 
 
 # Global service instance

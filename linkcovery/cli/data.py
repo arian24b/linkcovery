@@ -2,10 +2,12 @@
 
 from pathlib import Path
 
-import typer
+from cfui import Arg, ui
 
+from linkcovery.cli.app import app as cli
+from linkcovery.cli.app import command
 from linkcovery.cli.cli_state import state
-from linkcovery.core.utils import confirm_action, console, err_console, handle_errors
+from linkcovery.core.utils import confirm_action, handle_errors
 
 
 def _data_service():
@@ -14,16 +16,18 @@ def _data_service():
     return get_data_service()
 
 
-app = typer.Typer(help="Import and export your bookmark data", rich_help_panel="Data Management", no_args_is_help=True)
-
-
-@app.command()
+@command(
+    cli,
+    "export",
+    "Export all your links (format picked from the suffix: .json, .md, .html)",
+    args=[
+        Arg("output", nargs="?", default="links.json", help="Output file"),
+        Arg("-f", "--force", action="store_true", help="Overwrite existing file"),
+        Arg("-y", "--yes", action="store_true", help="Overwrite without confirmation (same as --force)"),
+    ],
+)
 @handle_errors
-def export(
-    output: str = typer.Argument("links.json", help="Output file (.json/.md/.html, suffix picks format)"),
-    force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing file"),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Overwrite without confirmation (same as --force)"),
-) -> None:
+def export(output, force, yes) -> None:
     """Export all your links.
 
     Format is picked from the output suffix: .json, .md, .html.
@@ -38,7 +42,7 @@ def export(
 
     overwrite = force or yes
     if output_path.exists() and not overwrite and not confirm_action(f"File {output_path} already exists. Overwrite?"):
-        console.print("🛑 Export cancelled", style="yellow")
+        ui.warning("Export cancelled")
         return
 
     data_service = _data_service()
@@ -50,9 +54,9 @@ def export(
     elif suffix == ".json" or not suffix:
         data_service.export_to_json(output_path)
     else:
-        err_console.print(f"❌ Unsupported export format: {suffix}", style="red")
-        err_console.print("💡 Hint: use .json, .md, or .html", style="yellow")
-        raise typer.Exit(1)
+        ui.error(f"Unsupported export format: {suffix}")
+        ui.hint("use .json, .md, or .html")
+        raise SystemExit(1)
 
     if state.json_mode:
         from linkcovery.core.utils import print_json
@@ -61,13 +65,18 @@ def export(
         print_json({"exported": len(links), "file": str(output_path), "format": suffix or ".json"})
 
 
-@app.command(name="import")
+@command(
+    cli,
+    "import",
+    "Import links from a JSON, HTML, or TXT file (or Chrome)",
+    args=[
+        Arg("file_path", nargs="?", type=Path, help="File to import (.json/.html/.txt). Omit with --chrome"),
+        Arg("--chrome", action="store_true", help="Import from Chrome's bookmarks file"),
+        Arg("-y", "--yes", action="store_true", help="Skip import confirmation"),
+    ],
+)
 @handle_errors
-def import_data(
-    file_path: Path | None = typer.Argument(None, help="File to import (.json/.html/.txt). Omit with --chrome."),
-    chrome: bool = typer.Option(False, "--chrome", help="Import from Chrome's bookmarks file"),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip import confirmation"),
-) -> None:
+def import_data(file_path, chrome, yes) -> None:
     """Import links from a JSON, HTML, or TXT file (or Chrome).
 
     Examples:
@@ -82,15 +91,15 @@ def import_data(
     if chrome:
         file_path = file_path or default_chrome_bookmarks()
     if file_path is None:
-        err_console.print("❌ No file given", style="red")
-        err_console.print("💡 Hint: linkcovery import <file> | linkcovery import --chrome", style="yellow")
-        raise typer.Exit(1)
+        ui.error("No file given")
+        ui.hint("linkcovery import <file> | linkcovery import --chrome")
+        raise SystemExit(1)
     if not file_path.exists():
-        err_console.print(f"❌ File not found: {file_path}", style="red")
-        raise typer.Exit(1)
+        ui.error(f"File not found: {file_path}")
+        raise SystemExit(1)
 
     if not yes and not confirm_action(f"Import links from {file_path}?"):
-        console.print("🛑 Import cancelled", style="yellow")
+        ui.warning("Import cancelled")
         return
 
     data_service = _data_service()
@@ -104,6 +113,6 @@ def import_data(
     elif suffix == ".txt":
         data_service.import_from_txt(file_path)
     else:
-        err_console.print(f"❌ Unsupported file format: {file_path}", style="red")
-        err_console.print("💡 Hint: supported formats are .json, .html, .txt", style="yellow")
-        raise typer.Exit(1)
+        ui.error(f"Unsupported file format: {file_path}")
+        ui.hint("supported formats are .json, .html, .txt")
+        raise SystemExit(1)

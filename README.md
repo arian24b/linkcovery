@@ -425,10 +425,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built with [Typer](https://typer.tiangolo.com/) for the CLI framework
-- [Rich](https://rich.readthedocs.io/) for beautiful terminal output
+- [cfui](https://github.com/arian24b/cfui) for the CLI framework and terminal UI
 - [Pydantic](https://pydantic.dev/) for data validation and settings
 
 ---
 
 **LinkCovery** - Because your bookmarks deserve better organization! 🔗✨
+
+## Common commands
+
+Built with [cfui](https://github.com/arian24b/cfui), so every command shares the same look and flags:
+
+```bash
+linkcovery help [command]     # help
+linkcovery version            # version and git repo (also: linkcovery -v)
+linkcovery update [--check]   # self update
+linkcovery -q ...             # quiet: no banners/notes (or LINKCOVERY_QUIET=1)
+```
+
+Missing required options are asked for interactively on a TTY; in pipes/CI they fail with `--flag is required`.
