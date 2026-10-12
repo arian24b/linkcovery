@@ -5,82 +5,75 @@ import sys
 import webbrowser
 from datetime import datetime
 from pathlib import Path
-from time import sleep
+from socket import socket
 
-import typer
-import uvicorn
-from rich.console import Console
-from rich.table import Table
+from cfui import Arg, ui
 
-from linkcovery.cli import config, data, links
-from linkcovery.core.config import get_config
-from linkcovery.core.utils import console, handle_errors
-from linkcovery.services.link_service import get_link_service
-from linkcovery.webui.app import app
-
-console = Console()
-
-BANNER = r"""
-██╗     ██╗███╗   ██╗██╗  ██╗ ██████╗ ██████╗ ██╗   ██╗███████╗██████╗ ██╗   ██╗
-██║     ██║████╗  ██║██║ ██╔╝██╔════╝██╔═══██╗██║   ██║██╔════╝██╔══██╗╚██╗ ██╔╝
-██║     ██║██╔██╗ ██║█████╔╝ ██║     ██║   ██║██║   ██║█████╗  ██████╔╝ ╚████╔╝
-██║     ██║██║╚██╗██║██╔═██╗ ██║     ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗  ╚██╔╝
-███████╗██║██║ ╚████║██║  ██╗╚██████╗╚██████╔╝ ╚████╔╝ ███████╗██║  ██║   ██║
-╚══════╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝   ╚═╝
-"""
-
-BANNER_COLOR = "cyan"
+# importing these registers their commands on the app
+from linkcovery.cli import config as _config  # noqa: F401
+from linkcovery.cli import data as _data  # noqa: F401
+from linkcovery.cli import links as _links  # noqa: F401
+from linkcovery.cli.app import app as cli
+from linkcovery.cli.app import command
+from linkcovery.cli.cli_state import state
+from linkcovery.core.utils import handle_errors, print_json
 
 
-def show_banner() -> None:
-    """Display the LinkCovery banner."""
-    console.print(BANNER, style="cyan")
-    config = get_config()
-    console.print(f"  [bold]{config.app_name}[/bold] v{config.version}")
-    console.print("  [dim]Modern bookmark management tool[/dim]\n")
+def _get_config():
+    from linkcovery.core.config import get_config
+
+    return get_config()
 
 
-# Main app
-cli_app = typer.Typer(
-    name="linkcovery",
-    help="🔗 Modern bookmark and link management tool",
-    no_args_is_help=True,
-    rich_markup_mode="rich",
+def get_link_service():
+    """Lazy proxy: --help must not pay the pydantic/db import cost."""
+    from linkcovery.services.link_service import get_link_service as _get
+
+    return _get()
+
+
+@command(
+    cli,
+    "webui",
+    "Run the LinkCovery web UI",
+    args=[
+        Arg("--host", default="127.0.0.1", help="Host to bind"),
+        Arg("--port", type=int, default=8000, help="Port to listen on"),
+        Arg("--reload", action="store_true", help="Auto-reload on code changes"),
+        Arg("--background", action="store_true", help="Run web UI in background"),
+    ],
 )
-
-# Add command groups
-cli_app.add_typer(links.app)
-cli_app.add_typer(data.app)
-cli_app.add_typer(config.app, name="config")
-
-
-@cli_app.command(rich_help_panel="Other")
 @handle_errors
-def webui(
-    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind"),
-    port: int = typer.Option(8000, "--port", help="Port to listen on"),
-    reload: bool = typer.Option(False, "--reload", help="Auto-reload on code changes"),
-    background: bool = typer.Option(False, "--background", help="Run web UI in background"),
-) -> None:
+def webui(host, port, reload, background) -> None:
     """Run the LinkCovery web UI."""
+    import uvicorn
+
+    from linkcovery.webui.app import app
+
     url = f"http://{host}:{port}"
 
     if background:
-        log_dir = get_config().get_log_dir()
+        log_dir = _get_config().get_log_dir()
         log_file = log_dir / "webui.log"
         command = [sys.executable, "-m", "uvicorn", "linkcovery.webui.app:app", "--host", host, "--port", str(port)]
         if reload:
             command.append("--reload")
         with open(log_file, "ab") as log_handle:
             process = subprocess.Popen(command, stdout=log_handle, stderr=log_handle)
-        console.print(f"🌐 Web UI running at {url}", style="green")
-        console.print(f"🧾 Logs: {log_file}", style="dim")
-        console.print(f"🧩 PID: {process.pid}", style="dim")
-        sleep(1.5)
+
+        if not _wait_for_port(host, port, timeout=10.0):
+            process.terminate()
+            ui.error(f"Web UI failed to start at {url} within 10s")
+            ui.hint(f"check {log_file} for details")
+            raise SystemExit(1)
+
+        ui.success(f"Web UI running at {url}")
+        ui.hint(f"Logs: {log_file}")
+        ui.hint(f"PID: {process.pid}")
         webbrowser.open(url)
         return
 
-    console.print(f"🌐 Web UI running at {url}", style="green")
+    ui.success(f"Web UI running at {url}")
     webbrowser.open(url)
     if reload:
         uvicorn.run("linkcovery.webui.app:app", host=host, port=port, reload=True)
@@ -88,67 +81,99 @@ def webui(
         uvicorn.run(app, host=host, port=port)
 
 
-@cli_app.command(rich_help_panel="Other")
+def _wait_for_port(host: str, port: int, timeout: float = 10.0) -> bool:
+    """Poll until the port accepts connections or give up."""
+    from time import sleep, time
+
+    deadline = time() + timeout
+    while time() < deadline:
+        try:
+            with socket() as sock:
+                sock.settimeout(0.5)
+                if sock.connect_ex((host, port)) == 0:
+                    return True
+        except OSError:
+            pass
+        sleep(0.2)
+    return False
+
+
+@command(cli, "stats", "Show bookmark statistics")
 @handle_errors
 def stats() -> None:
     """Show bookmark statistics."""
     link_service = get_link_service()
     stats_data = link_service.get_statistics()
 
-    console.print("📊 [bold blue]LinkCovery Statistics[/bold blue]")
-    console.print(f"   Total links: [bold]{stats_data['total_links']}[/bold]")
-    console.print(f"   Read: [green]{stats_data['read_links']}[/green]")
-    console.print(f"   Unread: [yellow]{stats_data['unread_links']}[/yellow]")
+    if state.json_mode:
+        print_json(stats_data, ensure_ascii=False, default=str)
+        return
+
+    ui.heading("LinkCovery Statistics")
+    ui.out(f"   Total links: {stats_data['total_links']}")
+    ui.out(f"   Read: {stats_data['read_links']}")
+    ui.out(f"   Unread: {stats_data['unread_links']}")
 
     if stats_data["top_domains"]:
-        console.print("\n   Top domains:")
+        ui.out("\n   Top domains:")
         for domain, count in stats_data["top_domains"][:5]:
-            console.print(f"     [cyan]{domain}[/cyan]: {count}")
+            ui.out(f"     {domain}: {count}")
 
 
-@cli_app.command(rich_help_panel="Other")
+@command(cli, "paths", "Show all LinkCovery file paths")
 @handle_errors
 def paths() -> None:
     """Show all LinkCovery file paths."""
-    config = get_config()
-
-    table = Table(title="📂 LinkCovery Paths")
-    table.add_column("Location", style="cyan")
-    table.add_column("Path", style="green")
-    table.add_column("Size", style="yellow")
-    table.add_column("Modified", style="dim")
+    config = _get_config()
 
     config_file = config.get_config_dir() / "config.json"
-    if config_file.exists():
-        config_size = f"{config_file.stat().st_size:,} bytes"
-        config_modified = datetime.fromtimestamp(config_file.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
-    else:
-        config_size = "N/A"
-        config_modified = "N/A"
+    config_size = f"{config_file.stat().st_size:,} bytes" if config_file.exists() else "N/A"
+    config_modified = (
+        datetime.fromtimestamp(config_file.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+        if config_file.exists()
+        else "N/A"
+    )
 
     db_path = Path(config.get_database_path())
-    if db_path.exists():
-        db_size = f"{db_path.stat().st_size:,} bytes"
-        db_modified = datetime.fromtimestamp(db_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
-    else:
-        db_size = "N/A"
-        db_modified = "N/A"
+    db_size = f"{db_path.stat().st_size:,} bytes" if db_path.exists() else "N/A"
+    db_modified = (
+        datetime.fromtimestamp(db_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M") if db_path.exists() else "N/A"
+    )
 
     data_dir = db_path.parent
-    table.add_row("Configuration", str(config_file), config_size, config_modified)
-    table.add_row("Database", str(db_path), db_size, db_modified)
-    table.add_row("Data Directory", str(data_dir), "-", "-")
 
-    console.print(table)
+    if state.json_mode:
+        print_json(
+            {
+                "config_file": str(config_file),
+                "database": str(db_path),
+                "data_dir": str(data_dir),
+            }
+        )
+        return
+
+    ui.table(
+        [
+            ("Configuration", config_file, config_size, config_modified),
+            ("Database", db_path, db_size, db_modified),
+            ("Data Directory", data_dir, "-", "-"),
+        ],
+        ["Location", "Path", "Size", "Modified"],
+    )
 
 
-@cli_app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "mark",
+    "Mark links as read or unread (toggles when neither flag is given)",
+    args=[
+        Arg("link_ids", type=int, nargs="+", required=True, prompt="Link IDs to mark", help="Link IDs to mark"),
+        Arg("-r", "--read", action="store_true", help="Mark as read"),
+        Arg("-u", "--unread", action="store_true", help="Mark as unread"),
+    ],
+)
 @handle_errors
-def mark(
-    link_ids: list[int] = typer.Argument(..., help="Link IDs to mark"),
-    read: bool = typer.Option(None, "--read", "-r", help="Mark as read"),
-    unread: bool = typer.Option(None, "--unread", "-u", help="Mark as unread"),
-) -> None:
+def mark(link_ids, read, unread) -> None:
     """Mark links as read or unread.
 
     If neither --read nor --unread is specified, toggles the current status.
@@ -162,6 +187,8 @@ def mark(
     """
     link_service = get_link_service()
 
+    failed = False
+    marked = []
     for link_id in link_ids:
         try:
             link = link_service.get_link(link_id)
@@ -175,85 +202,57 @@ def mark(
 
             if new_status:
                 link_service.mark_as_read(link_id)
-                console.print(f"✅ Marked link #{link_id} as read", style="green")
             else:
                 link_service.mark_as_unread(link_id)
-                console.print(f"✅ Marked link #{link_id} as unread", style="green")
+            marked.append({"id": link_id, "is_read": new_status})
+            if not state.json_mode:
+                ui.success(f"Marked link #{link_id} as {'read' if new_status else 'unread'}")
 
         except Exception as e:
-            console.print(f"❌ Failed to mark link #{link_id}: {e}", style="red")
+            failed = True
+            ui.error(f"Failed to mark link #{link_id}: {e}")
+
+    if state.json_mode:
+        print_json({"marked": marked, "failed": failed})
+    if failed:
+        raise SystemExit(1)
 
 
-@cli_app.command(rich_help_panel="Link Management")
+@command(
+    cli,
+    "open",
+    "Open links in your default web browser",
+    args=[Arg("link_ids", type=int, nargs="+", required=True, prompt="Link IDs to open", help="Link IDs to open")],
+)
 @handle_errors
-def open_link(
-    link_ids: list[int] = typer.Argument(..., help="Link IDs to open"),
-) -> None:
+def open_link(link_ids) -> None:
     """Open links in your default web browser.
 
     Examples:
         linkcovery open 1              # Open link #1
-        linkcovery open 1 2 3         # Open multiple links
+        linkcovery open 1 2 3          # Open multiple links
 
     """
     link_service = get_link_service()
 
+    failed = False
+    opened = []
     for link_id in link_ids:
         try:
             link = link_service.get_link(link_id)
             link_service.open_link(link_id)
-            console.print(f"🌐 Opening link #{link_id}: {link.url}", style="blue")
+            opened.append({"id": link_id, "url": link.url})
+            if not state.json_mode:
+                ui.info(f"Opening link #{link_id}: {link.url}")
         except Exception as e:
-            console.print(f"❌ Failed to open link #{link_id}: {e}", style="red")
+            failed = True
+            ui.error(f"Failed to open link #{link_id}: {e}")
+
+    if state.json_mode:
+        print_json({"opened": opened, "failed": failed})
+    if failed:
+        raise SystemExit(1)
 
 
-# Command aliases (hidden from main help)
-@cli_app.command(rich_help_panel="Link Management", hidden=True)
-@handle_errors
-def ls(*args, **kwargs) -> None:
-    """Alias for 'list' command."""
-    from linkcovery.cli.links import list_links
-
-    list_links(*args, **kwargs)
-
-
-@cli_app.command(rich_help_panel="Link Management", hidden=True)
-@handle_errors
-def find(*args, **kwargs) -> None:
-    """Alias for 'search' command."""
-    from linkcovery.cli.links import search
-
-    search(*args, **kwargs)
-
-
-@cli_app.command(rich_help_panel="Link Management", hidden=True)
-@handle_errors
-def new(*args, **kwargs) -> None:
-    """Alias for 'add' command."""
-    from linkcovery.cli.links import add
-
-    add(*args, **kwargs)
-
-
-@cli_app.command(rich_help_panel="Link Management", hidden=True)
-@handle_errors
-def rm(*args, **kwargs) -> None:
-    """Alias for 'delete' command."""
-    from linkcovery.cli.links import delete
-
-    delete(*args, **kwargs)
-
-
-@cli_app.command(rich_help_panel="Other")
-def version() -> None:
-    """Show version information."""
-    show_banner()
-
-
-@cli_app.callback(no_args_is_help=True)
 def main() -> None:
-    """LinkCovery - Modern bookmark management tool.
-
-    Efficiently manage, search, and organize your bookmarks with a clean CLI interface.
-    """
-    show_banner()
+    cli.main()

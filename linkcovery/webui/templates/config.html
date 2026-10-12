@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LinkCovery Config</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+      :root {
+        --bg: #f7f7f4; --panel: #ffffff; --ink: #1d1f1f; --ink-secondary: #5b5f63;
+        --muted: #808588; --border: #e3e6e8; --border-light: #eef0f1;
+        --accent: #1f7a5a; --accent-hover: #16694b; --accent-soft: #e1f0eb;
+        --accent-ink: #ffffff; --warning: #d55c3a; --warning-soft: #fce9e3;
+        --shadow-sm: 0 1px 3px rgba(24,26,28,0.06);
+        --shadow: 0 6px 20px rgba(24,26,28,0.08);
+        --radius: 12px; --radius-lg: 16px;
+        --toast-bg: #1d1f1f; --toast-text: #f0f0ee;
+      }
+      .dark { --bg: #131415; --panel: #1a1c1e; --ink: #e8e8e5; --ink-secondary: #9ea2a7;
+        --muted: #6b6f74; --border: #2d3033; --border-light: #26282b;
+        --accent: #2dab7f; --accent-hover: #3abf90; --accent-soft: #1a2e27;
+        --accent-ink: #0f1214; --warning: #e07a5f; --warning-soft: #2e1b15;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.2); --shadow: 0 6px 20px rgba(0,0,0,0.3);
+        --toast-bg: #e8e8e5; --toast-text: #131415; }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: var(--ink); background: var(--bg); transition: background 0.2s; -webkit-font-smoothing: antialiased; }
+      a { color: inherit; text-decoration: none; }
+      input, select, button { font-family: inherit; }
+      .container { max-width: 720px; margin: 0 auto; padding: 28px 20px 60px; }
+      .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+      .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.03em;
+        background: linear-gradient(135deg, var(--accent), #3abf90);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+      .header-actions { display: flex; gap: 8px; align-items: center; }
+      .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+        padding: 24px; box-shadow: var(--shadow); }
+      .panel-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+      .field { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: center;
+        padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+      .field:last-child { border-bottom: none; }
+      .field-label { display: flex; flex-direction: column; gap: 2px; }
+      .field-name { font-size: 14px; font-weight: 600; }
+      .field-desc { font-size: 12px; color: var(--muted); }
+      .field-input { display: flex; align-items: center; gap: 8px; }
+      .field-input input, .field-input select { padding: 7px 10px; border: 1px solid var(--border);
+        border-radius: var(--radius); background: var(--bg); color: var(--ink); font-size: 13px;
+        min-width: 120px; }
+      .field-input input:focus { outline: none; border-color: var(--accent); }
+      .field-input .value-display { font-size: 13px; color: var(--ink-secondary); font-family: monospace; }
+      .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: none;
+        border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer;
+        transition: all 0.15s; white-space: nowrap; }
+      .btn-primary { background: var(--accent); color: var(--accent-ink); }
+      .btn-primary:hover { background: var(--accent-hover); }
+      .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--ink-secondary); }
+      .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+      .btn-danger { background: var(--warning); color: #fff; }
+      .btn-danger:hover { opacity: 0.9; }
+      .btn-sm { padding: 5px 10px; font-size: 12px; }
+      .actions { display: flex; gap: 10px; margin-top: 18px; }
+      .toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+      .toast { background: var(--toast-bg); color: var(--toast-text); padding: 10px 16px;
+        border-radius: var(--radius); font-size: 13px; font-weight: 500; box-shadow: var(--shadow);
+        animation: slideIn 0.25s ease; max-width: 320px; }
+      @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+      .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+      .badge.ok { background: var(--accent-soft); color: var(--accent); }
+      .badge.warn { background: var(--warning-soft); color: var(--warning); }
+      .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border);
+        border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+      .switch input { opacity: 0; width: 0; height: 0; }
+      .slider { position: absolute; cursor: pointer; inset: 0; background: var(--border);
+        border-radius: 22px; transition: 0.2s; }
+      .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px;
+        bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+      .switch input:checked + .slider { background: var(--accent); }
+      .switch input:checked + .slider::before { transform: translateX(18px); }
+      @media (max-width: 600px) {
+        .field { grid-template-columns: 1fr; }
+        .field-input { justify-content: flex-start; }
+      }
+    </style>
+  </head>
+  <body x-data="configApp()" :class="{ dark: isDark }">
+    <div class="toast-container">
+      <template x-for="t in toasts" :key="t.id">
+        <div class="toast" x-text="t.message"></div>
+      </template>
+    </div>
+
+    <div class="container">
+      <div class="header">
+        <a href="/" class="logo">&#8592; LinkCovery</a>
+        <div class="header-actions">
+          <span class="badge" :class="validationStatus === 'ok' ? 'ok' : 'warn'"
+                x-text="validationStatus === 'ok' ? 'Valid' : validationStatus === 'loading' ? '...' : 'Issues'"></span>
+          <button class="btn btn-sm btn-ghost" @click="validate()">Validate</button>
+          <button class="btn btn-sm btn-ghost" @click="isDark = !isDark; localStorage.setItem('dark', isDark)"
+                  x-html="isDark ? '&#9789;' : '&#9788;'"></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Configuration</div>
+
+        <template x-for="(cfg, key) in config" :key="key">
+          <template x-if="!key.startsWith('_') && key !== 'version'">
+            <div class="field">
+              <div class="field-label">
+                <div class="field-name" x-text="key.replace(/_/g, ' ')"></div>
+                <div class="field-desc" x-text="fieldDescriptions[key] || ''"></div>
+              </div>
+              <div class="field-input">
+                <!-- Boolean -->
+                <label class="switch" x-show="isBool(cfg)" x-data="{ val: cfg }">
+                  <input type="checkbox" :checked="cfg" @change="updateConfig(key, $event.target.checked)" />
+                  <span class="slider"></span>
+                </label>
+                <!-- Number -->
+                <input x-show="isNumber(cfg)" type="number" :value="cfg"
+                       @change="updateConfig(key, $event.target.value)" />
+                <!-- List (comma-separated) -->
+                <input x-show="isList(cfg)" type="text" :value="listToString(cfg)"
+                       @change="updateConfig(key, $event.target.value)" />
+                <!-- String -->
+                <input x-show="isString(cfg) && !isBool(cfg) && !isNumber(cfg) && !isList(cfg)" type="text"
+                       :value="cfg" @change="updateConfig(key, $event.target.value)" />
+              </div>
+              <button class="btn btn-sm btn-primary" @click="saveConfig(key)">Save</button>
+            </div>
+          </template>
+        </template>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-danger" @click="resetConfig">Reset to defaults</button>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("alpine:init", () => {
+        Alpine.data("configApp", () => ({
+          config: {},
+          toasts: [],
+          validationStatus: "loading",
+          isDark: localStorage.getItem("dark") === "true",
+          editing: {},
+
+          fieldDescriptions: {
+            app_name: "Application display name",
+            database_path: "Custom database file path (leave empty for default)",
+            default_export_format: "Default format for exports",
+            max_search_results: "Maximum number of search results",
+            allowed_extensions: "Comma-separated list of allowed file extensions",
+            debug: "Enable debug mode",
+          },
+
+          init() {
+            this.fetchConfig();
+          },
+
+          async fetchConfig() {
+            try {
+              const r = await fetch("/api/config");
+              this.config = await r.json();
+              this.validate();
+            } catch (e) {
+              this.toast("Failed to load config");
+            }
+          },
+
+          isBool(v) { return typeof v === "boolean"; },
+          isNumber(v) { return typeof v === "number"; },
+          isString(v) { return typeof v === "string"; },
+          isList(v) { return Array.isArray(v); },
+          listToString(v) { return Array.isArray(v) ? v.join(", ") : v; },
+
+          async updateConfig(key, rawValue) {
+            let value = rawValue;
+            if (typeof rawValue === "boolean") {
+              value = rawValue ? "true" : "false";
+            } else if (typeof rawValue === "number") {
+              value = String(rawValue);
+            }
+            this.editing[key] = value;
+            this.saveConfig(key);
+          },
+
+          async saveConfig(key) {
+            const value = this.editing[key];
+            if (value === undefined) {
+              const current = this.config[key];
+              if (typeof current === "boolean") {
+                this.editing[key] = current ? "true" : "false";
+              } else {
+                this.editing[key] = String(current);
+              }
+            }
+            const data = new FormData();
+            data.append("key", key);
+            data.append("value", this.editing[key]);
+            try {
+              const r = await fetch("/api/config/update", { method: "POST", body: data });
+              const result = await r.json();
+              if (result.status === "ok") {
+                this.toast("Saved: " + key);
+                this.fetchConfig();
+              } else {
+                this.toast("Error: " + (result.message || "Unknown"));
+              }
+            } catch (e) {
+              this.toast("Failed to save");
+            }
+          },
+
+          async resetConfig() {
+            if (!confirm("Reset all configuration to defaults?")) return;
+            try {
+              await fetch("/api/config/reset", { method: "POST" });
+              this.toast("Configuration reset");
+              this.fetchConfig();
+            } catch (e) {
+              this.toast("Failed to reset");
+            }
+          },
+
+          async validate() {
+            this.validationStatus = "loading";
+            try {
+              const r = await fetch("/api/config/validate");
+              const data = await r.json();
+              this.validationStatus = data.valid ? "ok" : "issues";
+            } catch (e) {
+              this.validationStatus = "issues";
+            }
+          },
+
+          toast(message) {
+            const id = Date.now();
+            this.toasts.push({ id, message });
+            setTimeout(() => { this.toasts = this.toasts.filter((t) => t.id !== id); }, 3000);
+          },
+        }));
+      });
+    </script>
+  </body>
+</html>

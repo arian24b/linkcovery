@@ -4,66 +4,85 @@ import platform
 import subprocess
 from pathlib import Path
 
-import typer
-from rich.table import Table as RichTable
+from cfui import Arg, ui
 
-from linkcovery.core.config import get_config, get_config_manager
-from linkcovery.core.utils import confirm_action, console, handle_errors
+from linkcovery.cli.app import app, command
+from linkcovery.cli.cli_state import state
+from linkcovery.core.utils import confirm_action, handle_errors, print_json
 
-app = typer.Typer(help="Manage LinkCovery configuration", rich_help_panel="Configuration", no_args_is_help=True)
+cli = app.group("config", "Manage LinkCovery configuration")
 
 
-@app.command(rich_help_panel="Configuration")
+def _config_manager():
+    from linkcovery.core.config import get_config_manager
+
+    return get_config_manager()
+
+
+def _config():
+    from linkcovery.core.config import get_config
+
+    return get_config()
+
+
+@command(cli, "show", "Show current configuration with each value's source")
 @handle_errors
 def show() -> None:
-    """Show current configuration.
+    """Show current configuration with each value's source.
 
     Examples:
         linkcovery config show
 
     """
-    config_manager = get_config_manager()
+    config_manager = _config_manager()
     config_data = config_manager.list_all()
 
-    table = RichTable(title="⚙️ LinkCovery Configuration")
-    table.add_column("Setting", style="cyan")
-    table.add_column("Value", style="green")
+    # database_path resolves specially (env wins); show the effective value.
+    if config_manager.value_source("database_path") == "env":
+        from os import getenv
 
+        config_data["database_path"] = getenv("LINKCOVERY_DB")
+
+    if state.json_mode:
+        payload = {key: {"value": v, "source": config_manager.value_source(key)} for key, v in config_data.items()}
+        print_json(payload)
+        return
+
+    rows = []
     for key, value in config_data.items():
-        # Format the display value
-        if isinstance(value, bool):
-            display_value = "✅ True" if value else "❌ False"
-        elif isinstance(value, list):
-            display_value = ", ".join(str(v) for v in value)
-        else:
-            display_value = str(value)
-
-        table.add_row(key, display_value)
-
-    console.print(table)
+        display_value = ", ".join(str(v) for v in value) if isinstance(value, list) else str(value)
+        rows.append((key, display_value, config_manager.value_source(key)))
+    ui.table(rows, ["Setting", "Value", "Source"])
 
 
-@app.command(rich_help_panel="Configuration")
+@command(
+    cli,
+    "get",
+    "Get a specific configuration value",
+    args=[Arg("key", required=True, prompt="Configuration key", help="Configuration key to retrieve")],
+)
 @handle_errors
-def get(key: str = typer.Argument(..., help="Configuration key to retrieve")) -> None:
+def get(key) -> None:
     """Get a specific configuration value.
 
     Examples:
         linkcovery config get max_search_results
 
     """
-    config_manager = get_config_manager()
+    config_manager = _config_manager()
     value = config_manager.get(key)
 
-    console.print(f"⚙️ {key}: {value}")
+    ui.out(f"{value}")
 
 
-@app.command(rich_help_panel="Configuration")
+@command(
+    cli,
+    "set",
+    "Set a configuration value (run without arguments to list keys)",
+    args=[Arg("key", nargs="?", help="Configuration key to set"), Arg("value", nargs="?", help="New value")],
+)
 @handle_errors
-def set(
-    key: str = typer.Argument(None, help="Configuration key to set"),
-    value: str = typer.Argument(None, help="New value for configuration key"),
-) -> None:
+def set(key, value) -> None:
     """Set a configuration value.
 
     Run without arguments to see all available keys.
@@ -76,25 +95,22 @@ def set(
     """
     # If no key provided, show all available keys
     if not key:
-        console.print("📋 Available Configuration Keys:", style="bold blue")
-        console.print()
-        console.print("  [cyan]app_name[/cyan]           Application name")
-        console.print("  [cyan]debug[/cyan]              Enable debug mode (true/false)")
-        console.print("  [cyan]max_search_results[/cyan]  Maximum search results (number)")
-        console.print("  [cyan]default_export_format[/cyan] Export format (json)")
-        console.print("  [cyan]allowed_extensions[/cyan]  Allowed file extensions")
-        console.print()
-        console.print("Examples:")
-        console.print("  linkcovery config set debug true")
-        console.print("  linkcovery config set max_search_results 100")
+        ui.heading("Available Configuration Keys:")
+        ui.out()
+        ui.out("  app_name           Application name")
+        ui.out("  debug              Enable debug mode (true/false)")
+        ui.out("  max_search_results  Maximum search results (number)")
+        ui.out("  default_export_format Export format (json)")
+        ui.out("  allowed_extensions  Allowed file extensions")
+        ui.out()
+        ui.out("Examples:")
+        ui.out("  linkcovery config set debug true")
+        ui.out("  linkcovery config set max_search_results 100")
         return
 
-    if not value:
-        console.print("❌ Please provide a value to set", style="red")
-        console.print("💡 Usage: linkcovery config set <key> <value>", style="yellow")
-        raise typer.Exit(1)
+    value = ui.need(value, "value", f"New value for {key}", positional=True)
 
-    config_manager = get_config_manager()
+    config_manager = _config_manager()
 
     # Try to parse the value as the appropriate type
     parsed_value = value
@@ -112,28 +128,33 @@ def set(
         parsed_value = [item.strip() for item in value.split(",")]
 
     config_manager.set(key, parsed_value)
-    console.print(f"✅ Set {key} = {parsed_value}", style="green")
+    ui.success(f"Set {key} = {parsed_value}")
 
 
-@app.command(rich_help_panel="Configuration")
+@command(
+    cli,
+    "reset",
+    "Reset configuration to defaults",
+    args=[Arg("-y", "--yes", action="store_true", help="Skip confirmation")],
+)
 @handle_errors
-def reset() -> None:
+def reset(yes) -> None:
     """Reset configuration to defaults.
 
     Examples:
         linkcovery config reset
 
     """
-    if not confirm_action("Reset all configuration to defaults?"):
-        console.print("🛑 Reset cancelled", style="yellow")
+    if not yes and not confirm_action("Reset all configuration to defaults?"):
+        ui.warning("Reset cancelled")
         return
 
-    config_manager = get_config_manager()
+    config_manager = _config_manager()
     config_manager.reset()
-    console.print("✅ Configuration reset to defaults", style="green")
+    ui.success("Configuration reset to defaults")
 
 
-@app.command(rich_help_panel="Configuration")
+@command(cli, "edit", "Open config file in default editor")
 @handle_errors
 def edit() -> None:
     """Open config file in default editor.
@@ -142,7 +163,7 @@ def edit() -> None:
         linkcovery config edit
 
     """
-    config_manager = get_config_manager()
+    config_manager = _config_manager()
 
     try:
         config_file = str(config_manager._config_file)
@@ -154,12 +175,12 @@ def edit() -> None:
         else:  # Linux
             subprocess.Popen(["xdg-open", config_file])
 
-        console.print(f"📝 Opening config file: {config_file}", style="green")
+        ui.success(f"Opening config file: {config_file}")
     except Exception as e:
-        console.print(f"❌ Failed to open config file: {e}", style="red")
+        ui.error(f"Failed to open config file: {e}")
 
 
-@app.command(rich_help_panel="Configuration")
+@command(cli, "validate", "Validate current configuration values")
 @handle_errors
 def validate() -> None:
     """Validate current configuration values.
@@ -168,22 +189,15 @@ def validate() -> None:
         linkcovery config validate
 
     """
-    get_config_manager()
+    _config_manager()
 
-    console.print("✅ Configuration is valid!", style="green")
-    table = RichTable(title="Configuration Summary")
-    table.add_column("Setting", style="cyan")
-    table.add_column("Value", style="green")
-    table.add_column("Status", style="yellow")
-
-    # Check database path exists and is writable
-    db_path = Path(get_config().get_database_path())
-    db_status = "✅ OK" if db_path.exists() else "⚠️  Will be created"
-    table.add_row("Database Path", str(db_path), db_status)
-
-    # Check config dir exists
-    config_dir = get_config().get_config_dir()
-    config_status = "✅ OK" if config_dir.exists() else "⚠️  Will be created"
-    table.add_row("Config Directory", str(config_dir), config_status)
-
-    console.print(table)
+    ui.success("Configuration is valid!")
+    db_path = Path(_config().get_database_path())
+    config_dir = _config().get_config_dir()
+    ui.table(
+        [
+            ("Database Path", db_path, "ok" if db_path.exists() else "will be created"),
+            ("Config Directory", config_dir, "ok" if config_dir.exists() else "will be created"),
+        ],
+        ["Setting", "Value", "Status"],
+    )
