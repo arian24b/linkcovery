@@ -15,11 +15,22 @@ Derived from the installed `cf` package (v1.0.0-beta.14, `dist/theme|banner|ui|o
 from cfui import App, Arg, Fail, ui
 from cfui.common import YES, JSON, DRY_RUN, add_config, confirm, run_parallel
 
-app = App("tool", repo="https://github.com/me/tool", pypi="tool", description="Does things.")
+app = App(
+    "tool",
+    repo="https://github.com/me/tool",
+    pypi="tool",
+    description="Does things.",
+)
 
-@app.command("greet", "Say hi", args=[Arg("--name", required=True, prompt="Your name"), JSON])
+
+@app.command(
+    "greet",
+    "Say hi",
+    args=[Arg("--name", required=True, prompt="Your name"), JSON],
+)
 def greet(a):
     ui.data({"hello": a.name}) if a.json else ui.success(f"hi {a.name}")
+
 
 def main():
     app.main()
