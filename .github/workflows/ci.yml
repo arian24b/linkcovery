@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Run tests
+        run: uv run pytest -q
+
       - name: Run ruff check
         run: uvx ruff check . --respect-gitignore --config pyproject.toml
 

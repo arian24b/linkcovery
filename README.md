@@ -4,7 +4,7 @@
 
 # LinkCovery
 
-[فارسی](README.fa.md)
+[English](README.md) | [فارسی](README.fa.md)
 
 A bookmark manager for the terminal, with a small web UI. Add links, search them by text, domain or tag, mark what you have read, and move your data in and out as JSON, HTML or TXT.
 
@@ -29,6 +29,26 @@ linkcovery mark 1                      # toggle read/unread
 linkcovery export my-bookmarks.md      # .json, .md or .html, picked from the suffix
 linkcovery import bookmarks.html
 linkcovery webui                       # http://127.0.0.1:8000
+```
+
+## How it works
+
+Links live in a single SQLite file (`links` table: URL, domain, description, tag, read flag, preview URL, timestamps; WAL mode). `add` fetches the page title/description with `httpx` unless you pass `--no-fetch`. The CLI (`linkcovery/cli`, built on cfuicli) and the FastAPI web UI (`linkcovery/webui`) both call the same service layer (`linkcovery/services`) over the same database, so they always show the same data.
+
+Sample session (database in a temp file via `LINKCOVERY_DB`):
+
+```text
+$ linkcovery add https://example.com -d "Example site" -t demo --no-fetch
+$ linkcovery list
+ID  Status  URL                                     Description   Tag         Added
+2   new     https://github.com/arian24b/linkcovery                python,cli  2026-10-12
+1   new     https://example.com                     Example site  demo        2026-10-12
+$ linkcovery mark 1
+$ linkcovery stats
+LinkCovery Statistics
+   Total links: 2
+   Read: 1
+   Unread: 1
 ```
 
 ## Commands

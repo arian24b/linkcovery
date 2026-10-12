@@ -4,7 +4,7 @@
 
 # LinkCovery
 
-[English](README.md)
+[English](README.md) | [فارسی](README.fa.md)
 
 مدیر بوکمارک برای ترمینال، با یک رابط وب کوچک. لینک‌ها را اضافه کنید، با متن، دامنه یا برچسب جست‌وجو کنید، لینک‌های خوانده‌شده را علامت بزنید و داده‌ها را با قالب JSON، HTML یا TXT وارد و خارج کنید.
 
@@ -29,6 +29,26 @@ linkcovery mark 1                      # جابه‌جایی بین خوانده
 linkcovery export my-bookmarks.md      # .json یا .md یا .html؛ از پسوند فایل تشخیص می‌دهد
 linkcovery import bookmarks.html
 linkcovery webui                       # http://127.0.0.1:8000
+```
+
+## چطور کار می‌کند
+
+لینک‌ها در یک فایل SQLite نگه داشته می‌شوند (جدول `links` با URL، دامنه، توضیح، برچسب، وضعیت خوانده‌شدن، آدرس پیش‌نمایش و زمان‌ها؛ حالت WAL). دستور `add` عنوان و توضیح صفحه را با `httpx` می‌گیرد، مگر اینکه `--no-fetch` بدهید. رابط خط فرمان (`linkcovery/cli`، روی cfuicli) و رابط وب FastAPI (`linkcovery/webui`) هر دو از یک لایهٔ سرویس (`linkcovery/services`) و یک پایگاه داده استفاده می‌کنند، پس همیشه داده‌ی یکسانی نشان می‌دهند.
+
+نمونهٔ اجرا (پایگاه داده در یک فایل موقت، با `LINKCOVERY_DB`):
+
+```text
+$ linkcovery add https://example.com -d "Example site" -t demo --no-fetch
+$ linkcovery list
+ID  Status  URL                                     Description   Tag         Added
+2   new     https://github.com/arian24b/linkcovery                python,cli  2026-10-12
+1   new     https://example.com                     Example site  demo        2026-10-12
+$ linkcovery mark 1
+$ linkcovery stats
+LinkCovery Statistics
+   Total links: 2
+   Read: 1
+   Unread: 1
 ```
 
 ## دستورها
